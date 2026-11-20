@@ -171,6 +171,11 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
 
+### Implementation status (Phase 3)
+All nodes in the diagram are implemented. `retrieve_schema` runs hybrid retrieval and sends about 4.5 of 10
+tables plus join hints. `visualize` produces validated ECharts specs or KPI cards. `explain` produces a
+grounded summary in the user's locale. `remember` updates long-term memory. Measured choices: ADR-0019.
+
 ### Implementation status (Phase 2)
 Implemented: `understand` (deterministic guard first, ADR-0018), `plan`, `resolve_time`, `generate_sql`,
 `validate`, `execute`, `repair`, `verify_results` (date filters, empty/NULL results, glossary `requires`) and a
@@ -190,6 +195,9 @@ Phase 3.
 | GET | `/api/runs/{id}/events` | owner or admin | SSE stream with `Last-Event-ID` replay |
 | DELETE | `/api/runs/{id}` | owner or admin | Cancel |
 | GET | `/api/audit` | admin | Audit log of logins and every SQL attempt |
+| POST | `/api/runs/{id}/feedback` | analyst, admin | Up/down rating; `verify: true` turns the steps into indexed few-shot examples |
+| GET | `/api/memory/frequent` | any role | The user's most frequent questions |
+| GET · PUT | `/api/memory/preferences` | any role | Locale, default chart, SQL visibility |
 | GET | `/api/health/live` · `/api/health/ready` | public | Liveness and dependency readiness |
 
 ## 6. Request sequence (reference question)

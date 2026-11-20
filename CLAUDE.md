@@ -53,7 +53,8 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 | `make e2e` | Playwright end-to-end (stack must be up) | 1 |
 | `make test-security` | Attack suite in all three modes | 2 |
 | `make coverage` | All non-LLM tests + 85 % gate on agent/security/sql | 2 |
-| `make e2e-agent` | Reference question end to end with the real model (stack up) | 2 |
+| `make e2e-agent` | Reference question + follow-up end to end with the real model (stack up) | 2–3 |
+| `make eval-retrieval` | Schema-retrieval metrics per embedding model → `docs/retrieval-eval.md` | 3 |
 | `make create-user email=… name=… role=…` | Create analyst/viewer accounts | 2 |
 | `make bench MODELS="…"` | Run golden-set benchmark, write `docs/benchmark.md` | 6 |
 

@@ -8,12 +8,50 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 |---|---|
 | 0 — Plan, ADRs, structure | ✅ Done (2026-11-20) |
 | 1 — Infra, demo DB, read-only role | ✅ Done (2026-11-20) |
-| 2 — Agent core + security | ✅ Done (2026-11-20) — awaiting go-ahead for Phase 3 |
-| 3 — RAG + memory | ⏳ |
+| 2 — Agent core + security | ✅ Done (2026-11-20) |
+| 3 — RAG + memory | ✅ Done (2026-11-20) — awaiting go-ahead for Phase 4 |
 | 4 — Frontend + design system | ⏳ |
 | 5 — Explainability, optimization, multi-DB | ⏳ |
 | 6 — Benchmark + default model | ⏳ |
 | 7 — Hardening + docs | ⏳ |
+
+## Phase 3 — 2026-11-20
+
+### Exit criteria
+- ✅ **Retrieval**: 32-question evaluation, `qwen3-embedding:0.6b` with hybrid search. recall@5 = 0.968, and
+  **all needed tables were in context for 32/32 questions** (1.000), with about 4.5 of 10 tables sent.
+  Hybrid beats dense-only (0.938) and lexical-only (0.969). Full table: `docs/retrieval-eval.md`.
+- ✅ **Follow-up**: "¿Y en el trimestre anterior?" in the same conversation resolves to Q2 2026 and returns the
+  exact expected top-5 and branch (Guayaquil Norte - Alborada, $291,168.77). Passed in 3/3 live runs, and the
+  reference question still passes in 3/3 (`make e2e-agent`).
+- ✅ 489 tests (non-LLM). Coverage is 90 % over agent/security/sql/rag/memory; the gated packages are ≥ 85 %.
+  ruff and mypy `--strict` are clean.
+
+### Done
+- **Schema RAG**: document builder (tables, columns with non-PII sample values, glossary terms, verified
+  examples), pgvector + Spanish full-text + trigram store, RRF fusion, glossary-forced tables, value linking,
+  Steiner join paths, fingerprinted index rebuilt at startup only when something changed, graceful degradation.
+- **Nodes**: `retrieve_schema`; `visualize` (rules, model tie-break only between rule candidates, validated
+  ECharts spec, KPI cards); `explain` (grounded summary, retry naming invented figures, deterministic
+  fallback); `remember`.
+- **Memory**: conversation turns with resolved periods (follow-ups), frequent questions, preferences
+  (locale used by `explain`), feedback, and verified examples indexed immediately (`POST /api/runs/{id}/feedback`).
+- **Glossary v2**: complete `requires` tables for revenue, units, average ticket, gross margin and return rate;
+  entity terms with `maps_to`.
+- `make eval-retrieval` (`nexus-eval-retrieval`) compares embedding models and template variants.
+
+### Bugs found and fixed this phase
+- `pg_constraint.contype` is `"char"`: asyncpg returned bytes, so every primary key was treated as a
+  foreign key with target `None`. Since Phase 2 the prompt had carried bogus `FK→None.None` annotations.
+  Now cast to text, with an integration test of introspection that did not exist before.
+- JSON/JSONB values were serialized with Python `repr()` instead of JSON.
+- Value linking missed values followed by punctuation ("¿…la Costa?").
+
+### Known issues / limitations
+- The retrieval evaluation set was also used to diagnose the forced-table rules. The Phase 6 golden set is
+  the held-out check.
+- Cold start: the first question after boot pays model loading (~12 s in `understand`, ~6 s for the first
+  embedding). Warm runs take ~20 s for the two-part question on the shared laptop GPU.
 
 ## Phase 2 — 2026-11-20
 

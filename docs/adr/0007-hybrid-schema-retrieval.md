@@ -1,6 +1,7 @@
 # ADR-0007 — Hybrid schema retrieval and embedding model
 
-- Status: Accepted (embedding model confirmed by retrieval eval in Phase 3)
+- Status: Accepted — implemented and measured in Phase 3; see ADR-0019 for the measured choices
+  (exact search instead of HNSW, value linking, embedding model).
 - Date: 2026-11-20
 
 ## Context

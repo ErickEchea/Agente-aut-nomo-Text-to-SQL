@@ -30,7 +30,7 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
 - **Exit**: reference question answered via API (curl SSE) with correct SQL; attack suite 100 % blocked; coverage
   gates met.
 
-## Phase 3 — RAG, glossary, verified examples, memory
+## Phase 3 — RAG, glossary, verified examples, memory ✅
 - Indexer + hybrid retriever + join-path finder; `plan`, `visualize`, `explain` (grounded), `remember` nodes;
   short/long-term memory; feedback → verified examples; embedding-model comparison (recall@5).
 - **Exit**: retrieval recall@5 ≥ target on golden-derived set; follow-up question test passes.
