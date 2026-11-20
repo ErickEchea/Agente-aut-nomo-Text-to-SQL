@@ -28,4 +28,6 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 USER nexus
 EXPOSE 8000
-CMD ["uvicorn", "nexus.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers"]
+# nginx (the only way in from outside) overwrites X-Forwarded-For with the real client address, so
+# per-IP rate limits see real clients rather than the proxy.
+CMD ["uvicorn", "nexus.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips", "*"]

@@ -67,6 +67,19 @@ services:
       demo-db:
         condition: service_healthy
 
+  migrate:
+    <<: *backend-build
+    command: ["nexus-migrate"]
+    restart: "no"
+    environment:
+      NEXUS_APP_DB__HOST: app-db
+      NEXUS_APP_DB__NAME: nexus_app
+      NEXUS_APP_DB__USER: nexus_app
+      NEXUS_APP_DB__PASSWORD: ${NEXUS_APP_DB_PASSWORD:?run `make env` first}
+    depends_on:
+      app-db:
+        condition: service_healthy
+
   ollama:
     image: ollama/ollama:0.40.16
     restart: unless-stopped
@@ -76,7 +89,9 @@ services:
       OLLAMA_NUM_PARALLEL: "1"
     volumes:
       - ollama-models:/root/.ollama
-    # Not published to the host: the host may already run its own Ollama on 11434.
+    # Published on loopback only, on 11435: the host may already run its own Ollama on 11434.
+    ports:
+      - "127.0.0.1:${NEXUS_OLLAMA_PORT:-11435}:11434"
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 10s
@@ -114,6 +129,12 @@ services:
       NEXUS_OLLAMA__BASE_URL: http://ollama:11434
       NEXUS_OLLAMA__LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
       NEXUS_OLLAMA__EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+      NEXUS_SECURITY__JWT_SECRET: ${NEXUS_JWT_SECRET:?run `make env` first}
+      NEXUS_SECURITY__BOOTSTRAP_ADMIN_EMAIL: ${NEXUS_ADMIN_EMAIL:-admin@nexus.local}
+      NEXUS_SECURITY__BOOTSTRAP_ADMIN_PASSWORD: ${NEXUS_ADMIN_PASSWORD:?run `make env` first}
+      NEXUS_SECURITY__COOKIE_SECURE: ${NEXUS_COOKIE_SECURE:-false}
+      NEXUS_AGENT__AS_OF: ${NEXUS_AGENT_AS_OF:-}
+      NEXUS_AGENT__PII_COLUMNS: ${NEXUS_PII_COLUMNS:-}
     ports:
       - "127.0.0.1:${NEXUS_API_PORT:-8000}:8000"
     depends_on:
@@ -122,6 +143,8 @@ services:
       demo-db:
         condition: service_healthy
       demo-seed:
+        condition: service_completed_successfully
+      migrate:
         condition: service_completed_successfully
       ollama-init:
         condition: service_completed_successfully

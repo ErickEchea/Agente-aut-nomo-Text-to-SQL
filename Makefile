@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration e2e lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage e2e e2e-agent create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -53,14 +53,26 @@ install: ## Install backend and frontend dependencies for local development
 test: test-unit ## Run unit tests (backend + frontend)
 
 test-unit: ## Backend and frontend unit tests
-	$(BACKEND) uv run pytest -m "not integration"
+	$(BACKEND) uv run pytest -m "not integration and not llm"
 	$(FRONTEND) npm run test
 
 test-integration: ## Backend integration tests (Testcontainers; Docker required)
 	$(BACKEND) uv run pytest -m integration
 
+test-security: ## Attack suite: validator alone, DB layers alone, validator over a privileged role
+	$(BACKEND) uv run pytest tests/security tests/integration/test_attack_suite_db.py tests/integration/test_demo_db_roles.py
+
+coverage: ## All non-LLM tests + coverage gate (>= 85 % on agent, security and sql)
+	$(BACKEND) uv run pytest --cov --cov-report= && uv run coverage report --fail-under=85 --include="src/nexus/agent/*,src/nexus/security/*,src/nexus/sql/*"
+
 e2e: ## Playwright end-to-end tests against the running stack (run `make up` first)
 	$(FRONTEND) npx playwright test
+
+e2e-agent: ## Reference question end to end with the real model (run `make up` first)
+	$(BACKEND) PYTHONIOENCODING=utf-8 uv run pytest tests/e2e -m llm -s
+
+create-user: ## Create a user: make create-user email=a@b.c name="Ana" role=analyst
+	$(COMPOSE) exec backend nexus-admin create-user --email "$(email)" --name "$(name)" --role "$(role)"
 
 lint: ## Linters (ruff, eslint)
 	$(BACKEND) uv run ruff check . && uv run ruff format --check .
