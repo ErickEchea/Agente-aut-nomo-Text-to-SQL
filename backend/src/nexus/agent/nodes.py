@@ -10,11 +10,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 
 from nexus.agent import prompts
+from nexus.agent.charts import ChartChoice, ChartSpec, build_spec, candidates_for
+from nexus.agent.grounding import allowed_values, ungrounded
 from nexus.agent.state import (
     AgentContext,
     AgentState,
     Clarification,
     ErrorInfo,
+    Explanation,
+    ExplanationResult,
     Intent,
     Plan,
     RunStatus,
@@ -51,7 +55,19 @@ class NodeResult:
 
 
 def _sql_context(state: AgentState, ctx: AgentContext) -> str:
-    return prompts.sql_context(ctx.catalog.render(), ctx.glossary.render(), state.get("time"))
+    """Only the retrieved sub-schema, its join path, the relevant glossary terms, sample values
+    and verified examples (ADR-0007). Without a retrieval result, the whole schema is used."""
+    context = state.get("schema_context")
+    if context is None:
+        return prompts.sql_context(ctx.catalog.render(), ctx.glossary.render(), state.get("time"))
+    return prompts.sql_context(
+        ctx.catalog.render(context.tables),
+        ctx.glossary.render(context.terms) if context.terms else ctx.glossary.render(),
+        state.get("time"),
+        joins=[j.condition() for j in context.joins],
+        samples=context.samples,
+        examples=[(e.question, e.sql) for e in context.examples],
+    )
 
 
 def _step_question(state: AgentState) -> str:
@@ -135,7 +151,9 @@ async def plan(state: AgentState, ctx: AgentContext) -> NodeResult:
 
 
 async def resolve_time(state: AgentState, ctx: AgentContext) -> NodeResult:
-    resolution = resolve(state["standalone_question"], ctx.as_of)
+    history = state.get("history", [])
+    previous = history[-1].ranges if history else ()
+    resolution = resolve(state["standalone_question"], ctx.as_of, previous=previous)
     update: dict[str, object] = {"time": resolution, "assumptions": list(resolution.assumptions)}
     if resolution.vague_terms and not resolution.ranges:
         update["intent"] = Intent.AMBIGUOUS
@@ -453,17 +471,168 @@ async def respond(state: AgentState, ctx: AgentContext) -> NodeResult:
         status, answer = RunStatus.FAILED, _failure_message(state["last_error"])  # type: ignore[arg-type]
     else:
         status = RunStatus.ANSWERED
-        lines = []
-        for result in state.get("results", []):
-            if result.row_count == 1 and len(result.columns) <= 4:
-                values = ", ".join(
-                    f"{c}: {_format_value(v)}"
-                    for c, v in zip(result.columns, result.rows[0], strict=True)
-                )
-                lines.append(f"{result.question} → {values}")
-            else:
-                lines.append(f"{result.question} → {result.row_count} filas")
-        answer = "\n".join(lines)
+        explained = state.get("explanation")
+        if explained is not None:
+            answer = _explanation_text(explained.explanation)
+        else:
+            answer = _template_summary(state.get("results", []))
     return NodeResult(
         {"status": status, "answer": answer}, {"status": status.value, "answer": answer}
     )
+
+
+def _template_summary(results: list[StepResult]) -> str:
+    """Deterministic summary built only from the data (also the explain fallback)."""
+    lines = []
+    for result in results:
+        if result.row_count == 1 and len(result.columns) <= 4:
+            values = ", ".join(
+                f"{c}: {_format_value(v)}"
+                for c, v in zip(result.columns, result.rows[0], strict=True)
+            )
+            lines.append(f"{result.question} → {values}")
+        elif result.row_count and result.columns:
+            first = ", ".join(
+                f"{c}: {_format_value(v)}"
+                for c, v in zip(result.columns, result.rows[0], strict=True)
+            )
+            lines.append(f"{result.question} → {result.row_count} filas; primera: {first}")
+        else:
+            lines.append(f"{result.question} → sin filas")
+    return "\n".join(lines)
+
+
+def _explanation_text(explanation: Explanation) -> str:
+    lines = [explanation.headline, *(f"• {b}" for b in explanation.bullets)]
+    lines += [f"⚠ {c}" for c in explanation.caveats]
+    return "\n".join(line for line in lines if line.strip())
+
+
+# ------------------------------------------------------------------------------------------------
+# retrieve_schema · visualize · explain · remember (Phase 3)
+# ------------------------------------------------------------------------------------------------
+
+
+async def retrieve_schema(state: AgentState, ctx: AgentContext) -> NodeResult:
+    context = await ctx.retriever.retrieve(state["standalone_question"])
+    return NodeResult({"schema_context": context}, context.summary())
+
+
+async def visualize(state: AgentState, ctx: AgentContext) -> NodeResult:
+    charts: list[ChartSpec] = []
+    usage = []
+    for result in state.get("results", []):
+        kinds, reason, picks = candidates_for(result.question, result.columns, result.rows)
+        kind = kinds[0]
+        if len(kinds) > 1 and ctx.chart_tiebreak:
+            try:
+                completion = await ctx.llm.complete(
+                    prompts.visualize_messages(result.question, result.columns, kinds),
+                    ChartChoice,
+                    GenerationOptions(model=ctx.models.visualize, max_tokens=40),
+                )
+                usage.append(completion.usage)
+                if completion.parsed.kind in kinds:
+                    kind = completion.parsed.kind
+                    reason += "; desempate del modelo"
+            except StructuredOutputError as exc:
+                usage.append(exc.usage)  # keep the rule's first choice
+        charts.append(
+            build_spec(
+                kind,
+                result.index,
+                candidates=list(kinds),
+                reason=reason,
+                title=result.question,
+                columns=result.columns,
+                rows=result.rows,
+                picks=picks,
+            )
+        )
+    return NodeResult(
+        {"charts": charts, "usage": usage},
+        {
+            "charts": [
+                {"step": c.step, "kind": c.kind, "candidates": c.candidates, "reason": c.reason}
+                for c in charts
+            ]
+        },
+    )
+
+
+def _allowed_numbers(state: AgentState) -> set[float]:
+    results = state.get("results", [])
+    time = state.get("time")
+    extra: list[float] = []
+    texts = [
+        state.get("question", ""),
+        state.get("standalone_question", ""),
+        *state.get("assumptions", []),
+    ]
+    if time is not None:
+        for r in time.ranges:
+            extra += [
+                r.start.year,
+                r.start.month,
+                r.start.day,
+                r.last_day.year,
+                r.last_day.month,
+                r.last_day.day,
+            ]
+            extra += [float((r.start.month - 1) // 3 + 1)]
+    texts += [r.question for r in results]
+    return allowed_values([r.rows for r in results], extra=extra, texts=texts)
+
+
+async def explain(state: AgentState, ctx: AgentContext) -> NodeResult:
+    results = state.get("results", [])
+    allowed = _allowed_numbers(state)
+    usage = []
+    offending: list[str] = []
+    attempts = 0
+    for attempts in range(1, ctx.max_explain_retries + 2):
+        try:
+            completion = await ctx.llm.complete(
+                prompts.explain_messages(
+                    state["standalone_question"],
+                    state.get("assumptions", []),
+                    results,
+                    ctx.locale,
+                    offending,
+                ),
+                Explanation,
+                GenerationOptions(
+                    model=ctx.models.explain, max_tokens=500, temperature=0.0, seed=7 + attempts
+                ),
+            )
+        except StructuredOutputError as exc:
+            usage.append(exc.usage)
+            continue
+        usage.append(completion.usage)
+        text = _explanation_text(completion.parsed)
+        offending = ungrounded(text, allowed)
+        if not offending:
+            outcome = ExplanationResult(
+                completion.parsed, grounded=True, fallback=False, attempts=attempts
+            )
+            return NodeResult(
+                {"explanation": outcome, "usage": usage},
+                {"grounded": True, "fallback": False, "attempts": attempts, "text": text},
+            )
+    fallback = Explanation(headline=_template_summary(results), bullets=[], caveats=[])
+    outcome = ExplanationResult(
+        fallback, grounded=True, fallback=True, attempts=attempts, ungrounded=tuple(offending)
+    )
+    return NodeResult(
+        {"explanation": outcome, "usage": usage},
+        {"grounded": True, "fallback": True, "attempts": attempts, "rejected_numbers": offending},
+    )
+
+
+async def remember(state: AgentState, ctx: AgentContext) -> NodeResult:
+    await ctx.memory.remember(
+        question=state["question"],
+        standalone=state.get("standalone_question", state["question"]),
+        status=RunStatus.ANSWERED.value,
+    )
+    return NodeResult({}, {"stored": True})

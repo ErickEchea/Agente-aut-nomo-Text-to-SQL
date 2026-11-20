@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import math
+import unicodedata
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
@@ -10,8 +13,10 @@ from pydantic import BaseModel
 
 from nexus.agent.catalog import ColumnInfo, ForeignKey, SchemaCatalog, TableInfo
 from nexus.agent.glossary import Glossary, GlossaryTerm
-from nexus.agent.state import AgentContext
+from nexus.agent.state import AgentContext, Explanation
 from nexus.llm import Completion, GenerationOptions, Message, StructuredOutputError, TokenUsage
+from nexus.rag.joins import connect
+from nexus.rag.retriever import RankedTable, SchemaContext
 from nexus.security.pii import PiiMasker
 from nexus.sql.executor import QueryExecutionError, QueryResult
 from nexus.sql.validator import ValidatedSQL, ValidationPolicy
@@ -22,8 +27,18 @@ USAGE = TokenUsage(model="fake", prompt_tokens=100, completion_tokens=20, durati
 class ScriptedLLM:
     """Returns queued outputs per schema; an Exception in the queue is raised instead."""
 
-    def __init__(self, script: dict[type[BaseModel], list[BaseModel | Exception]]) -> None:
+    def __init__(
+        self,
+        script: dict[type[BaseModel], list[BaseModel | Exception]],
+        defaults: dict[type[BaseModel], BaseModel] | None = None,
+    ) -> None:
         self.script = {k: list(v) for k, v in script.items()}
+        # Used when a schema's queue is empty (e.g. the explanation of every test run).
+        self.defaults: dict[type[BaseModel], BaseModel] = (
+            {Explanation: Explanation(headline="Resumen de resultados.")}
+            if defaults is None
+            else defaults
+        )
         self.calls: list[tuple[str, list[Message]]] = []
 
     @property
@@ -36,6 +51,9 @@ class ScriptedLLM:
         self.calls.append((schema.__name__, list(messages)))
         queue = self.script.get(schema)
         if not queue:
+            if schema in self.defaults:
+                default = self.defaults[schema]
+                return Completion(parsed=default, raw=default.model_dump_json(), usage=USAGE)  # type: ignore[arg-type]
             raise AssertionError(f"unexpected LLM call for {schema.__name__}")
         item = queue.pop(0)
         if isinstance(item, Exception):
@@ -44,7 +62,18 @@ class ScriptedLLM:
         return Completion(parsed=item, raw=item.model_dump_json(), usage=USAGE)
 
     async def embed(self, texts: Sequence[str], model: str | None = None) -> list[list[float]]:
-        return [[0.0] for _ in texts]
+        return [hash_embedding(t) for t in texts]
+
+
+def hash_embedding(text: str, dims: int = 64) -> list[float]:
+    """Deterministic bag-of-words vector (tests only): shared words → higher cosine similarity."""
+    vector = [0.0] * dims
+    for word in unicodedata.normalize("NFKD", text.lower()).split():
+        clean = "".join(c for c in word if c.isalnum())
+        if len(clean) > 2:
+            vector[int(hashlib.md5(clean.encode()).hexdigest(), 16) % dims] += 1.0  # noqa: S324
+    norm = math.sqrt(sum(v * v for v in vector)) or 1.0
+    return [v / norm for v in vector]
 
 
 def invalid_output() -> StructuredOutputError:
@@ -91,6 +120,33 @@ class RecordingSink:
 
 
 @dataclass
+class RecordingMemory:
+    remembered: list[dict[str, str]] = field(default_factory=list)
+
+    async def remember(self, *, question: str, standalone: str, status: str) -> None:
+        self.remembered.append({"question": question, "standalone": standalone, "status": status})
+
+
+class FullSchemaRetriever:
+    """Returns every table (what Phase 2 sent); records the questions it was asked."""
+
+    def __init__(self, cat: SchemaCatalog) -> None:
+        self._catalog = cat
+        self.questions: list[str] = []
+
+    async def retrieve(self, question: str) -> SchemaContext:
+        self.questions.append(question)
+        tables, joins = connect(self._catalog, sorted(self._catalog.tables))
+        return SchemaContext(
+            tables=tuple(tables),
+            joins=tuple(joins),
+            ranked=tuple(RankedTable(t, 1.0) for t in tables),
+            terms=(),
+            strategy="full-schema (test)",
+        )
+
+
+@dataclass
 class RecordingAudit:
     entries: list[dict[str, object]] = field(default_factory=list)
 
@@ -133,6 +189,9 @@ def context(llm: ScriptedLLM, executor: FakeExecutor, **overrides: object) -> Ag
         "events": RecordingSink(),
         "audit": RecordingAudit(),
         "masker": PiiMasker([]),
+        "memory": RecordingMemory(),
+        "chart_tiebreak": False,
     }
     values.update(overrides)
+    values.setdefault("retriever", FullSchemaRetriever(values["catalog"]))  # type: ignore[arg-type]
     return AgentContext(**values)  # type: ignore[arg-type]

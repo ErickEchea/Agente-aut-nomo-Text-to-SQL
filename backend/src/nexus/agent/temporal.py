@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Literal
@@ -237,8 +237,34 @@ _SAME_PERIOD_LAST_YEAR = re.compile(
 )
 
 
-def resolve(question: str, as_of: date) -> TimeResolution:
-    """Find every time expression in ``question`` and resolve it against ``as_of``."""
+_RELATIVE_TO_PREVIOUS = re.compile(
+    r"\b(?P<unit>trimestre|mes|ano|semana|semestre|quarter|month|year|week)\s+"
+    r"(?:anterior|previo|before|prior)\b|\b(?:previous|prior)\s+(?P<unit_en>quarter|month|year|week)\b"
+)
+_UNIT_GRAIN: dict[str, Grain] = {
+    "trimestre": "quarter", "quarter": "quarter", "mes": "month", "month": "month",
+    "ano": "year", "year": "year", "semana": "week", "week": "week", "semestre": "semester",
+}  # fmt: skip
+
+
+def shift_range(r: ResolvedRange, grain: Grain, expression: str) -> ResolvedRange:
+    """The period of ``grain`` immediately before ``r`` (same length when grains match)."""
+    if grain == "week":
+        return ResolvedRange(expression, r.start - timedelta(days=7), r.start, "week")
+    months = {"month": 1, "quarter": 3, "semester": 6, "year": 12}.get(grain, 0)
+    if months == 0:
+        span = r.end - r.start
+        return ResolvedRange(expression, r.start - span, r.start, grain)
+    return ResolvedRange(expression, _add_months(r.start, -months), r.start, grain)
+
+
+def resolve(question: str, as_of: date, previous: Sequence[ResolvedRange] = ()) -> TimeResolution:
+    """Find every time expression in ``question`` and resolve it against ``as_of``.
+
+    ``previous`` are the ranges of the conversation's last answered question (short-term memory):
+    in a follow-up, "¿y el trimestre anterior?" means the quarter before *that* period, and
+    "el mismo periodo del año anterior" shifts it by one year.
+    """
     text = _normalize(question)
     taken: list[tuple[int, int]] = []
     found: list[tuple[int, ResolvedRange]] = []
@@ -250,6 +276,16 @@ def resolve(question: str, as_of: date) -> TimeResolution:
     same = _SAME_PERIOD_LAST_YEAR.search(text)
     if same:
         taken.append((same.start(), same.end()))
+
+    if previous:
+        for match in _RELATIVE_TO_PREVIOUS.finditer(text):
+            if overlaps(match.start(), match.end()):
+                continue
+            grain = _UNIT_GRAIN[match.group("unit") or match.group("unit_en")]
+            expression = question[match.start() : match.end()]
+            base = next((p for p in previous if p.grain == grain), previous[0])
+            taken.append((match.start(), match.end()))
+            found.append((match.start(), shift_range(base, grain, expression)))
 
     for pattern, rule in RULES:
         for match in pattern.finditer(text):
@@ -265,8 +301,8 @@ def resolve(question: str, as_of: date) -> TimeResolution:
 
     found.sort(key=lambda item: item[0])
     ranges = [r for _, r in found]
-    if same and ranges:
-        base = ranges[0]
+    if same and (ranges or previous):
+        base = ranges[0] if ranges else previous[0]
         ranges.append(
             ResolvedRange(
                 question[same.start() : same.end()],

@@ -12,7 +12,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.runtime import Runtime
 
 from nexus.agent import nodes
-from nexus.agent.state import AgentContext, AgentState, Intent
+from nexus.agent.state import AgentContext, AgentState, HistoryTurn, Intent
 from nexus.llm import TokenUsage
 
 logger = structlog.get_logger("nexus.agent")
@@ -75,8 +75,10 @@ def _can_repair(state: AgentState) -> bool:
     )
 
 
-def after_understand(state: AgentState) -> Literal["plan", "respond"]:
-    return "plan" if state.get("intent") in (Intent.DATA, Intent.FOLLOW_UP) else "respond"
+def after_understand(state: AgentState) -> Literal["retrieve_schema", "respond"]:
+    if state.get("intent") in (Intent.DATA, Intent.FOLLOW_UP):
+        return "retrieve_schema"
+    return "respond"
 
 
 def after_resolve_time(state: AgentState) -> Literal["generate_sql", "respond"]:
@@ -102,18 +104,19 @@ def after_execute(state: AgentState) -> Literal["verify_results", "repair", "res
     return "repair" if _can_repair(state) else "respond"
 
 
-def after_verify(state: AgentState) -> Literal["generate_sql", "repair", "respond"]:
+def after_verify(state: AgentState) -> Literal["generate_sql", "repair", "visualize"]:
     if state.get("last_error") is not None:
         return "repair"  # verify only reports an issue while the repair budget allows it
     if state.get("current_step", 0) < len(state.get("steps", [])):
         return "generate_sql"
-    return "respond"
+    return "visualize"
 
 
 def build_graph() -> CompiledStateGraph[AgentState, AgentContext, AgentState, AgentState]:
     graph = StateGraph(AgentState, context_schema=AgentContext)
     for name, fn in (
         ("understand", nodes.understand),
+        ("retrieve_schema", nodes.retrieve_schema),
         ("plan", nodes.plan),
         ("resolve_time", nodes.resolve_time),
         ("generate_sql", nodes.generate_sql),
@@ -121,12 +124,16 @@ def build_graph() -> CompiledStateGraph[AgentState, AgentContext, AgentState, Ag
         ("execute", nodes.execute),
         ("repair", nodes.repair),
         ("verify_results", nodes.verify_results),
+        ("visualize", nodes.visualize),
+        ("explain", nodes.explain),
+        ("remember", nodes.remember),
         ("respond", nodes.respond),
     ):
         graph.add_node(name, instrumented(name, fn))  # type: ignore[call-overload]
 
     graph.add_edge(START, "understand")
     graph.add_conditional_edges("understand", after_understand)
+    graph.add_edge("retrieve_schema", "plan")
     graph.add_edge("plan", "resolve_time")
     graph.add_conditional_edges("resolve_time", after_resolve_time)
     graph.add_conditional_edges("generate_sql", after_candidate)
@@ -134,6 +141,9 @@ def build_graph() -> CompiledStateGraph[AgentState, AgentContext, AgentState, Ag
     graph.add_conditional_edges("validate", after_validate)
     graph.add_conditional_edges("execute", after_execute)
     graph.add_conditional_edges("verify_results", after_verify)
+    graph.add_edge("visualize", "explain")
+    graph.add_edge("explain", "remember")
+    graph.add_edge("remember", "respond")
     graph.add_edge("respond", END)
     return graph.compile(name="nexus-agent")
 
@@ -144,7 +154,7 @@ async def run_agent(
     *,
     run_id: str,
     question: str,
-    history: list[str] | None = None,
+    history: list[HistoryTurn] | None = None,
 ) -> AgentState:
     initial: AgentState = {
         "run_id": run_id,
@@ -158,6 +168,8 @@ async def run_agent(
         "results": [],
         "assumptions": [],
         "usage": [],
+        "charts": [],
+        "explanation": None,
     }
     final: AgentState = await graph.ainvoke(initial, context=ctx, config={"recursion_limit": 80})  # type: ignore[assignment]
     return final

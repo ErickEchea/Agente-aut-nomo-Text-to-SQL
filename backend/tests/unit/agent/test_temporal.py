@@ -77,6 +77,31 @@ def test_no_expression_and_vague_terms() -> None:
     assert resolve("¿qué se vendió recientemente?", AS_OF).vague_terms == ("recientemente",)
 
 
+Q3 = resolve("último trimestre", AS_OF).ranges
+
+
+@pytest.mark.parametrize(
+    ("follow_up", "expected"),
+    [
+        ("¿y en el trimestre anterior?", (date(2026, 4, 1), date(2026, 7, 1))),
+        ("¿y el mes anterior?", (date(2026, 6, 1), date(2026, 7, 1))),
+        ("¿y el mismo periodo del año anterior?", (date(2025, 7, 1), date(2025, 10, 1))),
+        ("and the previous quarter?", (date(2026, 4, 1), date(2026, 7, 1))),
+        ("¿y en Q1 2025?", (date(2025, 1, 1), date(2025, 4, 1))),  # explicit wins
+    ],
+)
+def test_follow_ups_resolve_relative_to_the_previous_period(
+    follow_up: str, expected: tuple[date, date]
+) -> None:
+    ranges = resolve(follow_up, AS_OF, previous=Q3).ranges
+    assert [(r.start, r.end) for r in ranges] == [expected]
+
+
+def test_without_history_anterior_means_last_closed_period() -> None:
+    (r,) = resolve("el trimestre anterior", AS_OF).ranges
+    assert (r.start, r.end) == (date(2026, 7, 1), date(2026, 10, 1))
+
+
 def test_english_may_is_not_a_month_without_year() -> None:
     assert resolve("may I see total sales by branch", AS_OF).ranges == ()
 

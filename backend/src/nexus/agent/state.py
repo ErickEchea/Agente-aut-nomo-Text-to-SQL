@@ -11,9 +11,11 @@ from typing import Annotated, Literal, Protocol, TypedDict
 from pydantic import BaseModel, Field
 
 from nexus.agent.catalog import SchemaCatalog
+from nexus.agent.charts import ChartSpec
 from nexus.agent.glossary import Glossary
-from nexus.agent.temporal import TimeResolution
+from nexus.agent.temporal import ResolvedRange, TimeResolution
 from nexus.llm import LLMProvider, TokenUsage
+from nexus.rag.retriever import SchemaContext
 from nexus.sql.executor import JsonScalar, QueryResult
 from nexus.sql.validator import ValidatedSQL, ValidationPolicy
 
@@ -45,6 +47,14 @@ class Understanding(BaseModel):
         default_factory=list, description="2 a 4 opciones concretas si es ambigua"
     )
     reason: str = Field(default="", description="Una frase breve")
+
+
+class Explanation(BaseModel):
+    headline: str = Field(description="Una frase con la conclusión principal")
+    bullets: list[str] = Field(default_factory=list, description="2 a 4 hallazgos breves")
+    caveats: list[str] = Field(
+        default_factory=list, description="Advertencias relevantes, si las hay"
+    )
 
 
 class Plan(BaseModel):
@@ -96,6 +106,25 @@ class StepResult:
 
 
 @dataclass(frozen=True, slots=True)
+class HistoryTurn:
+    """A previous answered question of the same conversation (short-term memory)."""
+
+    question: str
+    standalone: str
+    ranges: tuple[ResolvedRange, ...] = ()
+    answer: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ExplanationResult:
+    explanation: Explanation
+    grounded: bool
+    fallback: bool  # True when the deterministic template replaced an ungrounded model text
+    attempts: int
+    ungrounded: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class Clarification:
     question: str
     options: tuple[str, ...]
@@ -105,11 +134,12 @@ class AgentState(TypedDict, total=False):
     run_id: str
     max_repairs: int
     question: str
-    history: list[str]  # previous questions in the conversation (short-term memory)
+    history: list[HistoryTurn]  # previous turns of the conversation (short-term memory)
     intent: Intent
     standalone_question: str
     clarification: Clarification | None
     refusal_reason: str
+    schema_context: SchemaContext
     steps: list[str]
     time: TimeResolution
     current_step: int
@@ -122,6 +152,8 @@ class AgentState(TypedDict, total=False):
     results: Annotated[list[StepResult], operator.add]
     assumptions: Annotated[list[str], operator.add]
     usage: Annotated[list[TokenUsage], operator.add]
+    charts: list[ChartSpec]
+    explanation: ExplanationResult | None
     status: RunStatus
     answer: str
 
@@ -146,6 +178,14 @@ class AuditSink(Protocol):
     ) -> None: ...
 
 
+class SchemaRetriever(Protocol):
+    async def retrieve(self, question: str) -> SchemaContext: ...
+
+
+class MemorySink(Protocol):
+    async def remember(self, *, question: str, standalone: str, status: str) -> None: ...
+
+
 class QueryRunner(Protocol):
     async def execute(self, query: ValidatedSQL) -> QueryResult: ...
 
@@ -164,6 +204,8 @@ class NodeModels:
     plan: str | None = None
     generate: str | None = None
     repair: str | None = None
+    visualize: str | None = None
+    explain: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,5 +219,10 @@ class AgentContext:
     events: EventSink
     audit: AuditSink
     masker: ResultMasker
+    retriever: SchemaRetriever
+    memory: MemorySink
     models: NodeModels = field(default_factory=NodeModels)
     max_repairs: int = 3
+    max_explain_retries: int = 2
+    chart_tiebreak: bool = True  # let the model break ties between rule-chosen chart types
+    locale: Literal["es", "en"] = "es"
