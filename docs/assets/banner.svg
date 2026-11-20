@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="t d">
+  <title id="t">NEXUS AI — Autonomous Business Intelligence</title>
+  <desc id="d">Agente que convierte preguntas de negocio en español en SQL verificado, datos, gráficos y explicaciones.</desc>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#1a2230" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0b0e13" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#0b0e13" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#0b0e13" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fd0c9"/>
+      <stop offset="1" stop-color="#3fd0c9" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="420" rx="16" fill="#0b0e13"/>
+  <rect width="1280" height="420" rx="16" fill="url(#grid)"/>
+  <rect width="760" height="420" rx="16" fill="url(#fade)"/>
+
+  <!-- Title block -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="72" y="92" fill="#8b9bb0" font-size="15" letter-spacing="3">AUTONOMOUS BUSINESS INTELLIGENCE</text>
+    <text x="68" y="172" fill="#e6edf5" font-size="84" font-weight="700" letter-spacing="6">NEXUS<tspan fill="#3fd0c9"> AI</tspan></text>
+    <text x="72" y="222" fill="#c5d0dc" font-size="24">Pregunta en español. Obtén SQL verificado,</text>
+    <text x="72" y="254" fill="#c5d0dc" font-size="24">datos, gráficos y una respuesta clara.</text>
+  </g>
+
+  <!-- Question chip -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <rect x="72" y="292" width="600" height="64" rx="10" fill="#121821" stroke="#233042"/>
+    <circle cx="100" cy="324" r="6" fill="#3fd0c9"/>
+    <text x="118" y="318" fill="#e6edf5" font-size="15">¿Cuáles fueron los cinco productos más vendidos durante</text>
+    <text x="118" y="340" fill="#e6edf5" font-size="15">el último trimestre y qué sucursal generó mayores ingresos?</text>
+  </g>
+
+  <!-- Agent timeline -->
+  <g font-family="'Cascadia Code', 'JetBrains Mono', Consolas, 'SFMono-Regular', Menlo, monospace" font-size="14">
+    <rect x="800" y="48" width="408" height="324" rx="12" fill="#121821" stroke="#233042"/>
+    <text x="824" y="80" fill="#8b9bb0" font-size="12" letter-spacing="2">AGENT TIMELINE</text>
+    <line x1="836" y1="104" x2="836" y2="346" stroke="url(#line)" stroke-width="2"/>
+
+    <g>
+      <circle cx="836" cy="108" r="6" fill="#3ccf7e"/>
+      <text x="856" y="113" fill="#e6edf5">understand</text><text x="1180" y="113" fill="#8b9bb0" text-anchor="end">0.4s</text>
+    </g>
+    <g>
+      <circle cx="836" cy="142" r="6" fill="#3ccf7e"/>
+      <text x="856" y="147" fill="#e6edf5">retrieve_schema</text><text x="1180" y="147" fill="#8b9bb0" text-anchor="end">0.1s</text>
+    </g>
+    <g>
+      <circle cx="836" cy="176" r="6" fill="#3ccf7e"/>
+      <text x="856" y="181" fill="#e6edf5">resolve_time</text><text x="1180" y="181" fill="#8b9bb0" text-anchor="end">Q3 2026</text>
+    </g>
+    <g>
+      <circle cx="836" cy="210" r="6" fill="#3ccf7e"/>
+      <text x="856" y="215" fill="#e6edf5">generate_sql</text><text x="1180" y="215" fill="#8b9bb0" text-anchor="end">1.2s</text>
+    </g>
+    <g>
+      <circle cx="836" cy="244" r="6" fill="#3ccf7e"/>
+      <text x="856" y="249" fill="#e6edf5">validate</text><text x="1180" y="249" fill="#3ccf7e" text-anchor="end">AST ok</text>
+    </g>
+    <g>
+      <circle cx="836" cy="278" r="6" fill="#3ccf7e"/>
+      <text x="856" y="283" fill="#e6edf5">execute</text><text x="1180" y="283" fill="#8b9bb0" text-anchor="end">read-only</text>
+    </g>
+    <g>
+      <circle cx="836" cy="312" r="7" fill="none" stroke="#3fd0c9" stroke-width="2"/>
+      <circle cx="836" cy="312" r="3" fill="#3fd0c9"/>
+      <text x="856" y="317" fill="#3fd0c9">explain</text><text x="1180" y="317" fill="#8b9bb0" text-anchor="end">…</text>
+    </g>
+    <text x="856" y="351" fill="#5d6b7e" font-size="12">SELECT … FROM retail.detalle_ventas …</text>
+  </g>
+</svg>
