@@ -18,7 +18,10 @@ NET_REVENUE_NO_RETURNS = NET_REVENUE_OK.split(" AND NOT EXISTS", maxsplit=1)[0] 
 def test_loads_terms_with_requirements() -> None:
     terms = {t.term: t for t in GLOSSARY.metrics}
     assert terms["ingresos"].requires is not None
-    assert terms["ingresos"].requires.tables == ("devoluciones",)
+    assert terms["ingresos"].requires.tables == ("detalle_ventas", "ventas", "devoluciones")
+    entities = {t.term: t for t in GLOSSARY.entities}
+    assert entities["empleado"].maps_to == "empleados"
+    assert entities["empleado"].tables == ("empleados",)
     assert "ventas netas" in terms["ingresos"].synonyms
     assert "Moneda: USD." in GLOSSARY.render()
 
@@ -30,7 +33,8 @@ def test_loads_terms_with_requirements() -> None:
         ("Ventas netas por región", ["ingresos", "región"]),
         ("Los cinco productos más vendidos", ["unidades vendidas"]),
         ("Ingresos brutos por mes", ["ventas brutas"]),  # longest match wins over "ingresos"
-        ("¿Cuál es el producto más caro?", []),
+        ("¿Cuál es el producto más caro?", ["producto"]),
+        ("¿Qué cajero vendió más?", ["empleado"]),
     ],
 )
 def test_terms_in_question(question: str, expected: list[str]) -> None:
@@ -47,4 +51,4 @@ def test_violations_detect_missing_return_exclusion() -> None:
 
 def test_no_requirements_no_violations() -> None:
     assert GLOSSARY.violations("Ingresos brutos por mes", "SELECT 1") == []
-    assert GLOSSARY.violations("¿Cuál es el producto más caro?", "SELECT 1") == []
+    assert GLOSSARY.violations("¿Cuál es el producto más caro?", "SELECT 1") == []  # entity only

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -32,6 +33,15 @@ class GlossaryTerm:
     definition: str
     sql: str | None = None
     requires: SqlRequirement | None = None
+    maps_to: str | None = None  # table an entity term refers to
+
+    @property
+    def tables(self) -> tuple[str, ...]:
+        """Tables a question using this term needs (required tables + the mapped entity table)."""
+        tables = list(self.requires.tables) if self.requires else []
+        if self.maps_to:
+            tables.append(self.maps_to)
+        return tuple(dict.fromkeys(tables))
 
     @property
     def phrases(self) -> tuple[str, ...]:
@@ -44,9 +54,10 @@ class Glossary:
     metrics: tuple[GlossaryTerm, ...]
     entities: tuple[GlossaryTerm, ...] = field(default_factory=tuple)
 
-    def render(self) -> str:
+    def render(self, terms: Sequence[GlossaryTerm] | None = None) -> str:
+        """All terms, or only ``terms`` (the ones retrieval found relevant)."""
         lines = [f"Moneda: {self.currency}."]
-        for term in self.metrics + self.entities:
+        for term in self.metrics + self.entities if terms is None else terms:
             synonyms = f" (sinónimos: {', '.join(term.synonyms)})" if term.synonyms else ""
             lines.append(f"- {term.term}{synonyms}: {term.definition}")
             if term.sql:
@@ -117,6 +128,7 @@ def _terms(items: list[dict[str, object]]) -> tuple[GlossaryTerm, ...]:
                 definition=" ".join(definition.split()),
                 sql=str(item["sql"]) if item.get("sql") else None,
                 requires=requires,
+                maps_to=str(item["maps_to"]).split(".")[-1] if item.get("maps_to") else None,
             )
         )
     return tuple(out)

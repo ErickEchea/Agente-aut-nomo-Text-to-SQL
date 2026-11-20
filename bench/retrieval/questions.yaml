@@ -1,0 +1,36 @@
+# Retrieval evaluation set (Phase 3). Gold tables = the minimal set a correct SQL answer needs, following
+# data/glossary.yaml (e.g. any "ingresos"/"unidades vendidas" question needs ventas + devoluciones).
+# Disjoint from verified few-shot examples by construction (none exist in a fresh index).
+questions:
+  - {q: "¿Cuáles fueron los cinco productos más vendidos durante el último trimestre?", tables: [productos, detalle_ventas, ventas, devoluciones]}
+  - {q: "¿Qué sucursal generó mayores ingresos durante el último trimestre?", tables: [sucursales, ventas, detalle_ventas, devoluciones]}
+  - {q: "Ingresos por región en 2025", tables: [regiones, sucursales, ventas, detalle_ventas, devoluciones]}
+  - {q: "¿Cuántas ventas se anularon el mes pasado?", tables: [ventas]}
+  - {q: "Ticket promedio por método de pago este año", tables: [ventas, detalle_ventas, devoluciones]}
+  - {q: "¿Qué categoría tuvo más devoluciones en 2025?", tables: [categorias, productos, detalle_ventas, devoluciones]}
+  - {q: "Motivos de devolución más frecuentes", tables: [devoluciones]}
+  - {q: "¿Qué productos están por debajo del stock mínimo al cierre de septiembre?", tables: [inventario, productos]}
+  - {q: "Sucursales con quiebre de stock en agosto de 2026", tables: [inventario, sucursales]}
+  - {q: "¿Cuántos clientes corporativos hay por ciudad?", tables: [clientes]}
+  - {q: "¿Qué cajero registró más ventas en Quito Iñaquito?", tables: [empleados, ventas, sucursales]}
+  - {q: "Salario promedio por cargo", tables: [empleados]}
+  - {q: "Ventas online versus en tienda por mes", tables: [ventas]}
+  - {q: "¿Cuál es el margen bruto por categoría?", tables: [categorias, productos, detalle_ventas, ventas, devoluciones]}
+  - {q: "Top 10 clientes por monto comprado este año", tables: [clientes, ventas, detalle_ventas, devoluciones]}
+  - {q: "¿Cuántas unidades de útiles escolares se vendieron en la Costa en abril?", tables: [categorias, productos, detalle_ventas, ventas, sucursales, regiones, devoluciones]}
+  - {q: "Evolución mensual de ventas netas de la sucursal de Manta", tables: [sucursales, ventas, detalle_ventas, devoluciones]}
+  - {q: "¿Qué marca de televisores vende más?", tables: [productos, detalle_ventas, ventas, devoluciones]}
+  - {q: "Lista de productos lanzados en 2025", tables: [productos]}
+  - {q: "¿Qué porcentaje de ventas se paga con billetera móvil?", tables: [ventas]}
+  - {q: "Descuento total otorgado durante Black Friday 2025", tables: [ventas]}
+  - {q: "¿Cuánto IVA se cobró el año pasado?", tables: [ventas]}
+  - {q: "Empleados que reportan al gerente de la sucursal de Cuenca Centro", tables: [empleados, sucursales]}
+  - {q: "Edad promedio de los clientes frecuentes", tables: [clientes]}
+  - {q: "¿Qué sucursales abrieron después de 2020?", tables: [sucursales]}
+  - {q: "Monto reembolsado por devoluciones por sucursal", tables: [devoluciones, ventas, sucursales]}
+  - {q: "Unidades vendidas por categoría en diciembre de 2025", tables: [categorias, productos, detalle_ventas, ventas, devoluciones]}
+  - {q: "¿Cuál es el producto más caro de electrodomésticos?", tables: [productos, categorias]}
+  - {q: "Clientes registrados por mes en 2026", tables: [clientes]}
+  - {q: "Ventas a consumidor final frente a clientes registrados", tables: [ventas]}
+  - {q: "¿En qué hora del día se vende más?", tables: [ventas]}
+  - {q: "Rotación de inventario de la licuadora Oster Xpert", tables: [inventario, productos]}

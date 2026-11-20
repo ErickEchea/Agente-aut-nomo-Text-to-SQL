@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration test-security coverage e2e e2e-agent create-user         lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage e2e e2e-agent eval-retrieval create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -70,6 +70,9 @@ e2e: ## Playwright end-to-end tests against the running stack (run `make up` fir
 
 e2e-agent: ## Reference question end to end with the real model (run `make up` first)
 	$(BACKEND) PYTHONIOENCODING=utf-8 uv run pytest tests/e2e -m llm -s
+
+eval-retrieval: ## Measure schema retrieval (recall@5, completeness) per embedding model (stack up)
+	$(BACKEND) NEXUS_APP_DB__HOST=127.0.0.1 NEXUS_APP_DB__PORT=$(call ENV_VAL,NEXUS_APP_DB_PORT) 	  NEXUS_APP_DB__NAME=nexus_app NEXUS_APP_DB__USER=nexus_app NEXUS_APP_DB__PASSWORD=$(call ENV_VAL,NEXUS_APP_DB_PASSWORD) 	  NEXUS_DEMO_DB__HOST=127.0.0.1 NEXUS_DEMO_DB__PORT=$(call ENV_VAL,NEXUS_DEMO_DB_PORT) NEXUS_DEMO_DB__NAME=retail 	  NEXUS_DEMO_DB__USER=nexus_reader NEXUS_DEMO_DB__PASSWORD=$(call ENV_VAL,NEXUS_DEMO_READER_PASSWORD) 	  NEXUS_OLLAMA__BASE_URL=http://127.0.0.1:$(call ENV_VAL,NEXUS_OLLAMA_PORT) PYTHONIOENCODING=utf-8 	  uv run nexus-eval-retrieval
 
 create-user: ## Create a user: make create-user email=a@b.c name="Ana" role=analyst
 	$(COMPOSE) exec backend nexus-admin create-user --email "$(email)" --name "$(name)" --role "$(role)"

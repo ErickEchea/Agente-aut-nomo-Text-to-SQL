@@ -24,6 +24,7 @@ dependencies = [
     "pyjwt==2.15.1",
     "argon2-cffi==25.1.0",
     "sse-starlette==3.7.0",
+    "pgvector==0.5.1",
 ]
 
 [dependency-groups]
@@ -44,6 +45,7 @@ dev = [
 nexus-seed-demo = "nexus.demo.cli:main"
 nexus-migrate = "nexus.db.migrate:main"
 nexus-admin = "nexus.admin_cli:main"
+nexus-eval-retrieval = "nexus.rag.evaluate:main"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14"]
@@ -81,6 +83,8 @@ max-returns = 8
 ]
 # The live end-to-end test reports per-node timings on purpose.
 "tests/e2e/**" = ["T201"]
+# Developer CLI tables: the report rows and progress prints are the product.
+"src/nexus/rag/evaluate.py" = ["T201", "E501", "ASYNC240"]
 # Alembic revision files are generated.
 "src/nexus/db/migrations/versions/**" = ["UP007", "E501"]
 # numpy RNG is deliberate: deterministic synthetic data, not security.

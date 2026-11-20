@@ -7,6 +7,7 @@ import uuid
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -20,7 +21,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -133,5 +134,106 @@ class AuditLog(Base):
     error_code: Mapped[str | None] = mapped_column(String(40))
     client_ip: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+# ------------------------------------------------------------------------------------------------
+# Phase 3: schema RAG and memory
+# ------------------------------------------------------------------------------------------------
+
+
+class SchemaDocument(Base):
+    """One retrievable unit about a data source: a table, a column, a glossary term or an example.
+
+    ``embedding`` has no fixed dimension so indexes for different embedding models can coexist
+    (ADR-0007 notes: per-connection document counts are small, so exact search is used).
+    """
+
+    __tablename__ = "schema_documents"
+    __table_args__ = (
+        Index("schema_documents_lookup_idx", "connection_key", "embedding_model"),
+        Index("schema_documents_tsv_idx", "tsv", postgresql_using="gin"),
+        Index(
+            "schema_documents_ref_trgm_idx",
+            "ref",
+            postgresql_using="gin",
+            postgresql_ops={"ref": "gin_trgm_ops"},
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    connection_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(120), nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    doc_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    ref: Mapped[str] = mapped_column(String(200), nullable=False)
+    tables: Mapped[list[str]] = mapped_column(ARRAY(String(80)), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[Any] = mapped_column(Vector(), nullable=False)
+    tsv: Mapped[Any] = mapped_column(TSVECTOR, nullable=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VerifiedExample(TimestampMixin, Base):
+    """A question → SQL pair a user confirmed as correct; used as a few-shot example."""
+
+    __tablename__ = "verified_examples"
+    __table_args__ = (
+        UniqueConstraint("connection_key", "question_key", name="verified_examples_question_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    connection_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    question_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    sql: Mapped[str] = mapped_column(Text, nullable=False)
+    tables: Mapped[list[str]] = mapped_column(ARRAY(String(80)), nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("runs.id", ondelete="SET NULL"))
+
+
+class Feedback(TimestampMixin, Base):
+    __tablename__ = "feedback"
+    __table_args__ = (UniqueConstraint("run_id", "user_id", name="feedback_run_user_key"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    rating: Mapped[str] = mapped_column(String(10), nullable=False)
+    comment: Mapped[str | None] = mapped_column(Text)
+
+
+class UserPreference(Base):
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class QueryStat(Base):
+    """Long-term memory of what each user asks (frequent questions)."""
+
+    __tablename__ = "query_stats"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    question_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    times_asked: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    last_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("runs.id", ondelete="SET NULL")
+    )
+    last_asked_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

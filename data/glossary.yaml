@@ -1,6 +1,6 @@
 # Business glossary (versioned). Source material for the schema RAG and for deterministic time resolution.
 # Definitions are authoritative: the agent must follow them and show them as assumptions.
-version: 1
+version: 2
 connection: retail-demo
 currency: USD
 timezone: America/Guayaquil
@@ -19,7 +19,7 @@ metrics:
         AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
     # Deterministic checks applied to generated SQL when the question uses this term (verify_results).
     requires:
-      tables: [devoluciones]
+      tables: [detalle_ventas, ventas, devoluciones]
       literals: [completada]
       message: >-
         «ingresos» debe contar solo ventas con estado = 'completada' y excluir las líneas devueltas:
@@ -38,7 +38,7 @@ metrics:
       Suma de detalle_ventas.cantidad de ventas completadas excluyendo líneas devueltas.
       "Más vendidos" se mide por unidades salvo que la pregunta pida dólares.
     requires:
-      tables: [devoluciones]
+      tables: [detalle_ventas, ventas, devoluciones]
       literals: [completada]
       message: >-
         «unidades vendidas» cuenta solo ventas con estado = 'completada' y excluye las líneas devueltas
@@ -46,31 +46,65 @@ metrics:
   - term: ticket promedio
     synonyms: [valor promedio de compra, compra promedio]
     definition: Ingresos divididos para el número de ventas completadas (tickets distintos).
+    requires:
+      tables: [detalle_ventas, ventas, devoluciones]
+      literals: [completada]
+      message: >-
+        «ticket promedio» se calcula con ingresos netos (ventas completadas, sin líneas devueltas)
+        divididos para el número de ventas completadas.
   - term: margen bruto
     synonyms: [margen, utilidad bruta, ganancia]
     definition: >-
       Ingresos menos SUM(detalle_ventas.cantidad × productos.costo_unitario) sobre las mismas líneas.
+    requires:
+      tables: [detalle_ventas, ventas, devoluciones, productos]
+      literals: [completada]
+      message: >-
+        «margen bruto» parte de los ingresos netos (ventas completadas, sin líneas devueltas) y
+        resta cantidad × productos.costo_unitario de esas mismas líneas.
   - term: tasa de devolución
     synonyms: [porcentaje de devoluciones]
     definition: >-
       Unidades devueltas divididas para unidades vendidas (ventas completadas) en el mismo periodo de venta.
+    requires:
+      tables: [devoluciones, detalle_ventas, ventas]
   - term: quiebre de stock
     synonyms: [sin stock, agotado, stockout]
     definition: Fila de inventario con stock = 0 en la fecha de corte.
+    maps_to: retail.inventario
   - term: bajo stock mínimo
     synonyms: [necesita reposición]
     definition: Fila de inventario con stock < stock_minimo en la fecha de corte.
+    maps_to: retail.inventario
 
 entities:
   - term: sucursal
-    synonyms: [tienda, local, punto de venta, almacén]
+    synonyms: [sucursales, tienda, tiendas, local, locales, punto de venta, almacén]
     maps_to: retail.sucursales
   - term: consumidor final
     synonyms: [cliente no registrado]
     definition: Venta sin cliente registrado (ventas.cliente_id IS NULL).
   - term: región
-    synonyms: [zona]
+    synonyms: [zona, regiones]
     maps_to: retail.regiones
+  - term: empleado
+    synonyms: [empleados, cajero, cajeros, vendedor, vendedores, bodeguero, supervisor, gerente, personal]
+    maps_to: retail.empleados
+  - term: cliente
+    synonyms: [clientes, comprador, compradores]
+    maps_to: retail.clientes
+  - term: producto
+    synonyms: [productos, artículo, artículos, marca, marcas]
+    maps_to: retail.productos
+  - term: categoría
+    synonyms: [categorías, línea de producto, departamento]
+    maps_to: retail.categorias
+  - term: inventario
+    synonyms: [stock, existencias]
+    maps_to: retail.inventario
+  - term: devolución
+    synonyms: [devoluciones, reembolso, reembolsos, devuelto, devueltos]
+    maps_to: retail.devoluciones
 
 time:
   # Resolved deterministically in Python relative to the connection's `as_of` date (ADR-0008).
