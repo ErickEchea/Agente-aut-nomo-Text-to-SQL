@@ -31,6 +31,21 @@ REVOKE EXECUTE ON FUNCTION pg_terminate_backend(integer, bigint) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION pg_cancel_backend(integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION set_config(text, text, boolean) TO retail_owner;
 
+-- Session-level advisory locks survive ROLLBACK and would stay on a pooled connection (DoS).
+DO $$
+DECLARE
+    fn regprocedure;
+BEGIN
+    FOR fn IN
+        SELECT p.oid::regprocedure
+        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'pg_catalog' AND p.proname LIKE 'pg%advisory%'
+    LOOP
+        EXECUTE format('REVOKE EXECUTE ON FUNCTION %s FROM PUBLIC', fn);
+    END LOOP;
+END
+$$;
+
 -- Session defaults for the reader (each also enforced per transaction by the executor, ADR-0005 layer C).
 ALTER ROLE nexus_reader IN DATABASE retail SET default_transaction_read_only = on;
 ALTER ROLE nexus_reader SET statement_timeout = '15s';

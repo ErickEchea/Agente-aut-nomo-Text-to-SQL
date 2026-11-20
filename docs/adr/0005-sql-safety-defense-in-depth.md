@@ -46,13 +46,26 @@ exfiltrating SQL **on its own**.
 - Optional PII masking per configured column before rows leave the backend; audit log of every execution.
 
 ### Verification
-- `tests/security/attacks/` holds ≥ 40 cases (YAML) — DROP/DELETE/UPDATE, stacked statements, comment tricks
+- `backend/tests/security/attacks.yaml` holds ≥ 40 cases — DROP/DELETE/UPDATE, stacked statements, comment tricks
   (`--`, `/* */`, nested), modifying CTEs, `SELECT INTO`, `COPY … TO PROGRAM`, `CALL`, `pg_sleep`, file reads,
   `set_config`, catalog access, unicode/homoglyph identifiers, case/whitespace evasion, prompt-injection phrases in
   questions ("ignora tus instrucciones…"), and injection payloads stored inside demo-table values.
 - The suite runs in three modes: (1) validator only (unit); (2) **validator disabled, read-only role** against real
   Postgres via Testcontainers; (3) validator enabled with a privileged role. Every destructive case must fail in all
   modes; state of the DB is checksummed before/after.
+
+## Implementation notes (Phase 2)
+These are findings from running the attack suite in mode 2 (validator disabled, real PostgreSQL). They refine
+how layers B and C are implemented; the decision itself is unchanged.
+- `pg_advisory_lock()` was executable by the reader. Session-level advisory locks **survive ROLLBACK** and
+  would stay on a pooled connection, so the demo init now revokes EXECUTE on every `pg_*advisory*` function.
+- `SET`, `RESET ALL` and `PREPARE` do not raise inside the executor's transaction. They are harmless: `SET`
+  is transactional in PostgreSQL and the executor always rolls back. `test_session_settings_do_not_leak`
+  proves that the next query on the same pooled session sees the role defaults.
+- A `GRANT` issued by the reader only produces a *warning* ("no privileges were granted"). The test
+  asserts on its effect instead of an error.
+- The executor's public API accepts only `ValidatedSQL`, so the type system prevents unvalidated
+  execution. Mode-2 tests call the private `_execute_sql` on purpose.
 
 ## Consequences
 - Some legitimate but exotic SQL (custom functions) needs explicit allowlisting per connection.
