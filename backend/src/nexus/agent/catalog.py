@@ -89,7 +89,8 @@ _COLUMNS_SQL = text(
 
 _CONSTRAINTS_SQL = text(
     """
-    SELECT tc.relname AS table_name, con.contype,
+    -- contype is "char": cast it, or asyncpg returns bytes and b"p" != "p".
+    SELECT tc.relname AS table_name, con.contype::text AS contype,
            a.attname AS column_name,
            rc.relname AS ref_table, ra.attname AS ref_column
     FROM pg_constraint con
