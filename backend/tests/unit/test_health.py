@@ -24,7 +24,13 @@ class StaticCheck:
 
 def _settings() -> Settings:
     db = {"host": "h", "name": "n", "user": "u", "password": "p"}
-    return Settings(app_db=db, demo_db=db, cors_origins=["http://localhost:8080"], log_json=True)  # type: ignore[arg-type]
+    return Settings(
+        app_db=db,
+        demo_db=db,
+        security={"jwt_secret": "x" * 32},
+        cors_origins=["http://localhost:8080"],
+        log_json=True,
+    )  # type: ignore[arg-type]
 
 
 def test_live_endpoint() -> None:

@@ -16,6 +16,14 @@ dependencies = [
     "httpx==0.28.1",
     "numpy==2.5.5",
     "pyyaml==6.0.3",
+    "langgraph==1.2.24",
+    "langchain-core==1.8.4",
+    "ollama==0.6.3",
+    "sqlglot==30.33.0",
+    "alembic==1.20.1",
+    "pyjwt==2.15.1",
+    "argon2-cffi==25.1.0",
+    "sse-starlette==3.7.0",
 ]
 
 [dependency-groups]
@@ -34,6 +42,8 @@ dev = [
 
 [project.scripts]
 nexus-seed-demo = "nexus.demo.cli:main"
+nexus-migrate = "nexus.db.migrate:main"
+nexus-admin = "nexus.admin_cli:main"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14"]
@@ -63,11 +73,25 @@ max-returns = 8
 
 [tool.ruff.lint.per-file-ignores]
 # Tests: asserts, fixture passwords, naive datetimes that mirror `timestamp without time zone` columns.
-"tests/**" = ["S101", "S105", "S106", "S107", "S311", "PLR2004", "S608", "DTZ001"]
+"tests/**" = [
+    "S101", "S105", "S106", "S107", "S311", "PLR2004", "S608", "DTZ001", "SLF001",
+    "E501",    # long literal SQL/questions read better unwrapped
+    "RUF001",  # expected Spanish output uses en dashes
+    "PT018",
+]
+# The live end-to-end test reports per-node timings on purpose.
+"tests/e2e/**" = ["T201"]
+# Alembic revision files are generated.
+"src/nexus/db/migrations/versions/**" = ["UP007", "E501"]
 # numpy RNG is deliberate: deterministic synthetic data, not security.
 "src/nexus/demo/**" = ["S311"]
 # Data tables: one product/branch per line reads better than wrapped tuples; Spanish text uses × and –.
 "src/nexus/demo/catalog.py" = ["E501", "RUF001", "RUF002", "RUF003"]
+# Rule tables (regexes) and Spanish prompt/assumption text: wrapping would hurt readability; the en dash
+# is the intended range separator in user-facing text.
+"src/nexus/agent/temporal.py" = ["E501", "RUF001", "RUF002"]
+"src/nexus/agent/prompts.py" = ["E501"]
+"src/nexus/security/guard.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -91,13 +115,16 @@ asyncio_default_fixture_loop_scope = "function"
 markers = [
     "integration: needs Docker (Testcontainers)",
     "slow: full-scale data generation",
+    "llm: end-to-end against the running stack and a real model (make e2e-agent)",
 ]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not llm'"
 filterwarnings = ["error"]
 
 [tool.coverage.run]
 source = ["nexus"]
 branch = true
+# SQLAlchemy async runs DB calls through greenlets; the API tests run the app in a thread.
+concurrency = ["greenlet", "thread"]
 
 [tool.coverage.report]
 show_missing = true

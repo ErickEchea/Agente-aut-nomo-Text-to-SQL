@@ -74,7 +74,8 @@ def configure_logging(level: str = "INFO", *, json: bool = True) -> None:
     # uvicorn's own access log is replaced by our request middleware (which carries request_id).
     logging.getLogger("uvicorn.access").disabled = True
     # httpx logs every outbound request at INFO (one per health probe): too noisy.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    for noisy in ("httpx", "httpx2"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     for name in ("uvicorn", "uvicorn.error"):
         logging.getLogger(name).handlers.clear()
         logging.getLogger(name).propagate = True

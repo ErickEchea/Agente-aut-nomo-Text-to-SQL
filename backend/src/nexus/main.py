@@ -1,22 +1,39 @@
-"""FastAPI application factory."""
+"""FastAPI application factory and service wiring."""
 
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 import httpx
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from nexus import __version__
-from nexus.api import health
+from nexus.agent.catalog import introspect
+from nexus.agent.glossary import load_glossary
+from nexus.agent.graph import build_graph
+from nexus.agent.state import AgentContext, AuditSink, EventSink
+from nexus.api import audit, auth, health, runs
+from nexus.api.deps import AppServices
 from nexus.config import Settings, get_settings
 from nexus.db.engines import create_engine
 from nexus.health.checks import AppDatabaseCheck, DemoDatabaseCheck, HealthCheck, OllamaCheck
+from nexus.llm import LLMProvider
+from nexus.llm.ollama import OllamaProvider
 from nexus.observability.logging import configure_logging
 from nexus.observability.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
+from nexus.runs.events import EventBroker
+from nexus.runs.manager import RunManager
+from nexus.security.accounts import ensure_bootstrap_admin
+from nexus.security.pii import PiiMasker
+from nexus.security.rate_limit import TokenBucketLimiter
+from nexus.security.tokens import TokenService
+from nexus.sql.executor import ReadOnlyExecutor
+from nexus.sql.validator import ValidationPolicy
 
 logger = structlog.get_logger("nexus.app")
 
@@ -25,8 +42,13 @@ def create_app(
     settings: Settings | None = None,
     *,
     health_checks: Sequence[HealthCheck] | None = None,
+    llm: LLMProvider | None = None,
 ) -> FastAPI:
-    """Build the app. ``health_checks`` lets tests inject checks instead of real dependencies."""
+    """Build the app.
+
+    ``health_checks`` runs a dependency-free app (health endpoints only) for unit tests.
+    ``llm`` replaces the Ollama provider (integration tests use a scripted model).
+    """
     settings = settings or get_settings()
     configure_logging(settings.log_level, json=settings.log_json)
 
@@ -40,21 +62,84 @@ def create_app(
         app_engine = create_engine(settings.app_db, application_name="nexus-api")
         demo_engine = create_engine(settings.demo_db, application_name="nexus-agent-reader")
         ollama_client = httpx.AsyncClient(
-            base_url=str(settings.ollama.base_url),
-            timeout=settings.ollama.request_timeout_s,
+            base_url=str(settings.ollama.base_url), timeout=settings.ollama.request_timeout_s
         )
-        app.state.app_engine = app_engine
-        app.state.demo_engine = demo_engine
-        app.state.ollama_client = ollama_client
+        sessions = async_sessionmaker(app_engine, expire_on_commit=False)
         app.state.health_checks = [
             AppDatabaseCheck(app_engine),
             DemoDatabaseCheck(demo_engine),
             OllamaCheck(ollama_client, settings.ollama.required_models),
         ]
-        logger.info("app.startup", version=__version__, env=settings.env)
+
+        agent_cfg = settings.agent
+        catalog = await introspect(demo_engine, agent_cfg.schema_name)
+        glossary = load_glossary(agent_cfg.glossary_path)
+        provider = llm or OllamaProvider(
+            str(settings.ollama.base_url),
+            settings.ollama.llm_model,
+            settings.ollama.embedding_model,
+            timeout_s=agent_cfg.llm_timeout_s,
+        )
+        executor = ReadOnlyExecutor(
+            demo_engine,
+            statement_timeout_ms=agent_cfg.statement_timeout_ms,
+            max_rows=agent_cfg.max_rows,
+        )
+        policy = ValidationPolicy(
+            allowed_tables=catalog.table_names,
+            allowed_schemas=frozenset({agent_cfg.schema_name}),
+            max_rows=agent_cfg.max_rows,
+        )
+        masker = PiiMasker(agent_cfg.pii_column_list)
+        as_of = agent_cfg.as_of or datetime.now(UTC).date()
+
+        def context_factory(events: EventSink, audit_sink: AuditSink) -> AgentContext:
+            return AgentContext(
+                llm=provider,
+                catalog=catalog,
+                glossary=glossary,
+                policy=policy,
+                executor=executor,
+                as_of=as_of,
+                events=events,
+                audit=audit_sink,
+                masker=masker,
+                max_repairs=agent_cfg.max_repairs,
+            )
+
+        manager = RunManager(sessions, build_graph(), context_factory, EventBroker())
+        app.state.services = AppServices(
+            settings=settings,
+            sessions=sessions,
+            tokens=TokenService(
+                settings.security.jwt_secret.get_secret_value(),
+                settings.security.access_token_ttl_s,
+            ),
+            limiter=TokenBucketLimiter(),
+            runs=manager,
+        )
+
+        security = settings.security
+        if security.bootstrap_admin_email and security.bootstrap_admin_password:
+            async with sessions() as session, session.begin():
+                await ensure_bootstrap_admin(
+                    session,
+                    security.bootstrap_admin_email,
+                    security.bootstrap_admin_password.get_secret_value(),
+                )
+
+        logger.info(
+            "app.startup",
+            version=__version__,
+            env=settings.env,
+            tables=len(catalog.tables),
+            model=provider.default_model,
+            as_of=as_of.isoformat(),
+        )
         try:
             yield
         finally:
+            await manager.shutdown()
             await ollama_client.aclose()
             await demo_engine.dispose()
             await app_engine.dispose()
@@ -77,10 +162,11 @@ def create_app(
         allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Authorization", "Content-Type", REQUEST_ID_HEADER],
-        expose_headers=[REQUEST_ID_HEADER],
+        allow_headers=["Authorization", "Content-Type", "Last-Event-ID", REQUEST_ID_HEADER],
+        expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
     )
     app.add_middleware(RequestContextMiddleware)
 
-    app.include_router(health.router)
+    for router in (health.router, auth.router, runs.router, audit.router):
+        app.include_router(router)
     return app
