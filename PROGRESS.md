@@ -46,9 +46,15 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
   in `docs/screenshots/phase1/`. `.pre-commit-config.yaml`, `.github/workflows/ci.yml`.
 - Tooling installed: GNU make 4.4 (winget `ezwinports.make`), GitHub CLI 2.105, uv upgraded to 0.13.9.
 
+- **CI green on GitHub** (backend incl. Testcontainers on Linux, frontend, Docker images + compose config).
+  First run failed because `astral-sh/setup-uv` publishes no floating `v10` tag; pinned to `v10.4.0`.
+- Reference answer established on the live DB (as `nexus_reader`): Q3 2026 top-5 by units = Agua mineral
+  1.5 L, Pollo entero Mr. Pollo, Leche Toni, Leche Parmalat, Aceite La Favorita; top branch by revenue =
+  Samborondón ($299,672.19). This is the Phase 2 end-to-end target.
+
 ### Known issues / limitations
-- **CI not yet verified on GitHub**: the workflow is written and its steps pass locally, but pushing requires the
-  user to authenticate (`gh auth login`) — not possible from this non-interactive session.
+- `gh` is installed but not authenticated (needs `gh auth login` by the user); CI status is read through the
+  public GitHub API instead.
 - `make` is installed but the current shell's PATH only picks it up after a new terminal session.
 - GPU default model (`qwen2.5-coder:7b`) is **provisional** until the Phase 6 benchmark (ADR-0003).
 - Inventory snapshots do not scale with `NEXUS_DEMO_SCALE` (branch × product × month grid, ~229k rows).
