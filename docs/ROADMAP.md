@@ -3,7 +3,7 @@
 Every phase closes only when: all tests pass, lint + typecheck are clean, `docker compose up` is healthy for
 the services that exist so far, and `PROGRESS.md` is updated.
 
-## Phase 0 — Plan ✅ (this commit)
+## Phase 0 — Plan ✅
 CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygiene files.
 
 ## Phase 1 — Infrastructure, demo DB, read-only role
@@ -12,7 +12,7 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
   `/api/health/live` and `/api/health/ready` (real checks of both DBs and Ollama models). Frontend at this phase:
   production nginx image serving the Vite build of a minimal shell (replaced in Phase 4).
 - `infra/postgres/demo/`: roles (`retail_owner`, `nexus_reader`) with the grants of ADR-0005.
-- `data/retail/schema.sql` with `COMMENT ON` for every table/column; `data/retail/generate.py` — seeded,
+- `data/retail/schema.sql` with `COMMENT ON` for every table/column; generator `nexus.demo` — seeded,
   2 years (2024-11-01 → 2026-10-31), seasonality, trend, planted anomalies, ≈500k `detalle_ventas`, loaded with
   `COPY`; `data/glossary.yaml`.
 - Makefile, `.env.example`, pre-commit config, install `make` on Windows.

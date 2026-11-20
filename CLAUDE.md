@@ -41,14 +41,15 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 
 | Command | What | Phase |
 |---|---|---|
+| `make env` | Create `.env` with generated secrets (never overwrites) | 1 |
 | `make up` / `make down` | Start/stop the full stack (auto GPU/CPU profile), wait for healthchecks | 1 |
-| `make seed` | (Re)generate and load the retail demo data (seed fixed) | 1 |
+| `make seed` / `make reseed` | Load the retail demo data if changed / force reload | 1 |
 | `make logs s=backend` | Tail a service | 1 |
-| `make test` | Backend unit + frontend unit | 2 |
-| `make test-integration` | Testcontainers-based backend tests | 2 |
+| `make test` | Backend unit + frontend unit | 1 |
+| `make test-integration` | Testcontainers-based backend tests | 1 |
+| `make lint` / `make typecheck` / `make check` | ruff + eslint / mypy + tsc / all of the above + unit tests | 1 |
+| `make e2e` | Playwright end-to-end (stack must be up) | 1 |
 | `make test-security` | Attack suite in all three modes | 2 |
-| `make lint` / `make typecheck` | ruff + eslint / mypy + tsc | 2 |
-| `make e2e` | Playwright end-to-end (stack must be up) | 4 |
 | `make bench MODELS="…"` | Run golden-set benchmark, write `docs/benchmark.md` | 6 |
 
 Backend directly: `cd backend && uv run pytest`, `uv run ruff check`, `uv run mypy src`.
@@ -60,3 +61,6 @@ Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typec
   55432 (app-db), 55433 (demo-db), 8000 (API), 8080 (web) and does not publish Ollama.
 - GPU: RTX 5060 Laptop, 8 GB VRAM → models ≤ ~8B at Q4 (ADR-0003).
 - Python in containers is 3.13; TypeScript pinned to 6.0.x until typescript-eslint supports 7 (ADR-0002).
+- GNU make lives in `%LOCALAPPDATA%\Microsoft\WinGet\Packages\ezwinports.make_*\bin` (on PATH in new terminals).
+- Demo data checksum (seed 20241101, scale 1.0, dataset v1.0.0): `7ce932275db5…` — identical on Windows and Linux.
+- Avoid multi-heredoc Bash commands containing apostrophes in this environment; write files with the editor tools.
