@@ -94,6 +94,8 @@ class AgentSettings(BaseModel):
     pii_columns: str = "clientes.cedula,clientes.email,clientes.telefono,empleados.cedula"
     glossary_path: Path = Path("/app/data/glossary.yaml")
     llm_timeout_s: float = Field(default=180.0, gt=0)
+    connection_key: str = "retail-demo"
+    retrieval_max_tables: int = Field(default=4, ge=1, le=20)
 
     @field_validator("as_of", mode="before")
     @classmethod

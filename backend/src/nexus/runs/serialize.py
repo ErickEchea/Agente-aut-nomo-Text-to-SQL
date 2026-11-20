@@ -41,6 +41,7 @@ def serialize_final(state: AgentState) -> dict[str, Any]:
     time = state.get("time")
     usage = state.get("usage", [])
     intent = state.get("intent")
+    context = state.get("schema_context")
     return {
         "status": str(state.get("status", "failed")),
         "answer": state.get("answer", ""),
@@ -67,4 +68,20 @@ def serialize_final(state: AgentState) -> dict[str, Any]:
             "completion": sum(u.completion_tokens for u in usage),
             "calls": len(usage),
         },
+        "charts": [c.model_dump(mode="json", exclude_none=True) for c in state.get("charts", [])],
+        "explanation": _explanation(state),
+        "retrieval": context.summary() if context is not None else None,
+    }
+
+
+def _explanation(state: AgentState) -> dict[str, Any] | None:
+    result = state.get("explanation")
+    if result is None:
+        return None
+    return {
+        **result.explanation.model_dump(),
+        "grounded": result.grounded,
+        "fallback": result.fallback,
+        "attempts": result.attempts,
+        "rejected_numbers": list(result.ungrounded),
     }

@@ -31,6 +31,15 @@ EXPECTED_TOP5 = [
     "Aceite vegetal 1 L La Favorita",
 ]
 EXPECTED_BRANCH = ("Samborondón", 299672.19)
+# Follow-up "¿y en el trimestre anterior?" → Q2 2026 (computed with the read-only role).
+EXPECTED_TOP5_Q2 = [
+    "Agua mineral 1.5 L",
+    "Pollo entero por kg Mr. Pollo",
+    "Leche entera 1 L Toni",
+    "Leche entera 1 L Parmalat",
+    "Arroz 5 kg Gustadina",
+]
+EXPECTED_BRANCH_Q2 = ("Guayaquil Norte - Alborada", 291168.77)
 
 
 def _env_value(key: str) -> str:
@@ -63,9 +72,10 @@ def client() -> httpx.Client:
 
 
 def ask(
-    client: httpx.Client, question: str
+    client: httpx.Client, question: str, conversation_id: str | None = None
 ) -> tuple[list[tuple[str, dict[str, object]]], dict[str, object]]:
-    created = client.post("/api/runs", json={"question": question})
+    body = {"question": question, "conversation_id": conversation_id}
+    created = client.post("/api/runs", json=body)
     assert created.status_code == 202, created.text
     run_id = created.json()["run_id"]
     events: list[tuple[str, dict[str, object]]] = []
@@ -107,6 +117,40 @@ def test_reference_question_end_to_end(client: httpx.Client) -> None:
     assert branch_value == pytest.approx(EXPECTED_BRANCH[1], abs=0.01)
     for step in steps:
         assert "2026-07-01" in step["sql"] and "2026-10-01" in step["sql"]
+    _check_phase3_outputs(result)
+
+    # Short-term memory: the follow-up resolves "anterior" relative to the previous period (Q2 2026).
+    _, follow = ask(
+        client, "¿Y en el trimestre anterior?", conversation_id=str(detail["conversation_id"])
+    )
+    assert follow["status"] == "answered", follow["answer"]
+    follow_result = follow["result"]
+    assert [(r["start"], r["end"]) for r in follow_result["time_ranges"]] == [
+        ("2026-04-01", "2026-07-01")
+    ]
+    follow_steps = follow_result["results"]
+    top5_q2 = next(s["rows"] for s in follow_steps if len(s["rows"]) == 5)
+    branch_q2 = next(s["rows"] for s in follow_steps if len(s["rows"]) == 1)
+    assert [next(v for v in row if isinstance(v, str)) for row in top5_q2] == EXPECTED_TOP5_Q2
+    assert next(v for v in branch_q2[0] if isinstance(v, str)) == EXPECTED_BRANCH_Q2[0]
+    assert next(v for v in branch_q2[0] if isinstance(v, float)) == pytest.approx(
+        EXPECTED_BRANCH_Q2[1], abs=0.01
+    )
+    _check_phase3_outputs(follow_result)
+
+
+def _check_phase3_outputs(result: dict[str, object]) -> None:
+    explanation = result["explanation"]
+    assert isinstance(explanation, dict)
+    assert explanation["grounded"] is True  # every number in the summary exists in the data
+    print(f"  explanation (fallback={explanation['fallback']}): {explanation['headline']}")
+    charts = result["charts"]
+    assert isinstance(charts, list) and len(charts) == 2
+    assert {c["kind"] for c in charts} <= {"bar", "pie", "kpi"}
+    retrieval = result["retrieval"]
+    assert isinstance(retrieval, dict)
+    assert {"detalle_ventas", "ventas", "devoluciones"} <= set(retrieval["tables"])
+    assert len(retrieval["tables"]) < 10  # a sub-schema, not the whole database
 
 
 def test_destructive_request_is_refused_end_to_end(client: httpx.Client) -> None:

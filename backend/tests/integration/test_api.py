@@ -36,19 +36,37 @@ BRANCH_SQL = (
     "AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id) "
     "GROUP BY s.nombre ORDER BY ingresos DESC LIMIT 1"
 )
+FOLLOW_UP = "¿Qué sucursal generó mayores ingresos durante el trimestre anterior?"
+BRANCH_SQL_Q2 = BRANCH_SQL.replace("2026-07-01", "2026-04-01").replace("2026-10-01", "2026-07-01")
+
+
+class ContentLLM(ScriptedLLM):
+    """Answers from the prompt content, so test order does not matter (tests only)."""
+
+    def __init__(self) -> None:
+        super().__init__({})
+
+    async def complete(self, messages, schema, options=None):  # type: ignore[no-untyped-def,override]
+        prompt = messages[-1].content
+        follow = "trimestre anterior" in prompt
+        question = FOLLOW_UP if follow else QUESTION
+        canned = {
+            Understanding: Understanding(
+                intent="follow_up" if follow else "data", standalone_question=question
+            ),
+            Plan: Plan(steps=[question]),
+            SqlCandidate: SqlCandidate(
+                sql=BRANCH_SQL_Q2 if follow else BRANCH_SQL,
+                rationale="Ingresos netos por sucursal.",
+            ),
+        }
+        if schema in canned:
+            self.script[schema] = [canned[schema]]
+        return await super().complete(messages, schema, options)
 
 
 def scripted() -> ScriptedLLM:
-    return ScriptedLLM(
-        {
-            Understanding: [Understanding(intent="data", standalone_question=QUESTION)] * 5,
-            Plan: [Plan(steps=[QUESTION])] * 5,
-            SqlCandidate: [
-                SqlCandidate(sql=BRANCH_SQL, rationale="Suma ingresos netos por sucursal.")
-            ]
-            * 5,
-        }
-    )
+    return ContentLLM()
 
 
 def _url(db: DatabaseSettings) -> str:
@@ -208,7 +226,8 @@ def test_run_end_to_end_with_sse_and_replay(client: TestClient) -> None:
     assert [e[0] for e in events] == list(range(1, len(events) + 1))  # gap-free sequence
     completed_nodes = [e[2]["node"] for e in events if e[1] == "node.completed"]
     assert completed_nodes == [
-        "understand", "plan", "resolve_time", "generate_sql", "validate", "execute", "verify_results", "respond",
+        "understand", "retrieve_schema", "plan", "resolve_time", "generate_sql", "validate",
+        "execute", "verify_results", "visualize", "explain", "remember", "respond",
     ]  # fmt: skip
     assert events[-1][2]["status"] == "answered"
 
@@ -258,6 +277,69 @@ def test_input_validation(client: TestClient) -> None:
     assert (
         client.post("/api/runs", json={"question": "a" * 1001}, headers=headers).status_code == 422
     )
+
+
+def test_feedback_verifies_examples_and_memory_endpoints(client: TestClient) -> None:
+    headers = login(client, ANALYST)
+    run_id = client.post("/api/runs", json={"question": QUESTION}, headers=headers).json()["run_id"]
+    read_sse(client, f"/api/runs/{run_id}/events", headers)
+    detail = client.get(f"/api/runs/{run_id}", headers=headers).json()
+    assert detail["result"]["explanation"]["grounded"] is True
+    assert detail["result"]["charts"][0]["kind"] == "kpi"
+    assert detail["result"]["retrieval"]["tables"]
+
+    viewer = login(client, VIEWER)
+    forbidden = client.post(f"/api/runs/{run_id}/feedback", json={"rating": "up"}, headers=viewer)
+    assert forbidden.status_code == 403
+    bad = client.post(
+        f"/api/runs/{run_id}/feedback", json={"rating": "down", "verify": True}, headers=headers
+    )
+    assert bad.status_code == 422
+    ok = client.post(
+        f"/api/runs/{run_id}/feedback", json={"rating": "up", "verify": True}, headers=headers
+    )
+    assert ok.status_code == 200
+    assert ok.json()["verified_examples"] == 1
+    again = client.post(
+        f"/api/runs/{run_id}/feedback", json={"rating": "up", "verify": True}, headers=headers
+    )
+    assert again.json()["verified_examples"] == 0  # idempotent per question
+
+    frequent = client.get("/api/memory/frequent", headers=headers).json()
+    assert frequent[0]["question"] == QUESTION
+    assert frequent[0]["times_asked"] >= 1
+    saved = client.put("/api/memory/preferences", json={"locale": "en"}, headers=headers)
+    assert saved.json() == {"locale": "en"}
+    assert client.get("/api/memory/preferences", headers=headers).json() == {"locale": "en"}
+    invalid = client.put("/api/memory/preferences", json={"locale": "fr"}, headers=headers)
+    assert invalid.status_code == 422
+    client.put("/api/memory/preferences", json={"locale": "es"}, headers=headers)
+
+
+def test_follow_up_in_the_same_conversation(client: TestClient) -> None:
+    headers = login(client, ADMIN)
+    first = client.post("/api/runs", json={"question": QUESTION}, headers=headers).json()
+    read_sse(client, f"/api/runs/{first['run_id']}/events", headers)
+    follow = client.post(
+        "/api/runs",
+        json={
+            "question": "¿y en el trimestre anterior?",
+            "conversation_id": first["conversation_id"],
+        },
+        headers=headers,
+    ).json()
+    assert follow["conversation_id"] == first["conversation_id"]
+    read_sse(client, f"/api/runs/{follow['run_id']}/events", headers)
+    detail = client.get(f"/api/runs/{follow['run_id']}", headers=headers).json()
+    assert detail["status"] == "answered"
+    assert detail["result"]["time_ranges"] == [
+        {
+            "expression": "trimestre anterior",
+            "start": "2026-04-01",
+            "end": "2026-07-01",
+            "grain": "quarter",
+        }
+    ]
 
 
 # Must stay last: it exhausts the test client's login budget.
