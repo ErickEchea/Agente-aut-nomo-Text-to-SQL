@@ -1,0 +1,53 @@
+# Install with `make hooks`. Mirrors the CI lint/typecheck jobs on staged files.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=800]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict)
+        entry: sh -c 'cd backend && uv run mypy'
+        language: system
+        files: ^backend/src/.*\.py$
+        pass_filenames: false
+      - id: eslint
+        name: eslint
+        entry: sh -c 'cd frontend && npm run lint'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js)$
+        pass_filenames: false
+      - id: tsc
+        name: tsc
+        entry: sh -c 'cd frontend && npm run typecheck'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+      - id: no-env-file
+        name: refuse to commit .env
+        entry: sh -c 'echo ".env must never be committed" >&2; exit 1'
+        language: system
+        files: (^|/)\.env$
