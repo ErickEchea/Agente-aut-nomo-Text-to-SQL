@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/status-phase%201%20of%207-3fd0c9" alt="Status: phase 1 of 7">
+  <img src="https://img.shields.io/badge/status-phase%202%20of%207-3fd0c9" alt="Status: phase 2 of 7">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -30,9 +30,10 @@ Everything runs **on your machine**. Models are served by [Ollama](https://ollam
 data never leaves your network.
 
 > [!NOTE]
-> **Project status.** NEXUS AI is built in phases ([roadmap](#-roadmap)). **Phase 1 is complete**:
-> infrastructure, demo database, read-only role, observability and CI. The conversational agent comes next, in
-> Phase 2. This page always separates what **works today** ✅ from what is **planned** 🗓️.
+> **Project status.** NEXUS AI is built in phases ([roadmap](#-roadmap)). **Phases 1 and 2 are complete**:
+> the agent answers questions end to end through the API, streaming every step, with SQL validation,
+> self-repair, authentication and a fully blocked attack suite. The full web UI comes in Phase 4. This page
+> always separates what **works today** ✅ from what is **planned** 🗓️.
 
 ## ✨ What it does
 
@@ -41,8 +42,7 @@ Reference question:
 > *¿Cuáles fueron los cinco productos más vendidos durante el último trimestre y qué sucursal generó mayores
 > ingresos?* (Which five products sold the most last quarter, and which branch generated the most revenue?)
 
-The correct answer on the demo data is below. It was computed through the read-only role, and it is the target
-the agent must reach end to end. The top five products by units sold in Q3 2026 are:
+**The agent already answers it correctly end to end** (3/3 consecutive live runs, `make e2e-agent`). The top five products by units sold in Q3 2026 are:
 
 1. Agua mineral 1.5 L (4,768 units)
 2. Pollo entero Mr. Pollo (2,707 units)
@@ -55,12 +55,12 @@ and returned lines are excluded, as defined in the [business glossary](data/glos
 
 | | Capability | Status |
 |---|---|---|
-| 🧠 | Intent detection; asks for clarification with concrete options instead of guessing | 🗓️ Phase 2 |
-| 📅 | Relative dates ("last quarter") resolved in Python, not by the LLM, and shown as visible assumptions | 🗓️ Phase 2 |
-| 🛡️ | SQL validated on the syntax tree (SQLGlot) and executed through a read-only database role | ✅ role · 🗓️ validator |
-| 🔁 | Self-repair from the PostgreSQL error (max. 3 attempts, shown as a diff) | 🗓️ Phase 2 |
+| 🧠 | Intent detection; asks for clarification with concrete options instead of guessing | ✅ |
+| 📅 | Relative dates ("last quarter") resolved in Python, not by the LLM, and shown as visible assumptions | ✅ |
+| 🛡️ | SQL validated on the syntax tree (SQLGlot) and executed through a read-only database role | ✅ |
+| 🔁 | Self-repair from database errors and glossary violations (max. 3 attempts) | ✅ · visual diff Phase 4 |
 | 🔎 | Hybrid schema RAG (pgvector + keyword search) over comments, a business glossary and verified examples | 🗓️ Phase 3 |
-| 👁️ | Live reasoning: every agent step is streamed over SSE to an animated timeline | 🗓️ Phase 4 |
+| 👁️ | Live reasoning: every agent step is streamed over SSE (timings, tokens, SQL, results) | ✅ API · 🗓️ timeline Phase 4 |
 | 📊 | Tabs for table, chart (ECharts), SQL, explanation and optimization, plus pinned dashboards | 🗓️ Phases 4–5 |
 | ✅ | Summaries never contain invented numbers: every figure is checked against the results | 🗓️ Phase 3 |
 | 🔌 | Multiple databases (PostgreSQL, MySQL, SQLite) with credentials encrypted at rest | 🗓️ Phase 5 |
@@ -100,7 +100,11 @@ LLM-written SQL passes several layers before it runs. **Each layer must block de
 4. A `READ ONLY` transaction with statement timeouts.
 5. A separate connection pool, with every query audited.
 
-**Verified today ✅.** Integration tests against a real PostgreSQL prove that the agent role (`nexus_reader`):
+**Attack suite ✅.** 62 SQL attacks run in three modes: validator only, database only (validator off), and
+the validator guarding a role that *could* write. All are blocked and the data is unchanged. Ten
+natural-language attacks are refused before the model is called.
+
+Integration tests against a real PostgreSQL also prove that the agent role (`nexus_reader`):
 - cannot run `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `DROP`, `ALTER`, `CREATE` or `COPY … TO PROGRAM`;
 - still cannot write after turning off `default_transaction_read_only` in its own session;
 - cannot call `pg_sleep`, `set_config`, `pg_terminate_backend`, `pg_read_file` or `lo_import`;
@@ -172,10 +176,10 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Plan, architecture, 17 ADRs | ✅ |
+| 0 | Plan, architecture and ADRs | ✅ |
 | 1 | Docker Compose, demo database, read-only role, observability, CI | ✅ |
-| 2 | Agent core: generation, AST validation, execution, repair, SSE, auth, 40+ attack suite | 🔜 next |
-| 3 | Schema RAG, glossary, verified examples, short- and long-term memory | 🗓️ |
+| 2 | Agent core: generation, AST validation, execution, repair, SSE, auth, 62+ attack suite | ✅ |
+| 3 | Schema RAG, verified examples, memory, charts, grounded explanations | 🔜 next |
 | 4 | Full UI: design system, live agent timeline, dashboards, command palette | 🗓️ |
 | 5 | Clause-level explainability, `EXPLAIN`-based optimization, multi-database support | 🗓️ |
 | 6 | Benchmark of 120+ questions; default model selection | 🗓️ |
@@ -183,8 +187,10 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 
 ## 🧪 Quality
 
-**Backend.** 56 unit tests and 43 integration tests run against a real PostgreSQL. Coverage is 97 %, ruff and
-`mypy --strict` are clean, and warnings are treated as errors.
+**Backend.** 446 tests (unit, security and integration against real PostgreSQL). Coverage is 94 % on
+`agent/`, `security/` and `sql/`, gated at 85 % in CI. ruff and `mypy --strict` are clean.
+
+**Agent.** A live end-to-end test runs the reference question against the real model (`make e2e-agent`).
 
 **Frontend.** Vitest unit tests and 8 Playwright end-to-end tests (desktop and mobile, light and dark), plus
 strict ESLint and `tsc`.

@@ -6,7 +6,7 @@ the services that exist so far, and `PROGRESS.md` is updated.
 ## Phase 0 — Plan ✅
 CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygiene files.
 
-## Phase 1 — Infrastructure, demo DB, read-only role
+## Phase 1 — Infrastructure, demo DB, read-only role ✅
 - `docker-compose.yml` (+ `docker-compose.gpu.yml`): app-db, demo-db, ollama, ollama-init, demo-seed, backend,
   frontend — each with a healthcheck. Backend at this phase: settings, structured logging with `request_id`,
   `/api/health/live` and `/api/health/ready` (real checks of both DBs and Ollama models). Frontend at this phase:
@@ -19,10 +19,12 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
 - **Exit**: `make up` from scratch → all healthy; row counts and seasonality checks pass (tests over the generator,
   deterministic checksum with the fixed seed); `nexus_reader` provably cannot write (integration test).
 
-## Phase 2 — Agent core + security suite
+## Phase 2 — Agent core + security suite ✅
 - `LLMProvider` + `OllamaProvider` (structured output, usage), validator (ADR-0005), executor (read-only txn,
   timeouts, row cap, separate pool), LangGraph graph with `understand → generate_sql → validate → execute →
-  repair → verify_results` (retrieval uses the full sub-schema until Phase 3), temporal resolver, SSE endpoints,
+  repair → verify_results` plus `plan` (moved up from Phase 3: the reference question is compound) and a
+  deterministic `respond` (the grounded LLM `explain` stays in Phase 3). Retrieval sends the full schema
+  until Phase 3. Temporal resolver, SSE endpoints,
   JWT auth + RBAC + rate limit + audit log + PII masking, Alembic migrations.
 - Attack suite ≥ 40 cases in three modes.
 - **Exit**: reference question answered via API (curl SSE) with correct SQL; attack suite 100 % blocked; coverage

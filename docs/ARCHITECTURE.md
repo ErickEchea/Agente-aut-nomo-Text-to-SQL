@@ -171,6 +171,27 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
 
+### Implementation status (Phase 2)
+Implemented: `understand` (deterministic guard first, ADR-0018), `plan`, `resolve_time`, `generate_sql`,
+`validate`, `execute`, `repair`, `verify_results` (date filters, empty/NULL results, glossary `requires`) and a
+deterministic `respond`. `retrieve_schema` sends the full introspected schema (10 tables, about 3.4k prompt
+tokens) until Phase 3 replaces it with hybrid RAG. `visualize`, grounded `explain` and `remember` arrive in
+Phase 3.
+
+### HTTP API (Phase 2)
+| Method | Path | Who | Purpose |
+|---|---|---|---|
+| POST | `/api/auth/login` | public (rate-limited per IP and per email) | Returns an access token and sets the refresh cookie |
+| POST | `/api/auth/refresh` | cookie | Rotates the refresh token; reusing an old one revokes the whole family |
+| POST | `/api/auth/logout` | cookie | Revokes the session |
+| GET | `/api/auth/me` | any role | Current user |
+| POST | `/api/runs` | any role (rate-limited, one concurrent run per user) | Starts a run (`202` + `run_id`) |
+| GET | `/api/runs` · `/api/runs/{id}` | owner or admin | History and the full result (steps, SQL, rows, attempts, assumptions, tokens) |
+| GET | `/api/runs/{id}/events` | owner or admin | SSE stream with `Last-Event-ID` replay |
+| DELETE | `/api/runs/{id}` | owner or admin | Cancel |
+| GET | `/api/audit` | admin | Audit log of logins and every SQL attempt |
+| GET | `/api/health/live` · `/api/health/ready` | public | Liveness and dependency readiness |
+
 ## 6. Request sequence (reference question)
 
 > «¿Cuáles fueron los cinco productos más vendidos durante el último trimestre y qué sucursal generó mayores ingresos?»

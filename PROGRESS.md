@@ -7,13 +7,55 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | Phase | State |
 |---|---|
 | 0 — Plan, ADRs, structure | ✅ Done (2026-11-20) |
-| 1 — Infra, demo DB, read-only role | ✅ Done (2026-11-20) — awaiting go-ahead for Phase 2 |
-| 2 — Agent core + security | ⏳ Not started |
+| 1 — Infra, demo DB, read-only role | ✅ Done (2026-11-20) |
+| 2 — Agent core + security | ✅ Done (2026-11-20) — awaiting go-ahead for Phase 3 |
 | 3 — RAG + memory | ⏳ |
 | 4 — Frontend + design system | ⏳ |
 | 5 — Explainability, optimization, multi-DB | ⏳ |
 | 6 — Benchmark + default model | ⏳ |
 | 7 — Hardening + docs | ⏳ |
+
+## Phase 2 — 2026-11-20
+
+### Exit criteria
+- ✅ **Reference question answered end to end** through nginx → JWT → `POST /api/runs` → SSE, with the real
+  model (`qwen2.5-coder:7b`, GPU): exact top-5 products and Samborondón at $299,672.19. 3/3 consecutive runs
+  passed (`make e2e-agent`), ~20 s each with the GPU shared with other software.
+- ✅ **Attack suite fully blocked**: 62 SQL attacks in 3 modes, 9 benign controls, 10 prompt attacks + 11
+  false-positive controls (`make test-security`, 284 tests).
+- ✅ Coverage gate: **94 %** on `agent/`, `security/`, `sql/` (`make coverage`, enforced in CI).
+- ✅ ruff, mypy `--strict`, ESLint, `tsc` clean; `make up` healthy (now with a `migrate` job).
+
+### Done
+- **Agent (LangGraph)**: `understand` (deterministic guard first, then model) → `plan` → `resolve_time` →
+  `generate_sql` → `validate` → `execute` → `verify_results` ⇄ `repair` (≤ 3) → `respond`. Typed state, injected
+  runtime context, pure routing functions tested edge by edge, every node instrumented (SSE event + log span
+  with duration and tokens).
+- **LLM layer**: `LLMProvider` protocol + `OllamaProvider` (JSON-schema structured outputs, temperature 0, fixed
+  seed, token usage); per-node model routing hook.
+- **SQL safety**: SQLGlot AST validator (deny-by-default functions, table/schema allowlist, forced LIMIT,
+  comment stripping); read-only executor that only accepts `ValidatedSQL`; advisory locks revoked from the
+  reader after the suite found them executable (ADR-0005 notes).
+- **Deterministic guards (ADR-0018)**: question guard before the model; glossary `requires` rules checked on
+  the AST in `verify_results` (caught the model omitting the returns exclusion, then repaired).
+- **Temporal resolver** (es/en, `as_of`), PII masking traced through aliases/CTEs, prompt data blocks that
+  cannot be closed by injected text.
+- **API**: JWT access (15 min) + rotating refresh cookie with reuse detection; roles admin/analyst/viewer;
+  token-bucket rate limits (login per IP and per email, runs per user, one concurrent run per user);
+  `POST /api/runs`, `GET /api/runs[/{id}]`, `GET /api/runs/{id}/events` (SSE, `Last-Event-ID` replay),
+  `DELETE /api/runs/{id}`, `GET /api/audit` (admin); audit log of logins and every SQL attempt.
+- **Persistence**: Alembic migrations (users, refresh_tokens, conversations, runs, run_events, audit_log);
+  `nexus-migrate`, `nexus-admin create-user`; bootstrap admin from `.env`.
+
+### Known issues / limitations
+- Latency: ~20 s for the two-part reference question on the reference laptop while another GPU-heavy
+  application (a game) was running; the GPU delivered ~18 tok/s. To be measured cleanly in Phase 6.
+- The answer text is a deterministic summary of the results; the grounded LLM explanation (ADR-0014),
+  `visualize`, schema RAG and long-term memory are Phase 3 (short-term history is already passed to
+  `understand`).
+- Single-replica assumptions remain for rate limiting, the concurrent-run lock and SSE fan-out.
+- `uvicorn --forwarded-allow-ips *`: the backend port is published on loopback only and nginx overwrites
+  `X-Forwarded-For`; anyone with shell access to the host could still spoof a client IP.
 
 ## Phase 1 — 2026-11-20
 

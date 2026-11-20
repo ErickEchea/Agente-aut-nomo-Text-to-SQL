@@ -15,7 +15,9 @@ significant decision as an ADR in `docs/adr/`.
    connection. Never weaken either layer to make a test pass. Never put DB values or user text into a prompt
    outside the delimited data blocks.
 5. **Time**: relative dates are resolved by `nexus.agent.temporal`, never by the LLM.
-6. Secrets only via environment variables; every new variable goes into `.env.example` with a comment.
+6. **Business rules are data**: metric definitions and their SQL `requires` checks live in
+   `data/glossary.yaml` (ADR-0018); prefer adding a rule there over prompt tweaks.
+7. Secrets only via environment variables; every new variable goes into `.env.example` with a comment.
 
 ## Conventions
 - Code, comments, docs, commit messages: **English**. UI strings: Spanish default + English via i18next
@@ -50,6 +52,9 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 | `make lint` / `make typecheck` / `make check` | ruff + eslint / mypy + tsc / all of the above + unit tests | 1 |
 | `make e2e` | Playwright end-to-end (stack must be up) | 1 |
 | `make test-security` | Attack suite in all three modes | 2 |
+| `make coverage` | All non-LLM tests + 85 % gate on agent/security/sql | 2 |
+| `make e2e-agent` | Reference question end to end with the real model (stack up) | 2 |
+| `make create-user email=… name=… role=…` | Create analyst/viewer accounts | 2 |
 | `make bench MODELS="…"` | Run golden-set benchmark, write `docs/benchmark.md` | 6 |
 
 Backend directly: `cd backend && uv run pytest`, `uv run ruff check`, `uv run mypy src`.

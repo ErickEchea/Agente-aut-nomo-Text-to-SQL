@@ -22,3 +22,4 @@ ADRs are immutable once **Accepted**; a change of mind is a new ADR that superse
 | [0015](0015-benchmark-methodology.md) | Benchmark methodology | Accepted |
 | [0016](0016-frontend-stack-and-design-system.md) | Frontend stack and design system | Accepted |
 | [0017](0017-retail-demo-dataset.md) | Retail demo dataset (Ecuador, USD) | Accepted |
+| [0018](0018-deterministic-guards-around-the-llm.md) | Deterministic guards around the LLM | Accepted |
