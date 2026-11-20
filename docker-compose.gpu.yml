@@ -1,0 +1,11 @@
+# GPU override for NVIDIA hosts (Docker Desktop + WSL2, or Linux with nvidia-container-toolkit).
+# Selected automatically by `make up` when a container can see the GPU.
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

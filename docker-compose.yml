@@ -1,0 +1,159 @@
+# NEXUS AI — full local stack. Start with `make up` (selects the GPU/CPU profile and waits for health).
+# Plain `docker compose up -d --wait` works too and uses the CPU model unless NEXUS_LLM_MODEL is set.
+name: nexus
+
+x-backend-image: &backend-build
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: nexus-backend:local
+
+x-models: &models
+  NEXUS_LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
+  NEXUS_EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+
+services:
+  app-db:
+    image: pgvector/pgvector:0.8.7-pg18-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${NEXUS_APP_DB_SUPERUSER_PASSWORD:?run `make env` first}
+      NEXUS_APP_DB_PASSWORD: ${NEXUS_APP_DB_PASSWORD:?run `make env` first}
+    volumes:
+      - app-db-data:/var/lib/postgresql
+      - ./infra/postgres/app:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${NEXUS_APP_DB_PORT:-55432}:5432"
+    healthcheck:
+      # -h forces TCP: during init the server listens on the socket only, so this stays red until init ends.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d nexus_app"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+
+  demo-db:
+    image: postgres:18.7-trixie
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_wal_size=2GB"]
+    environment:
+      POSTGRES_PASSWORD: ${NEXUS_DEMO_DB_SUPERUSER_PASSWORD:?run `make env` first}
+      NEXUS_DEMO_OWNER_PASSWORD: ${NEXUS_DEMO_OWNER_PASSWORD:?run `make env` first}
+      NEXUS_DEMO_READER_PASSWORD: ${NEXUS_DEMO_READER_PASSWORD:?run `make env` first}
+    volumes:
+      - demo-db-data:/var/lib/postgresql
+      - ./infra/postgres/demo:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${NEXUS_DEMO_DB_PORT:-55433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d retail"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+
+  demo-seed:
+    <<: *backend-build
+    command: ["nexus-seed-demo"]
+    restart: "no"
+    environment:
+      NEXUS_SEED_DB__HOST: demo-db
+      NEXUS_SEED_DB__NAME: retail
+      NEXUS_SEED_DB__USER: retail_owner
+      NEXUS_SEED_DB__PASSWORD: ${NEXUS_DEMO_OWNER_PASSWORD:?run `make env` first}
+      NEXUS_DEMO_SEED: ${NEXUS_DEMO_SEED:-20241101}
+      NEXUS_DEMO_SCALE: ${NEXUS_DEMO_SCALE:-1.0}
+    depends_on:
+      demo-db:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:0.40.16
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_MAX_LOADED_MODELS: "2"
+      OLLAMA_NUM_PARALLEL: "1"
+    volumes:
+      - ollama-models:/root/.ollama
+    # Not published to the host: the host may already run its own Ollama on 11434.
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  ollama-init:
+    image: ollama/ollama:0.40.16
+    restart: "no"
+    environment:
+      <<: *models
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: ['ollama pull "$$NEXUS_LLM_MODEL" && ollama pull "$$NEXUS_EMBEDDING_MODEL"']
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  backend:
+    <<: *backend-build
+    restart: unless-stopped
+    environment:
+      NEXUS_ENV: ${NEXUS_ENV:-production}
+      NEXUS_LOG_LEVEL: ${NEXUS_LOG_LEVEL:-INFO}
+      NEXUS_CORS_ORIGINS: ${NEXUS_CORS_ORIGINS:-http://localhost:8080}
+      NEXUS_APP_DB__HOST: app-db
+      NEXUS_APP_DB__NAME: nexus_app
+      NEXUS_APP_DB__USER: nexus_app
+      NEXUS_APP_DB__PASSWORD: ${NEXUS_APP_DB_PASSWORD:?run `make env` first}
+      NEXUS_DEMO_DB__HOST: demo-db
+      NEXUS_DEMO_DB__NAME: retail
+      NEXUS_DEMO_DB__USER: nexus_reader
+      NEXUS_DEMO_DB__PASSWORD: ${NEXUS_DEMO_READER_PASSWORD:?run `make env` first}
+      NEXUS_OLLAMA__BASE_URL: http://ollama:11434
+      NEXUS_OLLAMA__LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
+      NEXUS_OLLAMA__EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+    ports:
+      - "127.0.0.1:${NEXUS_API_PORT:-8000}:8000"
+    depends_on:
+      app-db:
+        condition: service_healthy
+      demo-db:
+        condition: service_healthy
+      demo-seed:
+        condition: service_completed_successfully
+      ollama-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=4).status == 200 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+    image: nexus-frontend:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${NEXUS_WEB_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
+
+volumes:
+  app-db-data:
+  demo-db-data:
+  ollama-models:
