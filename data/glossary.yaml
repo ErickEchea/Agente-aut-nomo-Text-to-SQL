@@ -17,6 +17,13 @@ metrics:
       JOIN retail.ventas v ON v.venta_id = dv.venta_id
       WHERE v.estado = 'completada'
         AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+    # Deterministic checks applied to generated SQL when the question uses this term (verify_results).
+    requires:
+      tables: [devoluciones]
+      literals: [completada]
+      message: >-
+        «ingresos» debe contar solo ventas con estado = 'completada' y excluir las líneas devueltas:
+        NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id).
   - term: ventas brutas
     synonyms: [ingresos brutos, venta bruta]
     definition: >-
@@ -30,6 +37,12 @@ metrics:
     definition: >-
       Suma de detalle_ventas.cantidad de ventas completadas excluyendo líneas devueltas.
       "Más vendidos" se mide por unidades salvo que la pregunta pida dólares.
+    requires:
+      tables: [devoluciones]
+      literals: [completada]
+      message: >-
+        «unidades vendidas» cuenta solo ventas con estado = 'completada' y excluye las líneas devueltas
+        (NOT EXISTS sobre retail.devoluciones por detalle_id).
   - term: ticket promedio
     synonyms: [valor promedio de compra, compra promedio]
     definition: Ingresos divididos para el número de ventas completadas (tickets distintos).
