@@ -1,0 +1,80 @@
+# Business glossary (versioned). Source material for the schema RAG and for deterministic time resolution.
+# Definitions are authoritative: the agent must follow them and show them as assumptions.
+version: 1
+connection: retail-demo
+currency: USD
+timezone: America/Guayaquil
+
+metrics:
+  - term: ingresos
+    synonyms: [ingresos netos, ventas netas, facturación neta, revenue, ventas en dólares, monto vendido]
+    definition: >-
+      Suma de cantidad × precio_unitario − descuento de detalle_ventas, solo para ventas con
+      estado = 'completada' y excluyendo las líneas que tienen una devolución. No incluye IVA.
+    sql: >-
+      SUM(dv.cantidad * dv.precio_unitario - dv.descuento)
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+  - term: ventas brutas
+    synonyms: [ingresos brutos, venta bruta]
+    definition: >-
+      Suma de cantidad × precio_unitario de detalle_ventas de ventas completadas, antes de descuentos
+      y sin descontar devoluciones. No incluye IVA.
+  - term: total facturado
+    synonyms: [facturación con IVA, total con impuestos]
+    definition: Suma de ventas.total de ventas completadas. Incluye IVA.
+  - term: unidades vendidas
+    synonyms: [más vendidos, productos más vendidos, top productos, volumen]
+    definition: >-
+      Suma de detalle_ventas.cantidad de ventas completadas excluyendo líneas devueltas.
+      "Más vendidos" se mide por unidades salvo que la pregunta pida dólares.
+  - term: ticket promedio
+    synonyms: [valor promedio de compra, compra promedio]
+    definition: Ingresos divididos para el número de ventas completadas (tickets distintos).
+  - term: margen bruto
+    synonyms: [margen, utilidad bruta, ganancia]
+    definition: >-
+      Ingresos menos SUM(detalle_ventas.cantidad × productos.costo_unitario) sobre las mismas líneas.
+  - term: tasa de devolución
+    synonyms: [porcentaje de devoluciones]
+    definition: >-
+      Unidades devueltas divididas para unidades vendidas (ventas completadas) en el mismo periodo de venta.
+  - term: quiebre de stock
+    synonyms: [sin stock, agotado, stockout]
+    definition: Fila de inventario con stock = 0 en la fecha de corte.
+  - term: bajo stock mínimo
+    synonyms: [necesita reposición]
+    definition: Fila de inventario con stock < stock_minimo en la fecha de corte.
+
+entities:
+  - term: sucursal
+    synonyms: [tienda, local, punto de venta, almacén]
+    maps_to: retail.sucursales
+  - term: consumidor final
+    synonyms: [cliente no registrado]
+    definition: Venta sin cliente registrado (ventas.cliente_id IS NULL).
+  - term: región
+    synonyms: [zona]
+    maps_to: retail.regiones
+
+time:
+  # Resolved deterministically in Python relative to the connection's `as_of` date (ADR-0008).
+  - term: último trimestre
+    synonyms: [trimestre pasado, trimestre anterior, last quarter]
+    definition: Trimestre calendario cerrado más reciente antes de la fecha de referencia.
+  - term: este trimestre
+    definition: Desde el inicio del trimestre calendario actual hasta la fecha de referencia (exclusiva).
+  - term: último mes
+    synonyms: [mes pasado, mes anterior]
+    definition: Mes calendario cerrado más reciente.
+  - term: este año
+    synonyms: [año en curso, en lo que va del año, YTD]
+    definition: Desde el 1 de enero del año de la fecha de referencia hasta la fecha de referencia (exclusiva).
+  - term: año pasado
+    synonyms: [año anterior]
+    definition: Año calendario completo anterior al de la fecha de referencia.
+  - term: temporada escolar
+    definition: >-
+      Costa-Galápagos: abril y mayo. Sierra-Amazonía: agosto y septiembre (regímenes escolares del Ecuador).
