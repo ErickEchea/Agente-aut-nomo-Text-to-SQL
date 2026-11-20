@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
   <img src="https://img.shields.io/badge/LLM-100%25%20local%20(Ollama)-111111" alt="LLM local con Ollama">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-green" alt="Licencia MIT"></a>
 </p>
 
 <p align="center">
@@ -286,4 +287,4 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 
 ---
 
-<p align="center"><sub>Hecho en Ecuador 🇪🇨 · Los datos de demostración son sintéticos; cualquier parecido con personas reales es coincidencia.</sub></p>
+<p align="center"><sub>Licencia <a href="LICENSE">MIT</a> · Hecho en Ecuador 🇪🇨 · Los datos de demostración son sintéticos; cualquier parecido con personas reales es coincidencia.</sub></p>

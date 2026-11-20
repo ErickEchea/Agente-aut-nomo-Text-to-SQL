@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
   <img src="https://img.shields.io/badge/LLM-100%25%20local%20(Ollama)-111111" alt="Local LLM via Ollama">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license"></a>
 </p>
 
 <p align="center">
@@ -195,4 +196,4 @@ strict ESLint and `tsc`.
 [Architecture](docs/ARCHITECTURE.md) · [ADRs](docs/adr/README.md) · [Roadmap](docs/ROADMAP.md) ·
 [Progress log](PROGRESS.md) · [Contributor conventions](CLAUDE.md)
 
-<p align="center"><sub>Made in Ecuador 🇪🇨 · Demo data is synthetic; any resemblance to real people is coincidental.</sub></p>
+<p align="center"><sub><a href="LICENSE">MIT</a> licensed · Made in Ecuador 🇪🇨 · Demo data is synthetic; any resemblance to real people is coincidental.</sub></p>
