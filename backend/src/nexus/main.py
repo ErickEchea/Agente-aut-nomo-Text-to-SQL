@@ -17,7 +17,7 @@ from nexus.agent.catalog import SchemaCatalog, introspect
 from nexus.agent.glossary import Glossary, load_glossary
 from nexus.agent.graph import build_graph
 from nexus.agent.state import AgentContext, AuditSink, EventSink, MemorySink
-from nexus.api import audit, auth, health, memory, runs
+from nexus.api import audit, auth, connections, dashboards, health, memory, runs
 from nexus.api.deps import AppServices
 from nexus.config import Settings, get_settings
 from nexus.db.engines import create_engine
@@ -38,6 +38,7 @@ from nexus.security.accounts import ensure_bootstrap_admin
 from nexus.security.pii import PiiMasker
 from nexus.security.rate_limit import TokenBucketLimiter
 from nexus.security.tokens import TokenService
+from nexus.sources import describe_source
 from nexus.sql.executor import ReadOnlyExecutor
 from nexus.sql.validator import ValidationPolicy
 
@@ -179,6 +180,13 @@ def create_app(
             limiter=TokenBucketLimiter(),
             runs=manager,
             examples=ExampleIndexer(store, embedder, agent_cfg.connection_key),
+            source=await describe_source(
+                demo_engine,
+                settings.demo_db,
+                catalog,
+                key=agent_cfg.connection_key,
+                as_of=as_of,
+            ),
         )
 
         security = settings.security
@@ -229,6 +237,14 @@ def create_app(
     )
     app.add_middleware(RequestContextMiddleware)
 
-    for router in (health.router, auth.router, runs.router, memory.router, audit.router):
+    for router in (
+        health.router,
+        auth.router,
+        runs.router,
+        memory.router,
+        dashboards.router,
+        connections.router,
+        audit.router,
+    ):
         app.include_router(router)
     return app

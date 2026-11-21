@@ -99,6 +99,13 @@ def load_dataset(
             ),
         )
         conn.commit()
+        # Fresh planner statistics: realistic EXPLAIN plans and row estimates right after a load,
+        # instead of waiting for autovacuum.
+        for table in dataset.tables:
+            conn.execute(
+                sql.SQL("ANALYZE {}.{}").format(sql.Identifier(SCHEMA), sql.Identifier(table.name))
+            )
+        conn.commit()
 
     seconds = time.perf_counter() - started
     logger.info("seed.loaded", checksum=checksum, rows=counts, seconds=round(seconds, 1))

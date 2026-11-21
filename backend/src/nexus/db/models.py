@@ -237,3 +237,35 @@ class QueryStat(Base):
     last_asked_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+# ------------------------------------------------------------------------------------------------
+# Phase 4: dashboards
+# ------------------------------------------------------------------------------------------------
+
+
+class Dashboard(TimestampMixin, Base):
+    __tablename__ = "dashboards"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Shared dashboards are readable by every user (ADR-0010: viewers see shared dashboards).
+    shared: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class DashboardItem(TimestampMixin, Base):
+    """A pinned step of an answered run (its chart/KPI/table is rendered from the stored result)."""
+
+    __tablename__ = "dashboard_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    dashboard_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("dashboards.id", ondelete="CASCADE"), index=True
+    )
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("runs.id", ondelete="CASCADE"))
+    step: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

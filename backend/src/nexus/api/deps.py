@@ -16,6 +16,7 @@ from nexus.memory.store import ExampleIndexer
 from nexus.runs.manager import RunManager
 from nexus.security.rate_limit import TokenBucketLimiter
 from nexus.security.tokens import InvalidTokenError, TokenService
+from nexus.sources import DataSource
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +27,7 @@ class AppServices:
     limiter: TokenBucketLimiter
     runs: RunManager
     examples: ExampleIndexer
+    source: DataSource
 
 
 @dataclass(frozen=True, slots=True)
