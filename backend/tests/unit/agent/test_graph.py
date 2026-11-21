@@ -120,6 +120,29 @@ async def test_reference_question_two_steps_answered() -> None:
     assert all("duration_ms" in d for d in completed)
 
 
+async def test_plan_made_of_sql_falls_back_to_the_question() -> None:
+    q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood(q)],
+            Plan: [
+                Plan(
+                    steps=[
+                        "SELECT s.sucursal FROM sucursales s JOIN ordenes o ON s.id = o.sucursal_id "
+                        "WHERE o.fecha > DATE_SUB(CURDATE(), INTERVAL 3 MONTH);",
+                    ]
+                )
+            ],
+            SqlCandidate: [candidate(BRANCH_SQL)],
+        }
+    )
+    final, sink, _ = await run(llm, FakeExecutor([("ingresos", BRANCH)]), question=q)
+    assert final["status"] is RunStatus.ANSWERED
+    assert final["steps"] == [q]
+    plan_event = next(d for e, d in sink.events if e == "node.completed" and d["node"] == "plan")
+    assert plan_event["output"]["rejected"] == "sql_in_plan"  # type: ignore[index]
+
+
 async def test_guard_refuses_without_calling_the_model() -> None:
     llm = ScriptedLLM({})
     final, sink, _ = await run(

@@ -104,6 +104,44 @@ def test_chart_rules() -> None:
     assert candidates_for("x", ("a", "b"), [(1.0, 2.0), (2.0, 3.0)])[0] == ["scatter"]
 
 
+def test_chart_picks_the_measure_not_the_identifier() -> None:
+    columns = (
+        "producto_id",
+        "nombre",
+        "marca",
+        "categoria_id",
+        "precio_lista",
+        "unidades_vendidas",
+    )
+    rows = [
+        (189, "Agua mineral 1.5 L", "Güitig", 4, 0.99, 4768),
+        (202, "Pollo entero por kg Mr. Pollo", "Mr. Pollo", 4, 3.39, 2707),
+        (148, "Leche entera 1 L Toni", "Toni", 4, 1.09, 2555),
+    ]
+    question = "¿Cuáles fueron los cinco productos más vendidos durante el último trimestre?"
+    kinds, _, picks = candidates_for(question, columns, rows)
+    assert kinds[0] == "bar"
+    assert columns[picks["x"]] == "nombre"
+    assert columns[picks["y"]] == "unidades_vendidas"  # mentioned by the question; not the id
+    # Without a hint from the question, an aggregate-like name still beats a raw attribute.
+    _, _, picks = candidates_for(
+        "top productos", ("nombre", "precio", "total_usd"), [("a", 1.0, 9.0)] * 2
+    )
+    assert picks["y"] == 2
+    kpi = build_spec(
+        "kpi",
+        0,
+        candidates=["kpi"],
+        reason="",
+        title="",
+        columns=("sucursal_id", "sucursal", "ingresos"),
+        rows=[(7, "Samborondón", 299672.19)],
+        picks={},
+    )
+    assert [k.label for k in kpi.kpis] == ["ingresos"]
+    assert candidates_for("x", ("producto_id", "nombre"), [(1, "a"), (2, "b")])[0] == ["table"]
+
+
 def test_chart_specs_validate() -> None:
     rows = [("Agua", 4768), ("Pollo", 2707)]
     kinds, reason, picks = candidates_for("top", ("producto", "unidades"), rows)

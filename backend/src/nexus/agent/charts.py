@@ -12,7 +12,7 @@ import unicodedata
 from collections.abc import Sequence
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from nexus.sql.executor import JsonScalar
 
@@ -30,20 +30,25 @@ SHARE_WORDS = (
 )
 
 
-class AxisSpec(BaseModel):
+class _Spec(BaseModel):
+    # Specs are serialized with every field present; the serialization JSON schema says so.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class AxisSpec(_Spec):
     type: Literal["category", "value", "time"]
     name: str | None = None
     data: list[str] | None = None
 
 
-class SeriesSpec(BaseModel):
+class SeriesSpec(_Spec):
     type: Literal["bar", "line", "pie", "scatter"]
     name: str
     data: list[float | None] | list[list[float | str | None]] | list[dict[str, float | str]]
     stack: str | None = None
 
 
-class EChartsOption(BaseModel):
+class EChartsOption(_Spec):
     title: dict[str, str]
     tooltip: dict[str, str] = Field(default_factory=lambda: {"trigger": "axis"})
     legend: dict[str, bool] | None = None
@@ -52,12 +57,12 @@ class EChartsOption(BaseModel):
     series: list[SeriesSpec]
 
 
-class Kpi(BaseModel):
+class Kpi(_Spec):
     label: str
     value: float
 
 
-class ChartSpec(BaseModel):
+class ChartSpec(_Spec):
     kind: ChartKind
     step: int
     candidates: list[ChartKind]
@@ -91,21 +96,55 @@ def _norm(text: str) -> str:
     )
 
 
+# Numeric columns that identify rather than measure (keys, codes, years): never plotted as values.
+_IDENTIFIER = re.compile(
+    r"(^id$|_id$|^id_|^codigo|^cod_|^cedula|^ruc$|^telefono|^anio$|^ano$|^year$)"
+)
+# Names that usually hold an aggregated measure.
+_MEASURE_HINT = re.compile(
+    r"(total|suma|sum_|cantidad|unidades|ingreso|venta|monto|importe|promedio|avg|count|conteo|"
+    r"numero|num_|tasa|porcentaje|margen|ticket)"
+)
+
+
+def is_identifier(column: str) -> bool:
+    return bool(_IDENTIFIER.search(_norm(column)))
+
+
+def _stems(text: str) -> set[str]:
+    return {w[:5] for w in re.findall(r"[a-z]+", _norm(text)) if len(w) >= 4}
+
+
+def rank_measures(question: str, columns: Sequence[str], numeric: Sequence[int]) -> list[int]:
+    """Numeric, non-identifier columns, best first: one the question talks about ("vendidos" →
+    unidades_vendidas), then aggregate-like names, then later columns (aggregates come last in
+    SELECT lists)."""
+    words = _stems(question)
+    measures = [i for i in numeric if not is_identifier(columns[i])]
+
+    def score(i: int) -> tuple[int, int, int]:
+        name = _norm(columns[i])
+        mentioned = int(bool(words & _stems(name.replace("_", " "))))
+        return (mentioned, int(bool(_MEASURE_HINT.search(name))), i)
+
+    return sorted(measures, key=score, reverse=True)
+
+
 def candidates_for(
     question: str, columns: Sequence[str], rows: Sequence[Sequence[JsonScalar]]
 ) -> tuple[list[ChartKind], str, dict[str, int]]:
     """Rule-based candidates (first = preferred), a reason, and the column indexes to plot."""
-    if not rows:
-        return ["table"], "sin filas", {}
     roles = [column_role([r[i] for r in rows]) for i in range(len(columns))]
-    numeric = [i for i, r in enumerate(roles) if r == "numeric"]
+    numeric = rank_measures(question, columns, [i for i, r in enumerate(roles) if r == "numeric"])
     temporal = [i for i, r in enumerate(roles) if r == "temporal"]
     category = [i for i, r in enumerate(roles) if r == "category"]
     wants_share = any(w in _norm(question) for w in SHARE_WORDS)
 
-    if len(rows) == 1 and numeric and len(numeric) <= 4:
+    if not rows or not numeric:
+        return ["table"], "sin filas" if not rows else "sin métricas numéricas", {}
+    if len(rows) == 1 and len(numeric) <= 4:
         return ["kpi"], "una sola fila con métricas", {"values": numeric[0]}
-    if temporal and numeric:
+    if temporal:
         kinds: list[ChartKind] = ["line", "bar"] if len(rows) > 3 else ["bar", "line"]
         return kinds, "serie temporal", {"x": temporal[0], "y": numeric[0]}
     if category and numeric and len(rows) <= MAX_CATEGORIES:
@@ -148,7 +187,7 @@ def build_spec(
         kpis = [
             Kpi(label=columns[i], value=float(row[i]))  # type: ignore[arg-type]
             for i in range(len(columns))
-            if column_role([row[i]]) == "numeric"
+            if column_role([row[i]]) == "numeric" and not is_identifier(columns[i])
         ]
         return ChartSpec(kind="kpi", step=step, candidates=candidates, reason=reason, kpis=kpis)
 

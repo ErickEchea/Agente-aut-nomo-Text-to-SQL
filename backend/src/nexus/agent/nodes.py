@@ -7,6 +7,7 @@ timeline shows (JSON-safe, already trimmed). Nodes never emit events themselves:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field, replace
 
 from nexus.agent import prompts
@@ -34,6 +35,12 @@ from nexus.sql.executor import QueryExecutionError
 from nexus.sql.validator import SQLValidationError, validate_sql
 
 MAX_STEPS = 4
+# A plan step must be a natural-language sub-question. Small models sometimes answer the planner
+# with SQL (often in another dialect); such a plan is discarded instead of reaching generate_sql.
+_SQL_STEP = re.compile(
+    r"^\s*(select|with|insert|update|delete)\b|\bfrom\s+\w+.*\b(join|where|group\s+by)\b|;\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
 PREVIEW_ROWS = 5
 TIMEOUT_SQLSTATES = {"57014", "55P03"}
 
@@ -144,10 +151,12 @@ async def plan(state: AgentState, ctx: AgentContext) -> NodeResult:
         GenerationOptions(model=ctx.models.plan, max_tokens=300),
     )
     steps = [s.strip() for s in completion.parsed.steps if s.strip()][:MAX_STEPS] or [question]
-    return NodeResult(
-        {"steps": steps, "current_step": 0, "usage": [completion.usage]},
-        {"steps": steps, "strategy": "multi_query" if len(steps) > 1 else "single_query"},
-    )
+    summary: dict[str, object] = {}
+    if any(_SQL_STEP.search(step) for step in steps):
+        steps = [question]
+        summary["rejected"] = "sql_in_plan"
+    summary |= {"steps": steps, "strategy": "multi_query" if len(steps) > 1 else "single_query"}
+    return NodeResult({"steps": steps, "current_step": 0, "usage": [completion.usage]}, summary)
 
 
 async def resolve_time(state: AgentState, ctx: AgentContext) -> NodeResult:
