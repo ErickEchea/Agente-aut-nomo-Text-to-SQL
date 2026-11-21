@@ -21,6 +21,7 @@ import {
 } from "../components/ui/overlays";
 import { Badge, Kbd } from "../components/ui/primitives";
 import { QUESTION_INPUT_ID } from "../features/workspace/QueryBar";
+import { useSources } from "../features/workspace/SourcePicker";
 import { cn } from "../lib/cn";
 import { useApi, useAuth, useCan } from "./auth";
 import { CommandPalette } from "./CommandPalette";
@@ -149,12 +150,10 @@ function UserMenu() {
 
 export function AppShell() {
   const { t } = useTranslation();
-  const api = useApi();
   const location = useLocation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const connection = useQuery({ queryKey: ["connections"], queryFn: () => endpoints.listConnections(api), staleTime: 300_000 });
-  const key = connection.data?.[0]?.key;
+  const source = useSources().active;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -250,10 +249,10 @@ export function AppShell() {
           </button>
 
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            {key ? (
-              <Badge tone="neutral" className="hidden lg:inline-flex">
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-success" />
-                {t("topbar.connection", { key })}
+            {source ? (
+              <Badge tone={source.read_only ? "neutral" : "warning"} className="hidden lg:inline-flex">
+                <span aria-hidden="true" className={cn("size-1.5 rounded-full", source.read_only ? "bg-success" : "bg-warning")} />
+                {t("topbar.connection", { key: source.key })}
               </Badge>
             ) : null}
             <Health />

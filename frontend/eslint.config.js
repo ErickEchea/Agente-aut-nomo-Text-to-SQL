@@ -22,7 +22,7 @@ export default tseslint.config(
         {
           allowConstantExport: true,
           // Context modules export their provider together with its hooks.
-          allowExportNames: ["useAuth", "useApi", "useCan", "usePreferences", "initialLocale", "useWorkspace", "useRunStream"],
+          allowExportNames: ["useAuth", "useApi", "useCan", "usePreferences", "initialLocale", "useWorkspace", "useRunStream", "useSources"],
         },
       ],
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],

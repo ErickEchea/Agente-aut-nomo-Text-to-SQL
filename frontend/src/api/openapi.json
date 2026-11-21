@@ -1,6 +1,32 @@
 {
   "components": {
     "schemas": {
+      "AnnotationOut": {
+        "properties": {
+          "clauses": {
+            "items": {
+              "$ref": "#/components/schemas/ClauseOut"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "dialect": {
+            "title": "Dialect",
+            "type": "string"
+          },
+          "sql": {
+            "title": "Sql",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sql",
+          "dialect",
+          "clauses"
+        ],
+        "title": "AnnotationOut",
+        "type": "object"
+      },
       "AttemptErrorOut": {
         "properties": {
           "code": {
@@ -365,19 +391,79 @@
         "title": "ClarificationOut",
         "type": "object"
       },
-      "ConnectionOut": {
+      "ClauseOut": {
+        "properties": {
+          "details": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Details",
+            "type": "array"
+          },
+          "end": {
+            "title": "End",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "rules": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rules",
+            "type": "array"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "start": {
+            "title": "Start",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "scope",
+          "start",
+          "end",
+          "title",
+          "details",
+          "rules"
+        ],
+        "title": "ClauseOut",
+        "type": "object"
+      },
+      "ConnectionDetail": {
         "properties": {
           "as_of": {
-            "format": "date",
-            "title": "As Of",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "builtin": {
+            "title": "Builtin",
+            "type": "boolean"
           },
           "database": {
             "title": "Database",
             "type": "string"
           },
-          "dialect": {
-            "title": "Dialect",
+          "engine": {
+            "title": "Engine",
             "type": "string"
           },
           "host": {
@@ -394,12 +480,58 @@
           "index": {
             "$ref": "#/components/schemas/IndexStatus"
           },
+          "index_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Error"
+          },
+          "index_status": {
+            "enum": [
+              "ready",
+              "pending",
+              "indexing",
+              "failed"
+            ],
+            "title": "Index Status",
+            "type": "string"
+          },
+          "indexed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indexed At"
+          },
           "key": {
             "title": "Key",
             "type": "string"
           },
+          "kind": {
+            "enum": [
+              "postgresql",
+              "mysql",
+              "sqlite"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
           "llm_model": {
             "title": "Llm Model",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
             "type": "string"
           },
           "port": {
@@ -442,11 +574,17 @@
         },
         "required": [
           "key",
-          "dialect",
+          "name",
+          "kind",
+          "engine",
           "database",
           "schema_name",
+          "builtin",
           "read_only",
           "as_of",
+          "index_status",
+          "index_error",
+          "indexed_at",
           "host",
           "port",
           "user",
@@ -454,7 +592,275 @@
           "tables",
           "index"
         ],
-        "title": "ConnectionOut",
+        "title": "ConnectionDetail",
+        "type": "object"
+      },
+      "ConnectionIn": {
+        "properties": {
+          "acknowledge_writable": {
+            "default": false,
+            "title": "Acknowledge Writable",
+            "type": "boolean"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "database": {
+            "description": "Database, or SQLite file",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Database",
+            "type": "string"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Slug; derived from the name when empty",
+            "title": "Key"
+          },
+          "kind": {
+            "enum": [
+              "postgresql",
+              "mysql",
+              "sqlite"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "pii_columns": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Pii Columns",
+            "type": "string"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "schema_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Name"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "database"
+        ],
+        "title": "ConnectionIn",
+        "type": "object"
+      },
+      "ConnectionSummary": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "builtin": {
+            "title": "Builtin",
+            "type": "boolean"
+          },
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "index_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Index Error"
+          },
+          "index_status": {
+            "enum": [
+              "ready",
+              "pending",
+              "indexing",
+              "failed"
+            ],
+            "title": "Index Status",
+            "type": "string"
+          },
+          "indexed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indexed At"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "postgresql",
+              "mysql",
+              "sqlite"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "read_only": {
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "schema_name": {
+            "title": "Schema Name",
+            "type": "string"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "kind",
+          "engine",
+          "database",
+          "schema_name",
+          "builtin",
+          "read_only",
+          "as_of",
+          "index_status",
+          "index_error",
+          "indexed_at",
+          "host",
+          "port",
+          "user"
+        ],
+        "title": "ConnectionSummary",
         "type": "object"
       },
       "DashboardCreate": {
@@ -863,6 +1269,61 @@
         "title": "FeedbackRequest",
         "type": "object"
       },
+      "FindingOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows"
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "info"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table"
+          }
+        },
+        "required": [
+          "severity",
+          "code",
+          "table",
+          "rows",
+          "columns"
+        ],
+        "title": "FindingOut",
+        "type": "object"
+      },
       "FrequentQuestion": {
         "properties": {
           "last_asked_at": {
@@ -1041,6 +1502,60 @@
         "title": "LoginRequest",
         "type": "object"
       },
+      "OptimizationOut": {
+        "properties": {
+          "engine": {
+            "title": "Engine",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "plan": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStepOut"
+            },
+            "title": "Plan",
+            "type": "array"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestionOut"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "supports_costs": {
+            "title": "Supports Costs",
+            "type": "boolean"
+          },
+          "total_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cost"
+          }
+        },
+        "required": [
+          "engine",
+          "supports_costs",
+          "total_cost",
+          "plan",
+          "findings",
+          "suggestions"
+        ],
+        "title": "OptimizationOut",
+        "type": "object"
+      },
       "PinRequest": {
         "properties": {
           "run_id": {
@@ -1072,6 +1587,65 @@
           "run_id"
         ],
         "title": "PinRequest",
+        "type": "object"
+      },
+      "PlanStepOut": {
+        "properties": {
+          "cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost"
+          },
+          "depth": {
+            "title": "Depth",
+            "type": "integer"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "operation": {
+            "title": "Operation",
+            "type": "string"
+          },
+          "rows": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows"
+          },
+          "table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table"
+          }
+        },
+        "required": [
+          "depth",
+          "operation",
+          "table",
+          "detail",
+          "rows",
+          "cost"
+        ],
+        "title": "PlanStepOut",
         "type": "object"
       },
       "Preferences": {
@@ -1122,6 +1696,61 @@
           }
         },
         "title": "Preferences",
+        "type": "object"
+      },
+      "ProbeOut": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "tables": {
+            "title": "Tables",
+            "type": "integer"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "writable": {
+            "title": "Writable",
+            "type": "boolean"
+          },
+          "writable_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Writable Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ok",
+          "version",
+          "tables",
+          "writable",
+          "writable_reasons",
+          "error"
+        ],
+        "title": "ProbeOut",
         "type": "object"
       },
       "RankedTableOut": {
@@ -1284,6 +1913,10 @@
             "title": "Completion Tokens",
             "type": "integer"
           },
+          "connection_key": {
+            "title": "Connection Key",
+            "type": "string"
+          },
           "conversation_id": {
             "format": "uuid",
             "title": "Conversation Id",
@@ -1348,6 +1981,7 @@
         "required": [
           "id",
           "conversation_id",
+          "connection_key",
           "question",
           "status",
           "answer",
@@ -1363,6 +1997,19 @@
       },
       "RunRequest": {
         "properties": {
+          "connection_key": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Data source of a new conversation (default: demo); follow-ups keep theirs.",
+            "title": "Connection Key"
+          },
           "conversation_id": {
             "anyOf": [
               {
@@ -1525,6 +2172,10 @@
       },
       "RunSummary": {
         "properties": {
+          "connection_key": {
+            "title": "Connection Key",
+            "type": "string"
+          },
           "conversation_id": {
             "format": "uuid",
             "title": "Conversation Id",
@@ -1563,6 +2214,7 @@
         "required": [
           "id",
           "conversation_id",
+          "connection_key",
           "question",
           "status",
           "created_at",
@@ -1758,6 +2410,85 @@
           "warnings"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "SuggestionOut": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "cost_after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost After"
+          },
+          "cost_before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Before"
+          },
+          "ddl": {
+            "title": "Ddl",
+            "type": "string"
+          },
+          "improvement": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Improvement"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          },
+          "used_by_planner": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used By Planner"
+          }
+        },
+        "required": [
+          "table",
+          "columns",
+          "ddl",
+          "reason",
+          "cost_before",
+          "cost_after",
+          "improvement",
+          "used_by_planner"
+        ],
+        "title": "SuggestionOut",
         "type": "object"
       },
       "TableOut": {
@@ -2141,7 +2872,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ConnectionOut"
+                    "$ref": "#/components/schemas/ConnectionSummary"
                   },
                   "title": "Response List Connections Api Connections Get",
                   "type": "array"
@@ -2152,6 +2883,229 @@
           }
         },
         "summary": "List Connections",
+        "tags": [
+          "connections"
+        ]
+      },
+      "post": {
+        "operationId": "create_connection_api_connections_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Connection",
+        "tags": [
+          "connections"
+        ]
+      }
+    },
+    "/api/connections/sqlite-files": {
+      "get": {
+        "description": "SQLite files an admin may register (only from the configured directory).",
+        "operationId": "sqlite_files_api_connections_sqlite_files_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response Sqlite Files Api Connections Sqlite Files Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sqlite Files",
+        "tags": [
+          "connections"
+        ]
+      }
+    },
+    "/api/connections/test": {
+      "post": {
+        "operationId": "test_connection_api_connections_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test Connection",
+        "tags": [
+          "connections"
+        ]
+      }
+    },
+    "/api/connections/{key}": {
+      "delete": {
+        "operationId": "delete_connection_api_connections__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Connection",
+        "tags": [
+          "connections"
+        ]
+      },
+      "get": {
+        "operationId": "get_connection_api_connections__key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Connection",
+        "tags": [
+          "connections"
+        ]
+      }
+    },
+    "/api/connections/{key}/index": {
+      "post": {
+        "operationId": "reindex_api_connections__key__index_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reindex",
         "tags": [
           "connections"
         ]
@@ -2928,6 +3882,124 @@
         "summary": "Give Feedback",
         "tags": [
           "memory"
+        ]
+      }
+    },
+    "/api/runs/{run_id}/steps/{step}/annotation": {
+      "get": {
+        "operationId": "get_annotation_api_runs__run_id__steps__step__annotation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "step",
+            "required": true,
+            "schema": {
+              "title": "Step",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "required": false,
+            "schema": {
+              "default": "es",
+              "enum": [
+                "es",
+                "en"
+              ],
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnotationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Annotation",
+        "tags": [
+          "insights"
+        ]
+      }
+    },
+    "/api/runs/{run_id}/steps/{step}/optimize": {
+      "post": {
+        "operationId": "optimize_api_runs__run_id__steps__step__optimize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "step",
+            "required": true,
+            "schema": {
+              "title": "Step",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Optimize",
+        "tags": [
+          "insights"
         ]
       }
     }

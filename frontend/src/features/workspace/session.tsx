@@ -65,8 +65,23 @@ function reducer(state: Record<string, RunStream>, action: Action): Record<strin
   }
 }
 
+const SOURCE_KEY = "nexus.connection";
+
+function storedSource(): string | null {
+  try {
+    return window.localStorage.getItem(SOURCE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 interface WorkspaceValue {
   conversationId: string | null;
+  /** Source for the next new conversation (null = the server default, the demo). */
+  selectedSource: string | null;
+  setSelectedSource: (key: string) => void;
+  /** Source the current conversation is bound to (follow-ups cannot change it). */
+  conversationSource: string | null;
   turns: Turn[];
   selectedRunId: string | null;
   streams: Record<string, RunStream>;
@@ -75,7 +90,7 @@ interface WorkspaceValue {
   cancel: (runId: string) => Promise<void>;
   select: (runId: string) => void;
   newConversation: () => void;
-  openRun: (runId: string, conversationId: string, question: string) => void;
+  openRun: (runId: string, conversationId: string, question: string, source: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
@@ -86,6 +101,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [streams, dispatch] = useReducer(reducer, {});
   const [turns, setTurns] = useState<Turn[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [selectedSource, setSelected] = useState<string | null>(storedSource);
+  const [conversationSource, setConversationSource] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const controllers = useRef(new Map<string, AbortController>());
 
@@ -137,14 +154,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     return stream !== undefined && !stream.finished && stream.error === null;
   });
 
+  const setSelectedSource = useCallback((key: string) => {
+    setSelected(key);
+    try {
+      window.localStorage.setItem(SOURCE_KEY, key);
+    } catch {
+      // Storage blocked: the choice lasts for this session.
+    }
+  }, []);
+
   const ask = useCallback(
     async (question: string) => {
-      const created = await endpoints.startRun(api, question, conversationId);
+      const source = conversationId ? null : selectedSource;
+      const created = await endpoints.startRun(api, question, conversationId, source);
+      if (!conversationId) setConversationSource(selectedSource);
       setConversationId(created.conversation_id);
       setTurns((previous) => [...previous, { runId: created.run_id, question }]);
       setSelectedRunId(created.run_id);
     },
-    [api, conversationId],
+    [api, conversationId, selectedSource],
   );
 
   const cancel = useCallback(
@@ -157,11 +185,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const newConversation = useCallback(() => {
     setTurns([]);
     setConversationId(null);
+    setConversationSource(null);
     setSelectedRunId(null);
   }, []);
 
-  const openRun = useCallback((runId: string, conversation: string, question: string) => {
+  const openRun = useCallback((runId: string, conversation: string, question: string, source: string) => {
     setConversationId(conversation);
+    setConversationSource(source);
     setTurns([{ runId, question }]);
     setSelectedRunId(runId);
   }, []);
@@ -169,6 +199,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       conversationId,
+      selectedSource,
+      setSelectedSource,
+      conversationSource,
       turns,
       selectedRunId,
       streams,
@@ -179,7 +212,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       newConversation,
       openRun,
     }),
-    [conversationId, turns, selectedRunId, streams, busy, ask, cancel, newConversation, openRun],
+    [
+      conversationId,
+      selectedSource,
+      setSelectedSource,
+      conversationSource,
+      turns,
+      selectedRunId,
+      streams,
+      busy,
+      ask,
+      cancel,
+      newConversation,
+      openRun,
+    ],
   );
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

@@ -1,13 +1,18 @@
 import type { ApiClient } from "./client";
 import type {
+  AnnotationOut,
   AuditEntry,
-  ConnectionOut,
+  ConnectionDetail,
+  ConnectionIn,
+  ConnectionSummary,
   DashboardItemOut,
   DashboardOut,
   DashboardSummary,
   FeedbackOut,
   FrequentQuestion,
+  OptimizationOut,
   Preferences,
+  ProbeOut,
   ReadyResponse,
   RunCreated,
   RunOut,
@@ -36,11 +41,29 @@ export function readiness(api: ApiClient, signal?: AbortSignal): Promise<ReadyRe
   return api.request("/api/health/ready", { anonymous: true, ...(signal ? { signal } : {}) });
 }
 
-export function startRun(api: ApiClient, question: string, conversationId: string | null): Promise<RunCreated> {
+export function startRun(
+  api: ApiClient,
+  question: string,
+  conversationId: string | null,
+  connectionKey: string | null,
+): Promise<RunCreated> {
   return api.request("/api/runs", {
     method: "POST",
-    body: conversationId ? { question, conversation_id: conversationId } : { question },
+    body: {
+      question,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+      ...(connectionKey ? { connection_key: connectionKey } : {}),
+    },
   });
+}
+
+export function getAnnotation(api: ApiClient, runId: string, step: number, locale: string): Promise<AnnotationOut> {
+  const params = new URLSearchParams({ locale: locale === "en" ? "en" : "es" });
+  return api.request(`/api/runs/${encodeURIComponent(runId)}/steps/${step}/annotation?${params.toString()}`);
+}
+
+export function optimizeStep(api: ApiClient, runId: string, step: number): Promise<OptimizationOut> {
+  return api.request(`/api/runs/${encodeURIComponent(runId)}/steps/${step}/optimize`, { method: "POST" });
 }
 
 export function cancelRun(api: ApiClient, runId: string): Promise<void> {
@@ -121,8 +144,32 @@ export function reorderItems(api: ApiClient, dashboardId: string, itemIds: strin
   });
 }
 
-export function listConnections(api: ApiClient): Promise<ConnectionOut[]> {
+export function listConnections(api: ApiClient): Promise<ConnectionSummary[]> {
   return api.request("/api/connections");
+}
+
+export function getConnection(api: ApiClient, key: string): Promise<ConnectionDetail> {
+  return api.request(`/api/connections/${encodeURIComponent(key)}`);
+}
+
+export function testConnection(api: ApiClient, body: ConnectionIn): Promise<ProbeOut> {
+  return api.request("/api/connections/test", { method: "POST", body });
+}
+
+export function createConnection(api: ApiClient, body: ConnectionIn): Promise<ConnectionSummary> {
+  return api.request("/api/connections", { method: "POST", body });
+}
+
+export function reindexConnection(api: ApiClient, key: string): Promise<ConnectionSummary> {
+  return api.request(`/api/connections/${encodeURIComponent(key)}/index`, { method: "POST" });
+}
+
+export function deleteConnection(api: ApiClient, key: string): Promise<void> {
+  return api.request(`/api/connections/${encodeURIComponent(key)}`, { method: "DELETE" });
+}
+
+export function sqliteFiles(api: ApiClient): Promise<string[]> {
+  return api.request("/api/connections/sqlite-files");
 }
 
 export function listAudit(

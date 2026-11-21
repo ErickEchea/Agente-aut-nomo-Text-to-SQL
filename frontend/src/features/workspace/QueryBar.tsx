@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button";
 import { cn } from "../../lib/cn";
 import { errorMessage } from "../../lib/errors";
 import { useWorkspace } from "./session";
+import { SourcePicker } from "./SourcePicker";
 
 export const QUESTION_INPUT_ID = "nexus-question";
 const MIN = 3;
@@ -76,13 +77,14 @@ export function QueryBar({ runningRunId }: { runningRunId: string | null }) {
       />
       <div className="flex items-center justify-between gap-2 px-1 pt-1">
         <div className="flex min-w-0 items-center gap-2">
+          <SourcePicker />
           {turns.length > 0 ? (
             <Button variant="ghost" size="sm" onClick={newConversation} disabled={busy}>
               <MessageSquarePlus />
               <span className="sr-only sm:not-sr-only">{t("workspace.newConversation")}</span>
             </Button>
           ) : null}
-          <p id={hintId} className="hidden truncate text-micro text-fg-muted md:block">
+          <p id={hintId} className="hidden truncate text-micro text-fg-muted lg:block">
             {t("workspace.hint")}
           </p>
         </div>

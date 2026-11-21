@@ -99,7 +99,80 @@ export interface paths {
         /** List Connections */
         get: operations["list_connections_api_connections_get"];
         put?: never;
+        /** Create Connection */
+        post: operations["create_connection_api_connections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/sqlite-files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Sqlite Files
+         * @description SQLite files an admin may register (only from the configured directory).
+         */
+        get: operations["sqlite_files_api_connections_sqlite_files_get"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Connection */
+        post: operations["test_connection_api_connections_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Connection */
+        get: operations["get_connection_api_connections__key__get"];
+        put?: never;
+        post?: never;
+        /** Delete Connection */
+        delete: operations["delete_connection_api_connections__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connections/{key}/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reindex */
+        post: operations["reindex_api_connections__key__index_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -339,10 +412,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{run_id}/steps/{step}/annotation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Annotation */
+        get: operations["get_annotation_api_runs__run_id__steps__step__annotation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{run_id}/steps/{step}/optimize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Optimize */
+        post: operations["optimize_api_runs__run_id__steps__step__optimize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnnotationOut */
+        AnnotationOut: {
+            /** Clauses */
+            clauses: components["schemas"]["ClauseOut"][];
+            /** Dialect */
+            dialect: string;
+            /** Sql */
+            sql: string;
+        };
         /** AttemptErrorOut */
         AttemptErrorOut: {
             /** Code */
@@ -446,24 +562,56 @@ export interface components {
             /** Question */
             question: string;
         };
-        /** ConnectionOut */
-        ConnectionOut: {
-            /**
-             * As Of
-             * Format: date
-             */
-            as_of: string;
+        /** ClauseOut */
+        ClauseOut: {
+            /** Details */
+            details: string[];
+            /** End */
+            end: number;
+            /** Kind */
+            kind: string;
+            /** Rules */
+            rules: string[];
+            /** Scope */
+            scope: string;
+            /** Start */
+            start: number;
+            /** Title */
+            title: string;
+        };
+        /** ConnectionDetail */
+        ConnectionDetail: {
+            /** As Of */
+            as_of: string | null;
+            /** Builtin */
+            builtin: boolean;
             /** Database */
             database: string;
-            /** Dialect */
-            dialect: string;
+            /** Engine */
+            engine: string;
             /** Host */
             host: string | null;
             index: components["schemas"]["IndexStatus"];
+            /** Index Error */
+            index_error: string | null;
+            /**
+             * Index Status
+             * @enum {string}
+             */
+            index_status: "ready" | "pending" | "indexing" | "failed";
+            /** Indexed At */
+            indexed_at: string | null;
             /** Key */
             key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "postgresql" | "mysql" | "sqlite";
             /** Llm Model */
             llm_model: string;
+            /** Name */
+            name: string;
             /** Port */
             port: number | null;
             /** Read Only */
@@ -472,6 +620,87 @@ export interface components {
             schema_name: string;
             /** Tables */
             tables: components["schemas"]["TableOut"][];
+            /** User */
+            user: string | null;
+        };
+        /** ConnectionIn */
+        ConnectionIn: {
+            /**
+             * Acknowledge Writable
+             * @default false
+             */
+            acknowledge_writable: boolean;
+            /** As Of */
+            as_of?: string | null;
+            /**
+             * Database
+             * @description Database, or SQLite file
+             */
+            database: string;
+            /** Host */
+            host?: string | null;
+            /**
+             * Key
+             * @description Slug; derived from the name when empty
+             */
+            key?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "postgresql" | "mysql" | "sqlite";
+            /** Name */
+            name: string;
+            /** Password */
+            password?: string | null;
+            /**
+             * Pii Columns
+             * @default
+             */
+            pii_columns: string;
+            /** Port */
+            port?: number | null;
+            /** Schema Name */
+            schema_name?: string | null;
+            /** Username */
+            username?: string | null;
+        };
+        /** ConnectionSummary */
+        ConnectionSummary: {
+            /** As Of */
+            as_of: string | null;
+            /** Builtin */
+            builtin: boolean;
+            /** Database */
+            database: string;
+            /** Engine */
+            engine: string;
+            /** Host */
+            host: string | null;
+            /** Index Error */
+            index_error: string | null;
+            /**
+             * Index Status
+             * @enum {string}
+             */
+            index_status: "ready" | "pending" | "indexing" | "failed";
+            /** Indexed At */
+            indexed_at: string | null;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "postgresql" | "mysql" | "sqlite";
+            /** Name */
+            name: string;
+            /** Port */
+            port: number | null;
+            /** Read Only */
+            read_only: boolean;
+            /** Schema Name */
+            schema_name: string;
             /** User */
             user: string | null;
         };
@@ -639,6 +868,22 @@ export interface components {
              */
             verify: boolean;
         };
+        /** FindingOut */
+        FindingOut: {
+            /** Code */
+            code: string;
+            /** Columns */
+            columns: string[];
+            /** Rows */
+            rows: number | null;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "high" | "medium" | "info";
+            /** Table */
+            table: string | null;
+        };
         /** FrequentQuestion */
         FrequentQuestion: {
             /**
@@ -702,6 +947,21 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** OptimizationOut */
+        OptimizationOut: {
+            /** Engine */
+            engine: string;
+            /** Findings */
+            findings: components["schemas"]["FindingOut"][];
+            /** Plan */
+            plan: components["schemas"]["PlanStepOut"][];
+            /** Suggestions */
+            suggestions: components["schemas"]["SuggestionOut"][];
+            /** Supports Costs */
+            supports_costs: boolean;
+            /** Total Cost */
+            total_cost: number | null;
+        };
         /** PinRequest */
         PinRequest: {
             /**
@@ -717,6 +977,21 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** PlanStepOut */
+        PlanStepOut: {
+            /** Cost */
+            cost: number | null;
+            /** Depth */
+            depth: number;
+            /** Detail */
+            detail: string;
+            /** Operation */
+            operation: string;
+            /** Rows */
+            rows: number | null;
+            /** Table */
+            table: string | null;
+        };
         /** Preferences */
         Preferences: {
             /** Default Chart */
@@ -725,6 +1000,21 @@ export interface components {
             locale?: ("es" | "en") | null;
             /** Show Sql */
             show_sql?: boolean | null;
+        };
+        /** ProbeOut */
+        ProbeOut: {
+            /** Error */
+            error: string | null;
+            /** Ok */
+            ok: boolean;
+            /** Tables */
+            tables: number;
+            /** Version */
+            version: string | null;
+            /** Writable */
+            writable: boolean;
+            /** Writable Reasons */
+            writable_reasons: string[];
         };
         /** RankedTableOut */
         RankedTableOut: {
@@ -790,6 +1080,8 @@ export interface components {
             answer: string | null;
             /** Completion Tokens */
             completion_tokens: number;
+            /** Connection Key */
+            connection_key: string;
             /**
              * Conversation Id
              * Format: uuid
@@ -819,6 +1111,11 @@ export interface components {
         };
         /** RunRequest */
         RunRequest: {
+            /**
+             * Connection Key
+             * @description Data source of a new conversation (default: demo); follow-ups keep theirs.
+             */
+            connection_key?: string | null;
             /** Conversation Id */
             conversation_id?: string | null;
             /** Question */
@@ -859,6 +1156,8 @@ export interface components {
         };
         /** RunSummary */
         RunSummary: {
+            /** Connection Key */
+            connection_key: string;
             /**
              * Conversation Id
              * Format: uuid
@@ -927,6 +1226,25 @@ export interface components {
             truncated: boolean;
             /** Warnings */
             warnings: string[];
+        };
+        /** SuggestionOut */
+        SuggestionOut: {
+            /** Columns */
+            columns: string[];
+            /** Cost After */
+            cost_after: number | null;
+            /** Cost Before */
+            cost_before: number | null;
+            /** Ddl */
+            ddl: string;
+            /** Improvement */
+            improvement: number | null;
+            /** Reason */
+            reason: string;
+            /** Table */
+            table: string;
+            /** Used By Planner */
+            used_by_planner: boolean | null;
         };
         /** TableOut */
         TableOut: {
@@ -1157,7 +1475,184 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ConnectionOut"][];
+                    "application/json": components["schemas"]["ConnectionSummary"][];
+                };
+            };
+        };
+    };
+    create_connection_api_connections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sqlite_files_api_connections_sqlite_files_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    test_connection_api_connections_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_connection_api_connections__key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_connection_api_connections__key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reindex_api_connections__key__index_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1719,6 +2214,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeedbackOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_annotation_api_runs__run_id__steps__step__annotation_get: {
+        parameters: {
+            query?: {
+                locale?: "es" | "en";
+            };
+            header?: never;
+            path: {
+                run_id: string;
+                step: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnnotationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    optimize_api_runs__run_id__steps__step__optimize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                step: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OptimizationOut"];
                 };
             };
             /** @description Validation Error */

@@ -13,7 +13,9 @@ import { isChartable } from "./chart-option";
 import { LazyChartView } from "./LazyChart";
 import { DataTable } from "./DataTable";
 import { FeedbackBar } from "./FeedbackBar";
+import { AnnotatedSql } from "./AnnotatedSql";
 import { KpiCards, type KpiItem } from "./KpiCards";
+import { OptimizationPanel } from "./OptimizationPanel";
 import { PinDialog } from "./PinDialog";
 import { SqlBlock } from "./SqlBlock";
 
@@ -162,14 +164,10 @@ function StepTabs({
           <p className="figures text-micro text-fg-muted">
             {t("results.tokens", { prompt: run.prompt_tokens, completion: run.completion_tokens, calls: result.tokens.calls })}
           </p>
+          <AnnotatedSql runId={run.id} step={step.index} />
         </TabsContent>
         <TabsContent value="optimization" className="outline-none">
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <Gauge aria-hidden="true" className="size-6 text-fg-muted" />
-            <p className="font-medium text-fg">{t("results.optimizationTitle")}</p>
-            <p className="max-w-md text-small text-fg-muted">{t("results.optimizationSoon")}</p>
-            <Badge tone="info">{t("common.phase", { n: 5 })}</Badge>
-          </div>
+          <OptimizationPanel runId={run.id} step={step.index} />
         </TabsContent>
       </div>
     </Tabs>

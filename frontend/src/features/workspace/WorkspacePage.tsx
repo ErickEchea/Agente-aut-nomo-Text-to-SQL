@@ -16,6 +16,7 @@ import { useMediaQuery } from "../../lib/useMediaQuery";
 import { AgentTimeline } from "../timeline/AgentTimeline";
 import { QueryBar } from "./QueryBar";
 import { useRunStream, useWorkspace } from "./session";
+import { useSources } from "./SourcePicker";
 import { TurnView } from "./TurnView";
 
 function Examples() {
@@ -79,8 +80,7 @@ export function WorkspacePage() {
   const wide = useMediaQuery("(min-width: 1280px)");
 
   const preferences = useQuery({ queryKey: ["preferences"], queryFn: () => endpoints.getPreferences(api) });
-  const connection = useQuery({ queryKey: ["connections"], queryFn: () => endpoints.listConnections(api), staleTime: 300_000 });
-  const asOf = connection.data?.[0]?.as_of;
+  const asOf = useSources().active?.as_of;
 
   // /?run=<id> opens a past run (from history, dashboards or the palette).
   const runParam = params.get("run");
@@ -90,7 +90,7 @@ export function WorkspacePage() {
     endpoints
       .getRun(api, runParam)
       .then((run) => {
-        if (alive) openRun(run.id, run.conversation_id, run.question);
+        if (alive) openRun(run.id, run.conversation_id, run.question, run.connection_key);
       })
       .catch((error: unknown) => toast.error(errorMessage(error, t)))
       .finally(() => {
