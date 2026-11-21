@@ -171,6 +171,12 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
 
+### Implementation status (Phase 4)
+Two deterministic guards were added after the live browser QA (ADR-0020):
+- `plan` discards a plan whose steps are SQL and falls back to the standalone question.
+- `visualize` never plots identifier columns, and prefers the measure the question names.
+`GET /api/runs/{id}` returns a typed `RunResult`.
+
 ### Implementation status (Phase 3)
 All nodes in the diagram are implemented. `retrieve_schema` runs hybrid retrieval and sends about 4.5 of 10
 tables plus join hints. `visualize` produces validated ECharts specs or KPI cards. `explain` produces a
@@ -183,7 +189,10 @@ deterministic `respond`. `retrieve_schema` sends the full introspected schema (1
 tokens) until Phase 3 replaces it with hybrid RAG. `visualize`, grounded `explain` and `remember` arrive in
 Phase 3.
 
-### HTTP API (Phase 2)
+### HTTP API (Phases 2–4)
+The contract is exported with `python -m nexus.openapi` to `frontend/src/api/openapi.json` (snapshot
+checked by a unit test) and turned into TypeScript types (`make api-types`).
+
 | Method | Path | Who | Purpose |
 |---|---|---|---|
 | POST | `/api/auth/login` | public (rate-limited per IP and per email) | Returns an access token and sets the refresh cookie |
@@ -199,6 +208,10 @@ Phase 3.
 | GET | `/api/memory/frequent` | any role | The user's most frequent questions |
 | GET · PUT | `/api/memory/preferences` | any role | Locale, default chart, SQL visibility |
 | GET | `/api/health/live` · `/api/health/ready` | public | Liveness and dependency readiness |
+| GET · POST | `/api/dashboards` | any role (list) · analyst, admin (create) | Own and shared dashboards |
+| GET · PATCH · DELETE | `/api/dashboards/{id}` | readable if owned/shared; changes by owner or admin | A dashboard with its pinned items rendered from the stored run results |
+| POST · DELETE · PUT | `/api/dashboards/{id}/items[/{item}]` · `/items/order` | owner or admin | Pin a run step, unpin, reorder |
+| GET | `/api/connections` | any role (network details: admin) | The data source, its tables (row estimates) and retrieval-index state |
 
 ## 6. Request sequence (reference question)
 
@@ -356,11 +369,30 @@ so relative dates resolve deterministically regardless of the wall clock (ADR-00
 
 ## 11. Frontend
 
-React 19 + TypeScript strict + Vite, Tailwind v4 with design tokens as CSS variables, shadcn/ui primitives,
-Motion (Framer Motion) for transitions, TanStack Query (server state), TanStack Table + Virtual (results grid),
-ECharts 6 with a theme generated from the same tokens, Shiki for SQL highlighting, i18next (es default, en).
-Routes: `/login`, `/` (workspace), `/dashboards`, `/history`, `/connections`, `/benchmark`, `/audit` (admin),
-`/settings`. Detailed in `docs/DESIGN.md` (Phase 4).
+React 19 + TypeScript strict + Vite, Tailwind v4 with design tokens as CSS variables, shadcn/ui-style primitives
+on Radix, Motion for transitions, TanStack Query (server state), TanStack Table v9 + Virtual (results grid),
+ECharts 6 themed from the same tokens (lazy-loaded), Shiki (JS regex engine, CSS-variable theme) for SQL,
+cmdk for the command palette, i18next (es default, en). Routes: `/login`, `/` (workspace, `?run=<id>` reopens
+a run), `/dashboards`, `/dashboards/:id`, `/history`, `/connections`, `/benchmark`, `/audit` (admin),
+`/settings`. The design system is in `docs/DESIGN.md`; the structural decisions are in ADR-0020.
+
+```mermaid
+flowchart LR
+    subgraph Providers
+      Q[QueryClient] --> P[Preferences<br/>theme · locale] --> A[Auth<br/>SessionManager] --> W[Workspace<br/>turns · SSE streams]
+    end
+    W --> R[Router]
+    R --> WS[Workspace page<br/>QueryBar · Turns · AgentTimeline]
+    R --> D[Dashboards] & H[History] & C[Connections] & B[Benchmark] & AU[Audit] & S[Settings]
+    WS -->|fetch + ReadableStream| SSE[(GET /api/runs/:id/events)]
+    WS -->|typed client| API[(REST /api/*)]
+```
+
+- **Session:** the access token lives in memory. The refresh token stays in an HttpOnly cookie; refreshes
+  are coalesced and sent with `keepalive`.
+- **Timeline:** a pure reducer turns zod-validated events into timeline items.
+- **Results:** KPI cards plus Tabla/Gráfico/SQL/Explicación/Optimización tabs. Dashboards reference
+  `(run, step)`.
 
 ## 12. Observability
 

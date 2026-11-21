@@ -9,11 +9,94 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | 0 — Plan, ADRs, structure | ✅ Done (2026-11-20) |
 | 1 — Infra, demo DB, read-only role | ✅ Done (2026-11-20) |
 | 2 — Agent core + security | ✅ Done (2026-11-20) |
-| 3 — RAG + memory | ✅ Done (2026-11-20) — awaiting go-ahead for Phase 4 |
-| 4 — Frontend + design system | ⏳ |
+| 3 — RAG + memory | ✅ Done (2026-11-20) |
+| 4 — Frontend + design system | ✅ Done (2026-11-21) — awaiting go-ahead for Phase 5 |
 | 5 — Explainability, optimization, multi-DB | ⏳ |
 | 6 — Benchmark + default model | ⏳ |
 | 7 — Hardening + docs | ⏳ |
+
+## Phase 4 — 2026-11-21
+
+### Exit criteria
+- ✅ **Playwright e2e of the reference question** in the browser with the real model (`make e2e-agent`):
+  - The timeline streams live.
+  - The answer is correct: top-5 starting with Agua mineral 1.5 L, and Samborondón $299,672.19.
+  - The figures are verified and the «último trimestre» assumption is shown.
+  - The table, chart (canvas), SQL and optimization tabs work.
+  - Pinning to a new dashboard shows the chart there.
+  - Warm run: 45 s.
+  - The API e2e (reference + follow-up) still passes.
+- ✅ **axe clean**: WCAG 2.2 A/AA on every screen in dark and light at 1280 px and 375 px, plus the answered
+  workspace and a dashboard. It runs inside `make e2e` (20 tests).
+- ✅ **Screenshots reviewed and committed**: `docs/screenshots/phase4/` holds 42 PNGs. Every screen is in
+  dark/light × desktop/375 px, plus the live timeline, the answer, the SQL tab and a dashboard.
+- ✅ Tests and checks:
+  - Backend: 499 tests (non-LLM), 94 % coverage on the gated packages (93 % overall).
+  - Frontend: 105 Vitest tests.
+  - ruff, mypy `--strict`, ESLint (type-checked, i18n literal-string rule) and `tsc` are clean.
+  - `make up` is healthy.
+
+### Done
+- **Design system first**: `docs/DESIGN.md` and `tokens.css`.
+  - Dark default, plus a selected light palette.
+  - Fonts: Bricolage Grotesque (display), IBM Plex Sans (UI), JetBrains Mono (SQL and figures).
+  - The categorical data palette is validated with the dataviz CVD/contrast checker on our own surfaces.
+  - Tests enforce AA contrast for every text/surface pair and fail on any raw hex color outside the tokens.
+- **Screens**:
+  - Login.
+  - Workspace: query bar, example questions, conversation turns with follow-ups and clarification options.
+  - Live agent timeline: status, live timer, tokens, expandable node output, highlighted SQL, red/green
+    repair diff.
+  - Result tabs: virtualized table with sort/filter/CSV, ECharts with PNG export, SQL, explanation, and
+    optimization (marked as Phase 5).
+  - KPI cards with hierarchy, feedback with "mark SQL as correct", pin to dashboard.
+  - Dashboards, history and memory, connections, benchmark (honest empty state), audit (admin), settings,
+    and the Ctrl/⌘ K palette.
+- **Backend support**:
+  - Typed `RunResult` in the OpenAPI contract, with an OpenAPI snapshot, generated TS types and a drift test
+    (`make api-types`).
+  - Dashboards API (private or shared; analysts and admins pin; migration `f574d0c093cf`).
+  - `GET /api/connections`, with planner row estimates: the seed loader now runs `ANALYZE`.
+  - `nexus-admin create-user --if-missing` and `make e2e-user` for the Playwright account.
+- **Engineering**:
+  - Access token in memory; refreshes are coalesced and sent with `keepalive`.
+  - SSE over fetch with `Last-Event-ID` resume and zod-validated events.
+  - Lazy ECharts and secondary routes; the workspace entry is ~270 kB gzip.
+  - CSP-safe Shiki and fonts.
+  - Decisions are recorded in ADR-0020.
+
+### Bugs found by visual QA and fixed this phase
+- **Agent**:
+  - The planner sometimes answered with MySQL SQL instead of sub-questions, and the run failed after
+    three repairs. A deterministic guard now discards SQL-shaped plans (ADR-0020 §15) and has a unit test.
+  - The chart for "top 5 products" plotted `producto_id`. Charts now never plot identifiers and prefer the
+    measure the question names (§16), with a unit test.
+- **Session**: a navigation during the boot-time refresh aborted the request after the server had rotated
+  the token, so the next refresh tripped reuse detection and logged the user out. Fixed with `keepalive`
+  (§6). A stress repro went from losing the session on the first aborted refresh to never losing it.
+- **Layout**:
+  - Wide SQL lines pushed the answer under the timeline rail, and the whole answer overflowed at 375 px.
+    Grid tracks are now `minmax(0, 1fr)`.
+  - The workspace scrolled `#main` instead of the conversation pane.
+- **Accessibility** (found by axe):
+  - ghosted timeline steps below AA contrast;
+  - the account button's name not matching its visible initials;
+  - non-focusable scrollable regions;
+  - icon-only buttons without names at 375 px.
+- **CSP**: Vite inlined small fonts as `data:` URIs, which `font-src 'self'` blocks (`assetsInlineLimit: 0`).
+- **Palette UX**: typing a screen name and pressing Enter asked the agent instead of navigating. "Ask the
+  agent" now always ranks last.
+
+### Known issues / limitations
+- **Bundle size**: ~270 kB gzip for the workspace entry, with ECharts lazy (~190 kB gzip). Acceptable for an
+  authenticated internal tool. A budget is set at 900 kB minified.
+- **Benchmark**: the page is an honest empty state until Phase 6. The optimization tab and multi-connection
+  management are Phase 5.
+- **Shared dashboards**: they show the owner's run results to every user. That is by design (sharing is an
+  explicit owner action) and documented in ADR-0020.
+- **Frontend design skill**: no dedicated skill for application UI was available in this environment. The
+  dataviz skill guided the chart palette, marks and interaction, and every screen was reviewed through
+  Playwright screenshots.
 
 ## Phase 3 — 2026-11-20
 

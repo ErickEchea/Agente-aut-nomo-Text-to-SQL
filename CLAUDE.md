@@ -50,10 +50,11 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 | `make test` | Backend unit + frontend unit | 1 |
 | `make test-integration` | Testcontainers-based backend tests | 1 |
 | `make lint` / `make typecheck` / `make check` | ruff + eslint / mypy + tsc / all of the above + unit tests | 1 |
-| `make e2e` | Playwright end-to-end (stack must be up) | 1 |
+| `make e2e` | Playwright: every screen, dark/light × 1280/375 px, axe WCAG 2.2 AA, screenshots (stack up; `E2E_ARGS=…` overrides the selection) | 1–4 |
 | `make test-security` | Attack suite in all three modes | 2 |
 | `make coverage` | All non-LLM tests + 85 % gate on agent/security/sql | 2 |
-| `make e2e-agent` | Reference question + follow-up end to end with the real model (stack up) | 2–3 |
+| `make e2e-agent` | Reference question + follow-up with the real model: API (pytest) and browser (Playwright `@llm`) | 2–4 |
+| `make api-types` | Regenerate the OpenAPI snapshot + frontend TS types (a unit test fails if stale) | 4 |
 | `make eval-retrieval` | Schema-retrieval metrics per embedding model → `docs/retrieval-eval.md` | 3 |
 | `make create-user email=… name=… role=…` | Create analyst/viewer accounts | 2 |
 | `make bench MODELS="…"` | Run golden-set benchmark, write `docs/benchmark.md` | 6 |
@@ -70,3 +71,8 @@ Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typec
 - GNU make lives in `%LOCALAPPDATA%\Microsoft\WinGet\Packages\ezwinports.make_*\bin` (on PATH in new terminals).
 - Demo data checksum (seed 20241101, scale 1.0, dataset v1.0.0): `7ce932275db5…` — identical on Windows and Linux.
 - Avoid multi-heredoc Bash commands containing apostrophes in this environment; write files with the editor tools.
+- Playwright signs in as `NEXUS_E2E_EMAIL` (generated into `.env`, created by `make e2e-user`); logins are rate
+  limited (5/min), so specs share one signed-in page per project. Git Bash rewrites `/paths` in arguments:
+  prefix with `MSYS_NO_PATHCONV=1` when passing routes.
+- UI rules enforced by tests: no hex colors outside `src/styles/tokens.css`, no literal JSX text (i18n lint),
+  `en` mirrors every `es` key.

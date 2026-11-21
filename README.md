@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/estado-fase%203%20de%207-3fd0c9" alt="Estado: fase 3 de 7">
+  <img src="https://img.shields.io/badge/estado-fase%204%20de%207-3fd0c9" alt="Estado: fase 4 de 7">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -27,10 +27,9 @@ Todo corre **en tu máquina**: los modelos de lenguaje se sirven con [Ollama](ht
 pago y sin que tus datos salgan de tu red.
 
 > [!NOTE]
-> **Estado del proyecto.** Se construye por fases ([hoja de ruta](#-hoja-de-ruta)). Las **fases 1 a 3 están
-> completas**: el agente ya responde de punta a punta por la API (con streaming de cada paso), busca solo las
-> tablas relevantes, recuerda la conversación, propone gráficos y redacta un resumen cuyas cifras se
-> verifican contra los datos. La interfaz web completa llega en la Fase 4. Esta página distingue siempre lo que **ya funciona** ✅ de lo que **está
+> **Estado del proyecto.** Se construye por fases ([hoja de ruta](#-hoja-de-ruta)). Las **fases 1 a 4 están
+> completas**: la aplicación web ya permite preguntar, ver el razonamiento del agente en vivo, explorar el
+> resultado en tabla, gráfico y SQL, fijarlo en dashboards y revisar historial, conexiones y auditoría. Esta página distingue siempre lo que **ya funciona** ✅ de lo que **está
 > planificado** 🗓️.
 
 ## Contenido
@@ -74,10 +73,11 @@ Lo que hace a NEXUS distinto de "pedirle SQL a un chatbot":
 | 🧠 | **Entiende la intención** y pide aclaración con opciones concretas cuando la pregunta es ambigua, en vez de adivinar. | ✅ |
 | 📅 | **Fechas deterministas:** "último trimestre" lo calcula Python, no el modelo, y se muestra como supuesto visible. | ✅ |
 | 🛡️ | **SQL validado sobre el árbol sintáctico** (SQLGlot) + rol de base de datos de solo lectura. | ✅ |
-| 🔁 | **Auto-reparación:** si una consulta falla o no cumple el glosario, el agente lee el error y corrige (máx. 3 intentos). | ✅ · diff visual en Fase 4 |
+| 🔁 | **Auto-reparación:** si una consulta falla o no cumple el glosario, el agente lee el error y corrige (máx. 3 intentos). | ✅ con diff rojo/verde en el timeline |
 | 🔎 | **RAG híbrido del esquema** (pgvector + texto completo en español + trigramas) con comentarios, valores de ejemplo, glosario y ejemplos verificados: todas las tablas necesarias en 32 de 32 preguntas de prueba. | ✅ |
-| 👁️ | **Razonamiento en vivo:** cada paso del agente se transmite por SSE (duración, tokens, SQL, resultados). | ✅ API · 🗓️ timeline Fase 4 |
-| 📊 | **Gráficos automáticos** (spec de ECharts validado, tarjetas KPI) · tabla, SQL, explicación y optimización en pestañas, dashboards. | ✅ spec · 🗓️ UI Fases 4–5 |
+| 👁️ | **Razonamiento en vivo:** timeline animado con cada paso del agente (estado, duración, tokens, SQL resaltado, salida expandible). | ✅ |
+| 📊 | **Resultados en pestañas** Tabla (virtualizada, filtro, CSV) · Gráfico (ECharts, PNG) · SQL · Explicación, tarjetas KPI y **dashboards**. | ✅ · pestaña Optimización en Fase 5 |
+| ⌨️ | **Paleta de comandos** (Ctrl/⌘ K), modo oscuro y claro, español e inglés, accesible (WCAG 2.2 AA) y usable desde 375 px. | ✅ |
 | ✅ | **Resúmenes sin cifras inventadas:** cada número del resumen se comprueba contra los resultados (en español e inglés). | ✅ |
 | 🧩 | **Memoria:** preguntas de seguimiento ("¿y en el trimestre anterior?"), consultas frecuentes, preferencias y respuestas marcadas como correctas que se vuelven ejemplos. | ✅ |
 | 🔌 | **Multi-base de datos:** PostgreSQL, MySQL y SQLite con credenciales cifradas. | 🗓️ Fase 5 |
@@ -195,16 +195,39 @@ En la máquina de referencia tarda menos de 4 minutos.
 | PostgreSQL de la app / de demostración | `localhost:55432` / `localhost:55433` |
 
 <p align="center">
-  <img src="docs/screenshots/phase1/status-desktop-dark.png" alt="Página de estado de NEXUS AI con las tres dependencias operativas" width="80%">
-  <br><sub>Fase 1: página de estado con comprobaciones en vivo (la interfaz completa llega en la Fase 4).</sub>
+  <img src="docs/screenshots/phase4/workspace-answer-desktop-dark.png" alt="Respuesta de NEXUS AI: resumen con cifras verificadas, supuestos de fechas y el razonamiento del agente paso a paso" width="100%">
+  <br><sub>La pregunta de referencia respondida: resumen con cifras verificadas, supuesto de fechas visible y el timeline del agente con cada paso, su duración y sus tokens.</sub>
 </p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/phase4/workspace-live-desktop-dark.png" alt="Timeline del agente en vivo mientras planifica"></td>
+    <td width="50%"><img src="docs/screenshots/phase4/dashboard-desktop-dark.png" alt="Dashboard con el top 5 de productos fijado"></td>
+  </tr>
+  <tr>
+    <td><sub><b>En vivo:</b> cada nodo del grafo aparece al empezar, con su cronómetro; los pendientes se ven atenuados.</sub></td>
+    <td><sub><b>Dashboards:</b> cualquier resultado se fija y se vuelve a ver sin consultar de nuevo.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/phase4/workspace-answer-desktop-light.png" alt="La misma respuesta en modo claro"></td>
+    <td><img src="docs/screenshots/phase4/connections-desktop-dark.png" alt="Pantalla de conexiones: tablas, filas estimadas e índice de recuperación"></td>
+  </tr>
+  <tr>
+    <td><sub>Modo claro (seleccionado, no invertido) con contraste AA verificado por tests.</sub></td>
+    <td><sub><b>Conexiones:</b> tablas con sus comentarios, filas estimadas y estado del índice RAG.</sub></td>
+  </tr>
+</table>
+
+Todas las capturas (cada pantalla en oscuro/claro × escritorio/375 px) están en
+[`docs/screenshots/phase4`](docs/screenshots/phase4) y las regenera `make e2e`.
 
 ### Probar el agente
 
 `make up` crea un administrador; sus credenciales están en `.env` (`NEXUS_ADMIN_EMAIL`, `NEXUS_ADMIN_PASSWORD`).
+Entra en http://localhost:8080 y elige una de las preguntas de ejemplo.
 
 ```bash
-make e2e-agent   # hace la pregunta de referencia por la API y muestra cada paso con su duración
+make e2e-agent   # la pregunta de referencia con el modelo real, por la API y en el navegador
 ```
 
 O a mano con la API (`/api/docs` documenta todo en modo desarrollo):
@@ -257,7 +280,7 @@ exactamente igual que consultaría una base externa tuya, sin ningún camino hac
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 19, TypeScript estricto, Vite 8, TanStack Query, i18next (es/en) · *Fase 4:* Tailwind, shadcn/ui, Framer Motion, ECharts |
+| Frontend | React 19, TypeScript estricto, Vite 8, Tailwind v4 con design tokens, primitivas Radix al estilo shadcn/ui, Motion, TanStack Query/Table/Virtual, ECharts 6, Shiki, cmdk, i18next (es/en) |
 | Backend | Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2 (async), structlog |
 | Agente | LangGraph, SQLGlot, interfaz `LLMProvider` intercambiable |
 | Modelos | Ollama — candidatos `qwen2.5-coder:7b`, `qwen3:8b`, `gemma4:e4b-it-qat`; embeddings `qwen3-embedding:0.6b` ([ADR-0003](docs/adr/0003-llm-provider-and-model-selection.md)) |
@@ -275,8 +298,8 @@ Cada decisión importante está documentada como un ADR, con su contexto, las al
 | 1 | Docker Compose, base de datos de demostración, rol de solo lectura, observabilidad, CI | ✅ |
 | 2 | Núcleo del agente: generación, validación AST, ejecución, reparación, SSE, autenticación, suite de 62+ ataques | ✅ |
 | 3 | RAG del esquema, ejemplos verificados, memoria, gráficos y explicación con cifras verificadas | ✅ |
-| 4 | Interfaz completa: sistema de diseño, timeline del agente en vivo, dashboards, paleta de comandos | 🔜 siguiente |
-| 5 | Explicación cláusula por cláusula, optimización con `EXPLAIN`, multi-base de datos | 🗓️ |
+| 4 | Interfaz completa: sistema de diseño, timeline del agente en vivo, dashboards, paleta de comandos | ✅ |
+| 5 | Explicación cláusula por cláusula, optimización con `EXPLAIN`, multi-base de datos | 🔜 siguiente |
 | 6 | Benchmark de 120+ preguntas y selección del modelo por defecto | 🗓️ |
 | 7 | Endurecimiento, documentación final y demo animada | 🗓️ |
 
@@ -288,10 +311,10 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 
 | Área | Estado actual |
 |---|---|
-| Backend | 489 tests (unitarios, seguridad e integración con PostgreSQL real) · cobertura 94 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
+| Backend | 499 tests (unitarios, seguridad e integración con PostgreSQL real) · cobertura 94 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
 | Agente | End-to-end con el modelo real: pregunta de referencia **y** su seguimiento correctos 3/3 (`make e2e-agent`) |
 | Recuperación | Todas las tablas necesarias en 32/32 preguntas, ~4,5 de 10 tablas por pregunta ([reporte](docs/retrieval-eval.md)) |
-| Frontend | Vitest + 8 tests end-to-end con Playwright (escritorio y móvil, modo claro y oscuro) · ESLint estricto con tipos · `tsc` estricto |
+| Frontend | 105 tests de Vitest (contraste AA de los tokens, parser SSE, timeline, gráficos, CSV, i18n) · 20 tests de Playwright: cada pantalla en oscuro/claro × escritorio/375 px con axe (WCAG 2.2 AA) · la pregunta de referencia en el navegador con el modelo real · ESLint estricto · `tsc` estricto |
 | CI | GitHub Actions: lint, tipos, tests unitarios e integración, build de imágenes Docker |
 | Datos | Checksum determinista verificado en Windows y Linux · tests de estacionalidad, integridad referencial y anomalías |
 
@@ -311,7 +334,8 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 ## 📚 Documentación
 
 - [Arquitectura](docs/ARCHITECTURE.md): diagramas de contexto, contenedores, grafo del agente, seguridad, RAG y modelo de datos.
-- [Decisiones de arquitectura (ADRs)](docs/adr/README.md): 19 decisiones con alternativas y consecuencias.
+- [Sistema de diseño](docs/DESIGN.md): tokens, tipografía, color de datos validado, movimiento y componentes.
+- [Decisiones de arquitectura (ADRs)](docs/adr/README.md): 20 decisiones con alternativas y consecuencias.
 - [Evaluación de la recuperación](docs/retrieval-eval.md): modelos de embeddings y estrategias comparados con datos.
 - [Hoja de ruta](docs/ROADMAP.md) y [bitácora de progreso](PROGRESS.md).
 - [Guía para contribuir con agentes de IA](CLAUDE.md): convenciones, comandos y reglas del proyecto.

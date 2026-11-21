@@ -35,7 +35,7 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
   short/long-term memory; feedback → verified examples; embedding-model comparison (recall@5).
 - **Exit**: retrieval recall@5 ≥ target on golden-derived set; follow-up question test passes.
 
-## Phase 4 — Frontend and design system
+## Phase 4 — Frontend and design system ✅
 - `docs/DESIGN.md` + tokens first; all screens (login, workspace + Ctrl/Cmd+K, results tabs, KPI cards,
   dashboards, history/memory, connections, benchmark, audit, settings); live agent timeline with SQL highlighting
   and repair diffs; virtualized table with CSV export; ECharts with PNG export; i18n es/en; a11y; responsive.

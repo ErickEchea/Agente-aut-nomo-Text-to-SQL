@@ -24,3 +24,4 @@ ADRs are immutable once **Accepted**; a change of mind is a new ADR that superse
 | [0017](0017-retail-demo-dataset.md) | Retail demo dataset (Ecuador, USD) | Accepted |
 | [0018](0018-deterministic-guards-around-the-llm.md) | Deterministic guards around the LLM | Accepted |
 | [0019](0019-retrieval-memory-and-grounded-answers.md) | Retrieval, memory and grounded answers | Accepted |
+| [0020](0020-frontend-architecture-and-ui-hardening.md) | Frontend architecture and UI hardening | Accepted |
