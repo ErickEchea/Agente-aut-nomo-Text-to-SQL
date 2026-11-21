@@ -108,6 +108,38 @@ test.describe("signed in", () => {
     await expect(palette).toBeHidden();
   });
 
+  test("an admin registers a SQLite source, sees it indexed and removes it", async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "the source lifecycle runs once");
+    test.setTimeout(240_000);
+    await setTheme(page, "dark");
+    await page.goto("/connections");
+    await expect(page.getByRole("heading", { level: 1, name: "Conexiones" })).toBeVisible();
+
+    const name = `E2E SQLite ${Date.now()}`;
+    await page.getByRole("button", { name: "Agregar conexión" }).click();
+    const dialog = page.getByRole("dialog", { name: "Nueva conexión de datos" });
+    await dialog.getByLabel("Motor").selectOption("sqlite");
+    await dialog.getByLabel("Nombre").fill(name);
+    await dialog.getByLabel("Archivo SQLite").selectOption("retail_mini.sqlite"); // make sqlite-demo
+    await dialog.getByLabel("Fecha de referencia (opcional)").fill("2026-11-01");
+    await expect(dialog.getByRole("button", { name: "Guardar conexión" })).toBeDisabled(); // test first
+    await dialog.getByRole("button", { name: "Probar conexión" }).click();
+    await expect(dialog.getByText(/Conexión correcta: \d+ tablas · SQLite 3\.\d+/)).toBeVisible();
+    await expectAccessible(page);
+    await screenshot(page, testInfo, "connections-add", "dark");
+    await dialog.getByRole("button", { name: "Guardar conexión" }).click();
+    await expect(dialog).toBeHidden();
+
+    const card = page.getByRole("button", { name: new RegExp(name) });
+    await expect(card).toContainText("Índice listo", { timeout: 180_000 });
+    await card.click();
+    await expect(page.getByRole("heading", { level: 2, name })).toBeVisible();
+    await page.getByRole("button", { name: "Eliminar" }).click();
+    await page.getByRole("dialog", { name: `¿Eliminar «${name}»?` }).getByRole("button", { name: "Eliminar" }).click();
+    await expect(card).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+
   test("language and theme preferences apply instantly", async () => {
     await setTheme(page, "dark");
     await page.goto("/settings");

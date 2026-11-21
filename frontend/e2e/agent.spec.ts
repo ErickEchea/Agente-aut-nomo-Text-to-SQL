@@ -74,8 +74,13 @@ test.describe("@llm reference question in the browser", () => {
     await expect(answer.locator("canvas").first()).toBeVisible();
     await answer.getByRole("tab", { name: "SQL" }).click();
     await expect(answer.locator("pre code").first()).toContainText(/SELECT/i);
+    await answer.getByRole("tab", { name: "Explicación" }).click();
+    await expect(answer.getByText("SQL anotado, cláusula por cláusula").first()).toBeVisible();
+    await expect(answer.getByRole("button", { name: /^Filtros/ }).first()).toBeVisible();
     await answer.getByRole("tab", { name: "Optimización" }).click();
-    await expect(answer.getByText("Fase 5", { exact: true })).toBeVisible();
+    await answer.getByRole("button", { name: "Analizar plan" }).click();
+    await expect(answer.getByText("Hallazgos")).toBeVisible({ timeout: 60_000 });
+    await expect(answer.getByText("PostgreSQL", { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -116,6 +121,22 @@ test.describe("@llm reference question in the browser", () => {
       await page.getByRole("tabpanel").first().scrollIntoViewIfNeeded();
       await expectNoHorizontalScroll(page);
       await screenshot(page, testInfo, "workspace-sql", scheme);
+
+      await page.getByRole("tab", { name: "Explicación" }).first().click();
+      await expect(page.getByText("SQL anotado, cláusula por cláusula").first()).toBeVisible();
+      await page.getByRole("button", { name: /^Filtros/ }).first().hover();
+      await page.getByText("SQL anotado, cláusula por cláusula").first().scrollIntoViewIfNeeded();
+      await expectNoHorizontalScroll(page);
+      await expectAccessible(page);
+      await screenshot(page, testInfo, "workspace-explanation", scheme);
+
+      await page.getByRole("tab", { name: "Optimización" }).first().click();
+      await page.getByRole("button", { name: "Analizar plan" }).first().click();
+      await expect(page.getByText("Hallazgos").first()).toBeVisible({ timeout: 60_000 });
+      await page.getByText("Hallazgos").first().scrollIntoViewIfNeeded();
+      await expectNoHorizontalScroll(page);
+      await expectAccessible(page);
+      await screenshot(page, testInfo, "workspace-optimization", scheme);
     });
   }
 });
