@@ -24,6 +24,7 @@ from nexus.api.deps import (
 from nexus.db.models import Role, Run, RunEvent
 from nexus.runs.events import TERMINAL_EVENT
 from nexus.runs.manager import ConcurrentRunError
+from nexus.runs.schemas import RunResult
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 
@@ -45,7 +46,7 @@ class RunOut(BaseModel):
     question: str
     status: str
     answer: str | None
-    result: dict[str, Any] | None
+    result: RunResult | None
     prompt_tokens: int
     completion_tokens: int
     duration_ms: int | None
@@ -122,7 +123,7 @@ async def get_run(run_id: uuid.UUID, user: AuthenticatedUser, session: Session) 
         question=run.question,
         status=run.status,
         answer=run.answer,
-        result=run.result,
+        result=RunResult.model_validate(run.result) if run.result else None,
         prompt_tokens=run.prompt_tokens,
         completion_tokens=run.completion_tokens,
         duration_ms=run.duration_ms,

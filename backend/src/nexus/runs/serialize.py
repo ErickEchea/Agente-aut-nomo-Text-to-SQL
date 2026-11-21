@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from nexus.agent.state import AgentState, SqlAttempt, StepResult
+from nexus.runs.schemas import RunResult
 
 
 def _attempt(a: SqlAttempt) -> dict[str, Any]:
@@ -37,6 +38,11 @@ def _step(r: StepResult) -> dict[str, Any]:
 
 
 def serialize_final(state: AgentState) -> dict[str, Any]:
+    """Validated against :class:`RunResult` so stored results always match the API contract."""
+    return RunResult.model_validate(_raw(state)).model_dump(mode="json")
+
+
+def _raw(state: AgentState) -> dict[str, Any]:
     clarification = state.get("clarification")
     time = state.get("time")
     usage = state.get("usage", [])
