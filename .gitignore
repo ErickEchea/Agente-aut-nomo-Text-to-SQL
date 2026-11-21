@@ -40,3 +40,6 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+data/sqlite/*
+!data/sqlite/.gitkeep
+!data/sqlite/README.md

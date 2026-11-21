@@ -82,6 +82,14 @@ class PgDocumentStore:
                 session.add(self._row(connection_key, model, fingerprint, doc, vector))
         return len(docs)
 
+    async def delete(self, connection_key: str) -> int:
+        """Drop every document of a source (all embedding models): the source was removed."""
+        async with self._sessions() as session, session.begin():
+            result = await session.execute(
+                delete(SchemaDocument).where(SchemaDocument.connection_key == connection_key)
+            )
+        return int(getattr(result, "rowcount", 0) or 0)
+
     async def add(
         self, connection_key: str, model: str, doc: Document, vector: Sequence[float]
     ) -> None:

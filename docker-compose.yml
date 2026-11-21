@@ -33,7 +33,9 @@ services:
       start_period: 15s
 
   demo-db:
-    image: postgres:18.7-trixie
+    build:
+      context: ./infra/postgres/demo-image
+    image: nexus-demo-db:local
     restart: unless-stopped
     command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_wal_size=2GB"]
     environment:
@@ -51,6 +53,21 @@ services:
       timeout: 3s
       retries: 30
       start_period: 15s
+
+  # Applies demo-db extensions (HypoPG) idempotently, also on volumes created before Phase 5.
+  demo-extensions:
+    image: nexus-demo-db:local
+    restart: "no"
+    command:
+      ["psql", "-v", "ON_ERROR_STOP=1", "-h", "demo-db", "-U", "postgres", "-d", "retail",
+       "-f", "/sql/demo-extensions.sql"]
+    environment:
+      PGPASSWORD: ${NEXUS_DEMO_DB_SUPERUSER_PASSWORD:?run `make env` first}
+    volumes:
+      - ./infra/postgres/demo/sql:/sql:ro
+    depends_on:
+      demo-db:
+        condition: service_healthy
 
   demo-seed:
     <<: *backend-build
@@ -135,6 +152,11 @@ services:
       NEXUS_SECURITY__COOKIE_SECURE: ${NEXUS_COOKIE_SECURE:-false}
       NEXUS_AGENT__AS_OF: ${NEXUS_AGENT_AS_OF:-}
       NEXUS_AGENT__PII_COLUMNS: ${NEXUS_PII_COLUMNS:-}
+      NEXUS_CONNECTIONS__CREDENTIALS_KEYS: ${NEXUS_CREDENTIALS_KEYS:?run `make env` first}
+      NEXUS_CONNECTIONS__SQLITE_DIR: /data/sqlite
+    volumes:
+      # SQLite files admins may register as data sources; mounted read-only (ADR-0013).
+      - ./data/sqlite:/data/sqlite:ro
     ports:
       - "127.0.0.1:${NEXUS_API_PORT:-8000}:8000"
     depends_on:
@@ -143,6 +165,8 @@ services:
       demo-db:
         condition: service_healthy
       demo-seed:
+        condition: service_completed_successfully
+      demo-extensions:
         condition: service_completed_successfully
       migrate:
         condition: service_completed_successfully

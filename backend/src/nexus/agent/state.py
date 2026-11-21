@@ -14,6 +14,7 @@ from nexus.agent.catalog import SchemaCatalog
 from nexus.agent.charts import ChartSpec
 from nexus.agent.glossary import Glossary
 from nexus.agent.temporal import ResolvedRange, TimeResolution
+from nexus.datasources.dialects import POSTGRESQL, DialectProfile
 from nexus.llm import LLMProvider, TokenUsage
 from nexus.rag.retriever import SchemaContext
 from nexus.sql.executor import JsonScalar, QueryResult
@@ -63,7 +64,6 @@ class Plan(BaseModel):
 
 class SqlCandidate(BaseModel):
     sql: str
-    dialect: Literal["postgres"] = "postgres"
     tables_used: list[str] = Field(default_factory=list)
     assumptions: list[str] = Field(default_factory=list, description="Máximo 3, breves, en español")
     rationale: str = Field(default="", description="Una sola frase en español")
@@ -226,3 +226,4 @@ class AgentContext:
     max_explain_retries: int = 2
     chart_tiebreak: bool = True  # let the model break ties between rule-chosen chart types
     locale: Literal["es", "en"] = "es"
+    dialect: DialectProfile = POSTGRESQL

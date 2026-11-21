@@ -107,6 +107,18 @@ class AgentSettings(BaseModel):
         return [c.strip() for c in self.pii_columns.split(",") if c.strip()]
 
 
+class ConnectionSettings(BaseModel):
+    """User-registered data sources (ADR-0012, ADR-0013)."""
+
+    # Comma-separated Fernet keys (or 32+ char secrets); the first encrypts. Unset disables
+    # registering connections (the built-in demo source still works).
+    credentials_keys: SecretStr | None = None
+    # SQLite files may only be opened from this directory (read-only, no path traversal).
+    sqlite_dir: Path = Path("/data/sqlite")
+    pool_size: int = Field(default=3, ge=1, le=20)
+    connect_timeout_s: float = Field(default=5.0, gt=0)
+
+
 class RateLimitSettings(BaseModel):
     login_per_minute: int = Field(default=5, ge=1)
     runs_per_minute: int = Field(default=20, ge=1)
@@ -133,6 +145,7 @@ class Settings(BaseSettings):
     ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     agent: AgentSettings = Field(default_factory=AgentSettings)
     rate_limit: RateLimitSettings = Field(default_factory=RateLimitSettings)
+    connections: ConnectionSettings = Field(default_factory=ConnectionSettings)
 
     @field_validator("cors_origins", mode="before")
     @classmethod

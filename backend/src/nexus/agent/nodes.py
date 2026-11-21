@@ -42,7 +42,7 @@ _SQL_STEP = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 PREVIEW_ROWS = 5
-TIMEOUT_SQLSTATES = {"57014", "55P03"}
+TIMEOUT_SQLSTATES = {"57014", "55P03", "MY3024", "MY1969", "SQLITE_INTERRUPT"}
 
 
 class StateInvariantError(RuntimeError):
@@ -66,7 +66,9 @@ def _sql_context(state: AgentState, ctx: AgentContext) -> str:
     and verified examples (ADR-0007). Without a retrieval result, the whole schema is used."""
     context = state.get("schema_context")
     if context is None:
-        return prompts.sql_context(ctx.catalog.render(), ctx.glossary.render(), state.get("time"))
+        return prompts.sql_context(
+            ctx.catalog.render(), ctx.glossary.render(), state.get("time"), profile=ctx.dialect
+        )
     return prompts.sql_context(
         ctx.catalog.render(context.tables),
         ctx.glossary.render(context.terms) if context.terms else ctx.glossary.render(),
@@ -74,6 +76,7 @@ def _sql_context(state: AgentState, ctx: AgentContext) -> str:
         joins=[j.condition() for j in context.joins],
         samples=context.samples,
         examples=[(e.question, e.sql) for e in context.examples],
+        profile=ctx.dialect,
     )
 
 
@@ -219,7 +222,10 @@ async def generate_sql(state: AgentState, ctx: AgentContext) -> NodeResult:
     try:
         completion = await ctx.llm.complete(
             prompts.generate_messages(
-                _sql_context(state, ctx), _step_question(state), state["standalone_question"]
+                _sql_context(state, ctx),
+                _step_question(state),
+                state["standalone_question"],
+                prompts.sql_rules(ctx.dialect, ctx.catalog.schema),
             ),
             SqlCandidate,
             GenerationOptions(model=ctx.models.generate, max_tokens=900),
@@ -237,7 +243,11 @@ async def repair(state: AgentState, ctx: AgentContext) -> NodeResult:
     try:
         completion = await ctx.llm.complete(
             prompts.repair_messages(
-                _sql_context(state, ctx), _step_question(state), previous, error
+                _sql_context(state, ctx),
+                _step_question(state),
+                previous,
+                error,
+                prompts.sql_rules(ctx.dialect, ctx.catalog.schema),
             ),
             SqlCandidate,
             GenerationOptions(model=ctx.models.repair, max_tokens=900, seed=7 + attempt),
@@ -484,30 +494,43 @@ async def respond(state: AgentState, ctx: AgentContext) -> NodeResult:
         if explained is not None:
             answer = _explanation_text(explained.explanation)
         else:
-            answer = _template_summary(state.get("results", []))
+            answer = _template_summary(state.get("results", []), ctx.locale)
     return NodeResult(
         {"status": status, "answer": answer}, {"status": status.value, "answer": answer}
     )
 
 
-def _template_summary(results: list[StepResult]) -> str:
+_SUMMARY_TEXT = {
+    "es": {
+        "single": "{question}: {values}.",
+        "many": "{question}: {count} filas; la primera es {values}.",
+        "none": "{question}: la consulta no devolvió filas.",
+    },
+    "en": {
+        "single": "{question}: {values}.",
+        "many": "{question}: {count} rows; the first is {values}.",
+        "none": "{question}: the query returned no rows.",
+    },
+}
+
+
+def _template_summary(results: list[StepResult], locale: str = "es") -> str:
     """Deterministic summary built only from the data (also the explain fallback)."""
+    text = _SUMMARY_TEXT["en" if locale == "en" else "es"]
     lines = []
     for result in results:
+        question = result.question.strip().lstrip("¿").rstrip("?.")
+        if not (result.row_count and result.columns):
+            lines.append(text["none"].format(question=question))
+            continue
+        values = ", ".join(
+            f"{c} = {_format_value(v)}" for c, v in zip(result.columns, result.rows[0], strict=True)
+        )
         if result.row_count == 1 and len(result.columns) <= 4:
-            values = ", ".join(
-                f"{c}: {_format_value(v)}"
-                for c, v in zip(result.columns, result.rows[0], strict=True)
-            )
-            lines.append(f"{result.question} → {values}")
-        elif result.row_count and result.columns:
-            first = ", ".join(
-                f"{c}: {_format_value(v)}"
-                for c, v in zip(result.columns, result.rows[0], strict=True)
-            )
-            lines.append(f"{result.question} → {result.row_count} filas; primera: {first}")
+            lines.append(text["single"].format(question=question, values=values))
         else:
-            lines.append(f"{result.question} → sin filas")
+            count = _format_value(result.row_count)
+            lines.append(text["many"].format(question=question, count=count, values=values))
     return "\n".join(lines)
 
 
@@ -628,7 +651,7 @@ async def explain(state: AgentState, ctx: AgentContext) -> NodeResult:
                 {"explanation": outcome, "usage": usage},
                 {"grounded": True, "fallback": False, "attempts": attempts, "text": text},
             )
-    fallback = Explanation(headline=_template_summary(results), bullets=[], caveats=[])
+    fallback = Explanation(headline=_template_summary(results, ctx.locale), bullets=[], caveats=[])
     outcome = ExplanationResult(
         fallback, grounded=True, fallback=True, attempts=attempts, ungrounded=tuple(offending)
     )

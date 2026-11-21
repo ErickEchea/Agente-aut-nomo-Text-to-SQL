@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration test-security coverage e2e e2e-user e2e-agent eval-retrieval api-types create-user         lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage e2e e2e-user e2e-agent eval-retrieval api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -73,7 +73,7 @@ e2e-user: env ## Create the Playwright account from .env if it does not exist (s
 	@printf '%s\n' '$(call ENV_VAL,NEXUS_E2E_PASSWORD)' | $(COMPOSE) exec -T backend nexus-admin create-user \
 	  --email '$(call ENV_VAL,NEXUS_E2E_EMAIL)' --name 'E2E Admin' --role admin --password-stdin --if-missing
 
-e2e: e2e-user ## Playwright end-to-end tests: every screen, both themes, desktop + 375 px, axe (stack up)
+e2e: e2e-user data/sqlite/retail_mini.sqlite ## Playwright end-to-end tests: every screen, both themes, desktop + 375 px, axe (stack up)
 	$(FRONTEND) $(E2E_ENV) npx playwright test $(E2E_ARGS)
 
 e2e-agent: e2e-user ## Reference question with the real model: API (pytest) and browser (Playwright) (stack up)
@@ -85,6 +85,16 @@ eval-retrieval: ## Measure schema retrieval (recall@5, completeness) per embeddi
 
 create-user: ## Create a user: make create-user email=a@b.c name="Ana" role=analyst
 	$(COMPOSE) exec backend nexus-admin create-user --email "$(email)" --name "$(name)" --role "$(role)"
+
+sqlite-demo: ## Export the retail demo as data/sqlite/retail_mini.sqlite (a second engine to register)
+	$(BACKEND) uv run nexus-export-sqlite --out ../data/sqlite/retail_mini.sqlite --sql-dir ../data/retail --scale 0.1
+
+# Built on demand by targets that need a SQLite source (e2e registers it as a second engine).
+data/sqlite/retail_mini.sqlite:
+	$(MAKE) sqlite-demo
+
+rotate-keys: ## Re-encrypt connection secrets with the newest NEXUS_CREDENTIALS_KEYS key (stack up)
+	$(COMPOSE) exec backend nexus-admin rotate-keys
 
 api-types: ## Regenerate the OpenAPI snapshot and the frontend's TypeScript API types
 	$(BACKEND) uv run python -m nexus.openapi ../frontend/src/api/openapi.json

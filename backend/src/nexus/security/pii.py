@@ -32,8 +32,9 @@ def _only_counted(node: exp.Expression) -> bool:
 
 
 class PiiMasker:
-    def __init__(self, pii_columns: Iterable[str]) -> None:
+    def __init__(self, pii_columns: Iterable[str], *, dialect: str = "postgres") -> None:
         """``pii_columns`` like ``["clientes.cedula", "clientes.email"]``."""
+        self._dialect = dialect
         self._pairs = {tuple(item.lower().split(".", 1)) for item in pii_columns if "." in item}
         self._names = {column for _, column in self._pairs}
         self._tables = {table for table, _ in self._pairs}
@@ -64,7 +65,7 @@ class PiiMasker:
         if not self.enabled:
             return set()
         try:
-            tree = sqlglot.parse_one(sql, dialect="postgres")
+            tree = sqlglot.parse_one(sql, dialect=self._dialect)
         except sqlglot.errors.ParseError:
             return set(range(len(columns)))  # cannot reason about it: mask everything
         names = self._sensitive_names(tree)

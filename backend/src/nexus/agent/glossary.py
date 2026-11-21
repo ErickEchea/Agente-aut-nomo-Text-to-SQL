@@ -53,10 +53,20 @@ class Glossary:
     currency: str
     metrics: tuple[GlossaryTerm, ...]
     entities: tuple[GlossaryTerm, ...] = field(default_factory=tuple)
+    dialect: str = "postgres"
+
+    @classmethod
+    def empty(cls, dialect: str = "postgres") -> Glossary:
+        """Sources without a curated glossary (user-registered connections)."""
+        return cls(currency="", metrics=(), entities=(), dialect=dialect)
 
     def render(self, terms: Sequence[GlossaryTerm] | None = None) -> str:
         """All terms, or only ``terms`` (the ones retrieval found relevant)."""
-        lines = [f"Moneda: {self.currency}."]
+        lines = [f"Moneda: {self.currency}."] if self.currency else []
+        if not self.metrics and not self.entities:
+            lines.append(
+                "Sin glosario de negocio para esta fuente: usa los comentarios del esquema."
+            )
         for term in self.metrics + self.entities if terms is None else terms:
             synonyms = f" (sinónimos: {', '.join(term.synonyms)})" if term.synonyms else ""
             lines.append(f"- {term.term}{synonyms}: {term.definition}")
@@ -86,7 +96,7 @@ class Glossary:
         if not required:
             return []
         try:
-            tree = sqlglot.parse_one(sql, dialect="postgres")
+            tree = sqlglot.parse_one(sql, dialect=self.dialect)
         except sqlglot.errors.ParseError:
             return []  # the validator already guarantees parseable SQL
         tables = {t.name.lower() for t in tree.find_all(exp.Table)}

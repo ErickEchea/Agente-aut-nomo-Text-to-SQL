@@ -147,9 +147,11 @@ async def test_statement_timeout_cancels_long_queries(reader_executor: ReadOnlyE
 async def test_explain_returns_a_plan_without_running_the_query(
     reader_executor: ReadOnlyExecutor,
 ) -> None:
-    plan = await reader_executor.explain(
+    explained = await reader_executor.explain(
         validate_sql("SELECT * FROM detalle_ventas WHERE producto_id = 1", POLICY)
     )
+    assert explained.format == "postgres_json"
+    plan = explained.plan
     assert isinstance(plan, list)
     root = plan[0]["Plan"]
     assert root["Total Cost"] > 0

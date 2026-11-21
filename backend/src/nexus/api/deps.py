@@ -11,12 +11,12 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from nexus.config import Settings
+from nexus.datasources.registry import ConnectionRegistry
 from nexus.db.models import Role, User
 from nexus.memory.store import ExampleIndexer
 from nexus.runs.manager import RunManager
 from nexus.security.rate_limit import TokenBucketLimiter
 from nexus.security.tokens import InvalidTokenError, TokenService
-from nexus.sources import DataSource
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +27,7 @@ class AppServices:
     limiter: TokenBucketLimiter
     runs: RunManager
     examples: ExampleIndexer
-    source: DataSource
+    registry: ConnectionRegistry
 
 
 @dataclass(frozen=True, slots=True)

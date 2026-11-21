@@ -77,6 +77,9 @@ DENIED_FUNCTIONS: frozenset[str] = frozenset(
         "pg_create_restore_point", "pg_notify",
         # MySQL / SQLite equivalents (multi-DB, Phase 5)
         "sleep", "benchmark", "load_file", "load_extension", "get_lock", "release_lock",
+        # HypoPG (optimizer only, never from model-written SQL)
+        "hypopg_create_index", "hypopg_reset", "hypopg_drop_index", "hypopg_list_indexes",
+        "hypopg", "hypopg_hide_index", "hypopg_unhide_index",
     }
 )  # fmt: skip
 

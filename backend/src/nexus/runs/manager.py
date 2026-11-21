@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -22,6 +22,7 @@ from nexus.agent.state import (
     HistoryTurn,
     MemorySink,
 )
+from nexus.datasources.registry import SourceError
 from nexus.db.models import Conversation, Run
 from nexus.llm import LLMError
 from nexus.memory.store import DatabaseMemorySink, get_preferences, load_history
@@ -31,7 +32,8 @@ from nexus.security.audit import DatabaseAuditSink
 
 logger = structlog.get_logger("nexus.runs")
 
-ContextFactory = Callable[[EventSink, AuditSink, MemorySink, str], AgentContext]
+# (connection_key, events, audit, memory, locale) -> the agent context for that data source
+ContextFactory = Callable[[str, EventSink, AuditSink, MemorySink, str], Awaitable[AgentContext]]
 
 
 class ConcurrentRunError(Exception):
@@ -66,7 +68,10 @@ class RunManager:
         question: str,
         conversation_id: uuid.UUID | None,
         client_ip: str | None,
+        connection_key: str,
     ) -> StartedRun:
+        """Start a run. A follow-up stays on its conversation's data source; ``connection_key``
+        only applies to a new conversation."""
         if user_id in self._active_by_user:
             raise ConcurrentRunError(str(self._active_by_user[user_id]))
         async with self._sessions() as session, session.begin():
@@ -76,12 +81,20 @@ class RunManager:
                 if conversation is None or conversation.user_id != user_id:
                     conversation = None
             if conversation is None:
-                conversation = Conversation(user_id=user_id, title=question[:200])
+                conversation = Conversation(
+                    user_id=user_id, title=question[:200], connection_key=connection_key
+                )
                 session.add(conversation)
                 await session.flush()
             history = await load_history(session, conversation.id)
             locale = str((await get_preferences(session, user_id)).get("locale", "es"))
-            run = Run(conversation_id=conversation.id, user_id=user_id, question=question)
+            source = conversation.connection_key
+            run = Run(
+                conversation_id=conversation.id,
+                user_id=user_id,
+                question=question,
+                connection_key=source,
+            )
             session.add(run)
             await session.flush()
             started = StartedRun(run.id, conversation.id)
@@ -95,6 +108,7 @@ class RunManager:
                 history=history,
                 client_ip=client_ip,
                 locale=locale,
+                connection_key=source,
             ),
             name=f"run-{started.run_id}",
         )
@@ -126,17 +140,23 @@ class RunManager:
         history: list[HistoryTurn],
         client_ip: str | None,
         locale: str,
+        connection_key: str,
     ) -> None:
         sink = PersistentEventSink(run_id, self._sessions, self.broker)
         audit = DatabaseAuditSink(
             self._sessions, user_id=user_id, run_id=run_id, client_ip=client_ip
         )
         memory = DatabaseMemorySink(self._sessions, user_id, run_id)
-        ctx = self._context_factory(sink, audit, memory, locale if locale in ("es", "en") else "es")
         started = time.perf_counter()
-        structlog.contextvars.bind_contextvars(run_id=str(run_id))
-        await sink.emit("run.started", {"run_id": str(run_id), "question": question})
+        structlog.contextvars.bind_contextvars(run_id=str(run_id), connection=connection_key)
+        await sink.emit(
+            "run.started",
+            {"run_id": str(run_id), "question": question, "connection": connection_key},
+        )
         try:
+            ctx = await self._context_factory(
+                connection_key, sink, audit, memory, locale if locale in ("es", "en") else "es"
+            )
             final = await run_agent(
                 self._graph, ctx, run_id=str(run_id), question=question, history=history
             )
@@ -145,6 +165,8 @@ class RunManager:
             result = {"status": "cancelled", "answer": "Consulta cancelada."}
             await self._complete(run_id, sink, result, started)
             raise
+        except SourceError as exc:
+            result = {"status": "failed", "answer": str(exc)}
         except LLMError as exc:
             logger.warning("runs.llm_unavailable", error=str(exc))
             result = {

@@ -68,7 +68,12 @@ async def give_feedback(
     await save_feedback(
         session, run_id=run.id, user_id=user.id, rating=body.rating, comment=body.comment
     )
-    created = await services.examples.add_from_run(session, run, user.id) if body.verify else []
+    created = []
+    if body.verify:
+        source = await services.registry.get(run.connection_key)
+        created = await services.examples.add_from_run(
+            session, run, user.id, dialect=source.profile.sqlglot
+        )
     await session.commit()
     return FeedbackOut(rating=body.rating, comment=body.comment, verified_examples=len(created))
 

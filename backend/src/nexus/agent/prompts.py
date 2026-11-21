@@ -14,6 +14,7 @@ from collections.abc import Mapping, Sequence
 
 from nexus.agent.state import ErrorInfo, HistoryTurn, StepResult
 from nexus.agent.temporal import TimeResolution
+from nexus.datasources.dialects import POSTGRESQL, DialectProfile
 from nexus.llm import Message
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -58,10 +59,10 @@ PLAN_SYSTEM = f"""Divides una pregunta de negocio en sub-preguntas que se respon
 - Máximo 4 pasos. {DATA_RULE}
 Responde solo con el JSON pedido."""
 
-SQL_RULES = f"""Eres un analista experto en PostgreSQL. Escribes UNA sola consulta SELECT (puede usar WITH) que
+SQL_RULES_TEMPLATE = """Eres un analista experto en {engine}. Escribes UNA sola consulta SELECT (puede usar WITH) que
 responde la pregunta usando SOLO las tablas y columnas del esquema dado.
 Reglas:
-1. Califica las tablas con su esquema (retail.<tabla>) y usa alias cortos.
+1. Califica las tablas con su esquema ({schema}.<tabla>) y usa alias cortos.
 2. Aplica EXACTAMENTE las definiciones del glosario; por ejemplo, ingresos excluye ventas anuladas y líneas
    devueltas, y no incluye IVA.
 3. Para fechas usa EXACTAMENTE los rangos resueltos (>= inicio y < fin). Nunca calcules fechas tú mismo ni uses
@@ -69,17 +70,30 @@ Reglas:
 4. Para "los N más …" usa ORDER BY … DESC LIMIT N. Para "cuál/qué … más …" en singular usa LIMIT 1.
 5. Devuelve columnas legibles (nombres, no solo ids) con alias en español.
 6. Nunca modifiques datos ni uses funciones de administración.
-7. {DATA_RULE}
-Responde solo con el JSON pedido: sql, tables_used, assumptions (máximo 3, breves) y rationale (una frase)."""
+7. {data_rule}
+{tips}Responde solo con el JSON pedido: sql, tables_used, assumptions (máximo 3, breves) y rationale (una frase)."""
 
 
-def time_block(time: TimeResolution | None) -> str:
+def sql_rules(profile: DialectProfile, schema: str) -> str:
+    """The SQL-generation rules for one engine and schema (ADR-0013)."""
+    tips = "".join(f"{8 + i}. {tip}\n" for i, tip in enumerate(profile.tips))
+    return SQL_RULES_TEMPLATE.format(
+        engine=profile.label, schema=schema, data_rule=DATA_RULE, tips=tips
+    )
+
+
+# Default rules (PostgreSQL, the demo schema); kept for callers without a source context.
+SQL_RULES = sql_rules(POSTGRESQL, "retail")
+
+
+def time_block(time: TimeResolution | None, profile: DialectProfile = POSTGRESQL) -> str:
     if time is None or not time.ranges:
         return data_block(
             "rangos_de_fecha", "Ninguno: la pregunta no limita el periodo; usa todos los datos."
         )
     lines = [
-        f"- {r.describe()}: usa  >= DATE '{r.start}' AND < DATE '{r.end}'" for r in time.ranges
+        f"- {r.describe()}: usa  >= {profile.date_literal(r.start)} AND < {profile.date_literal(r.end)}"
+        for r in time.ranges
     ]
     lines.append(f"Fecha de referencia de los datos: {time.as_of.isoformat()}")
     return data_block("rangos_de_fecha", "\n".join(lines))
@@ -178,6 +192,7 @@ def sql_context(
     joins: Sequence[str] = (),
     samples: Mapping[tuple[str, str], Sequence[str]] | None = None,
     examples: Sequence[tuple[str, str]] = (),
+    profile: DialectProfile = POSTGRESQL,
 ) -> str:
     """Schema comments, join hints and the glossary are curated (trusted, still delimited); sample
     values come from the database and verified examples from users, so both are data blocks."""
@@ -193,11 +208,13 @@ def sql_context(
     if examples:
         shots = "\n\n".join(f"Pregunta: {q}\nSQL: {sql}" for q, sql in examples)
         parts.append(data_block("ejemplos_verificados", shots, 4000))
-    parts.append(time_block(time))
+    parts.append(time_block(time, profile))
     return "\n\n".join(parts)
 
 
-def generate_messages(context: str, step_question: str, full_question: str) -> list[Message]:
+def generate_messages(
+    context: str, step_question: str, full_question: str, rules: str = SQL_RULES
+) -> list[Message]:
     user = "\n\n".join(
         [
             context,
@@ -205,11 +222,15 @@ def generate_messages(context: str, step_question: str, full_question: str) -> l
             data_block("pregunta", step_question, 1500),
         ]
     )
-    return [Message("system", SQL_RULES), Message("user", user)]
+    return [Message("system", rules), Message("user", user)]
 
 
 def repair_messages(
-    context: str, step_question: str, previous_sql: str, error: ErrorInfo
+    context: str,
+    step_question: str,
+    previous_sql: str,
+    error: ErrorInfo,
+    rules: str = SQL_RULES,
 ) -> list[Message]:
     user = "\n\n".join(
         [
@@ -221,4 +242,4 @@ def repair_messages(
             "reglas y responda la pregunta. Explica en rationale qué cambiaste.",
         ]
     )
-    return [Message("system", SQL_RULES), Message("user", user)]
+    return [Message("system", rules), Message("user", user)]

@@ -25,6 +25,9 @@ dependencies = [
     "argon2-cffi==25.1.0",
     "sse-starlette==3.7.0",
     "pgvector==0.5.1",
+    "aiomysql==0.3.2",
+    "aiosqlite==0.22.1",
+    "cryptography==50.0.2",
 ]
 
 [dependency-groups]
@@ -46,6 +49,7 @@ nexus-seed-demo = "nexus.demo.cli:main"
 nexus-migrate = "nexus.db.migrate:main"
 nexus-admin = "nexus.admin_cli:main"
 nexus-eval-retrieval = "nexus.rag.evaluate:main"
+nexus-export-sqlite = "nexus.demo.sqlite_export:main"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14"]

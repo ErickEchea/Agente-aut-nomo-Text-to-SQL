@@ -11,6 +11,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -80,6 +81,10 @@ class Conversation(TimestampMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
+    # The data source this conversation asks (follow-ups stay on it).
+    connection_key: Mapped[str] = mapped_column(
+        String(80), nullable=False, server_default="retail-demo"
+    )
 
 
 class Run(TimestampMixin, Base):
@@ -93,6 +98,9 @@ class Run(TimestampMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     question: Mapped[str] = mapped_column(Text, nullable=False)
+    connection_key: Mapped[str] = mapped_column(
+        String(80), nullable=False, server_default="retail-demo"
+    )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="running")
     answer: Mapped[str | None] = mapped_column(Text)
     result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
@@ -269,3 +277,38 @@ class DashboardItem(TimestampMixin, Base):
     step: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+# ------------------------------------------------------------------------------------------------
+# Phase 5: registered data sources (ADR-0012, ADR-0013)
+# ------------------------------------------------------------------------------------------------
+
+
+class DataConnection(TimestampMixin, Base):
+    """A database the agent may query. ``secret`` is Fernet-encrypted and never leaves the backend.
+
+    The built-in demo source is configured from the environment and is not stored here.
+    """
+
+    __tablename__ = "data_connections"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    key: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # postgresql | mysql | sqlite
+    host: Mapped[str | None] = mapped_column(String(255))
+    port: Mapped[int | None] = mapped_column(Integer)
+    database: Mapped[str] = mapped_column(String(255), nullable=False)  # name, or SQLite file
+    username: Mapped[str | None] = mapped_column(String(120))
+    secret: Mapped[str | None] = mapped_column(Text)
+    schema_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    as_of: Mapped[dt.date | None] = mapped_column(Date)
+    pii_columns: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    writable_acknowledged: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    last_tested_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    index_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    index_error: Mapped[str | None] = mapped_column(Text)
+    indexed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))

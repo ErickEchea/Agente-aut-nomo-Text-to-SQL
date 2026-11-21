@@ -11,6 +11,7 @@ import psycopg
 import pytest
 from pydantic import SecretStr
 from testcontainers.core.container import DockerContainer
+from testcontainers.core.image import DockerImage
 
 from nexus.config import DatabaseSettings
 from nexus.demo.generator import GeneratorConfig, generate
@@ -57,10 +58,22 @@ def _start(image: str, init_dir: Path, env: dict[str, str]) -> DockerContainer:
     return container.with_volume_mapping(str(init_dir), "/docker-entrypoint-initdb.d", "ro")
 
 
+DEMO_IMAGE = "nexus-demo-db:test"
+
+
 @pytest.fixture(scope="session")
-def demo_server() -> Iterator[PgServer]:
+def demo_image() -> Iterator[str]:
+    """The compose demo-db image (PostgreSQL + HypoPG), built from the same Dockerfile."""
+    with DockerImage(
+        path=str(REPO_ROOT / "infra" / "postgres" / "demo-image"), tag=DEMO_IMAGE, clean_up=False
+    ):
+        yield DEMO_IMAGE
+
+
+@pytest.fixture(scope="session")
+def demo_server(demo_image: str) -> Iterator[PgServer]:
     container = _start(
-        "postgres:18.7-trixie",
+        demo_image,
         REPO_ROOT / "infra" / "postgres" / "demo",
         {
             "NEXUS_DEMO_OWNER_PASSWORD": OWNER_PASSWORD,

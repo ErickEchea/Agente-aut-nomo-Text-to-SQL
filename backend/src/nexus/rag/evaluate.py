@@ -29,9 +29,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from nexus.agent.catalog import introspect
 from nexus.agent.glossary import load_glossary
 from nexus.config import DatabaseSettings, OllamaSettings
+from nexus.datasources.introspect import collect_samples
 from nexus.db.engines import create_engine
 from nexus.llm.ollama import OllamaProvider
-from nexus.rag.documents import collect_samples
 from nexus.rag.embeddings import Embedder, EmbeddingProfile, profile_for
 from nexus.rag.indexer import ensure_index
 from nexus.rag.retriever import HybridRetriever, RetrievedExample
@@ -109,7 +109,7 @@ async def run(
     store = PgDocumentStore(async_sessionmaker(app_engine, expire_on_commit=False))
     catalog = await introspect(demo_engine)
     glossary = load_glossary(glossary_path)
-    samples = await collect_samples(demo_engine, catalog, [])
+    samples = await collect_samples(demo_engine, "postgresql", catalog, [])
 
     profiles: list[EmbeddingProfile] = []
     for model in models:

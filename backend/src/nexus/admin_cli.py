@@ -1,4 +1,4 @@
-"""``nexus-admin``: user management from the command line (e.g. demo analyst/viewer accounts)."""
+"""``nexus-admin``: user management and credential-key rotation from the command line."""
 
 from __future__ import annotations
 
@@ -12,9 +12,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from nexus.config import DatabaseSettings
+from nexus.config import ConnectionSettings, DatabaseSettings
+from nexus.datasources.cipher import CredentialCipher
 from nexus.db.engines import create_engine
-from nexus.db.models import Role, User
+from nexus.db.models import DataConnection, Role, User
 from nexus.security.accounts import create_user, normalize_email
 
 
@@ -23,6 +24,37 @@ class _AppDbOnly(BaseSettings):
         env_prefix="NEXUS_", env_nested_delimiter="__", extra="ignore"
     )
     app_db: DatabaseSettings
+
+
+class _KeysOnly(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="NEXUS_", env_nested_delimiter="__", extra="ignore"
+    )
+    app_db: DatabaseSettings
+    connections: ConnectionSettings = ConnectionSettings()
+
+
+async def _rotate() -> int:
+    """Re-encrypt every stored connection secret with the newest (first) key (ADR-0012)."""
+    settings = _KeysOnly()
+    keys = settings.connections.credentials_keys
+    if keys is None:
+        sys.stderr.write("NEXUS_CONNECTIONS__CREDENTIALS_KEYS is not set\n")
+        return 1
+    cipher = CredentialCipher(keys.get_secret_value())
+    engine = create_engine(settings.app_db, application_name="nexus-admin")
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    rotated = 0
+    try:
+        async with sessions() as session, session.begin():
+            for row in await session.scalars(select(DataConnection)):
+                if row.secret:
+                    row.secret = cipher.rotate(row.secret)
+                    rotated += 1
+    finally:
+        await engine.dispose()
+    sys.stdout.write(f"re-encrypted {rotated} connection secret(s) with the newest key\n")
+    return 0
 
 
 async def _create(
@@ -62,7 +94,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="succeed without changes when the user already exists (idempotent provisioning)",
     )
+    sub.add_parser("rotate-keys", help="re-encrypt connection secrets with the newest key")
     args = parser.parse_args(argv)
+    if args.command == "rotate-keys":
+        return asyncio.run(_rotate())
     password = (
         sys.stdin.readline().rstrip("\n") if args.password_stdin else getpass.getpass("Password: ")
     )

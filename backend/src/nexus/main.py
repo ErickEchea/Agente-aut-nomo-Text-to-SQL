@@ -4,22 +4,20 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 
 import httpx
 import structlog
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from nexus import __version__
-from nexus.agent.catalog import SchemaCatalog, introspect
-from nexus.agent.glossary import Glossary, load_glossary
 from nexus.agent.graph import build_graph
 from nexus.agent.state import AgentContext, AuditSink, EventSink, MemorySink
-from nexus.api import audit, auth, connections, dashboards, health, memory, runs
+from nexus.api import audit, auth, connections, dashboards, health, insights, memory, runs
 from nexus.api.deps import AppServices
 from nexus.config import Settings, get_settings
+from nexus.datasources.registry import ConnectionRegistry, ConnectionSpec
 from nexus.db.engines import create_engine
 from nexus.health.checks import AppDatabaseCheck, DemoDatabaseCheck, HealthCheck, OllamaCheck
 from nexus.llm import LLMError, LLMProvider
@@ -27,68 +25,45 @@ from nexus.llm.ollama import OllamaProvider
 from nexus.memory.store import ExampleIndexer
 from nexus.observability.logging import configure_logging
 from nexus.observability.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
-from nexus.rag.documents import collect_samples
 from nexus.rag.embeddings import Embedder, profile_for
-from nexus.rag.indexer import ensure_index, example_loader, load_example_records
-from nexus.rag.retriever import HybridRetriever
 from nexus.rag.store import PgDocumentStore
 from nexus.runs.events import EventBroker
 from nexus.runs.manager import RunManager
 from nexus.security.accounts import ensure_bootstrap_admin
-from nexus.security.pii import PiiMasker
 from nexus.security.rate_limit import TokenBucketLimiter
 from nexus.security.tokens import TokenService
-from nexus.sources import describe_source
-from nexus.sql.executor import ReadOnlyExecutor
-from nexus.sql.validator import ValidationPolicy
 
 logger = structlog.get_logger("nexus.app")
 ROUTERS: tuple[APIRouter, ...] = (
     health.router,
     auth.router,
     runs.router,
+    insights.router,
     memory.router,
     dashboards.router,
     connections.router,
     audit.router,
 )
 
+DEMO_NAME = "Retail demo (Ecuador)"
 
-async def _build_retriever(
-    settings: Settings,
-    *,
-    sessions: async_sessionmaker[AsyncSession],
-    demo_engine: AsyncEngine,
-    store: PgDocumentStore,
-    embedder: Embedder,
-    catalog: SchemaCatalog,
-    glossary: Glossary,
-) -> HybridRetriever:
-    """Schema RAG (ADR-0007): sample values + index (rebuilt only when its fingerprint changes)."""
-    agent_cfg = settings.agent
-    samples = await collect_samples(demo_engine, catalog, agent_cfg.pii_column_list)
-    try:
-        report = await ensure_index(
-            store=store,
-            embedder=embedder,
-            catalog=catalog,
-            glossary=glossary,
-            samples=samples,
-            examples=await load_example_records(sessions, agent_cfg.connection_key),
-            connection_key=agent_cfg.connection_key,
-        )
-        logger.info("rag.index_ready", rebuilt=report.rebuilt, documents=report.documents)
-    except LLMError as exc:  # Ollama not ready: serve with lexical retrieval / full schema
-        logger.warning("rag.index_unavailable", error=str(exc))
-    return HybridRetriever(
-        store=store,
-        embedder=embedder,
-        catalog=catalog,
-        glossary=glossary,
-        connection_key=agent_cfg.connection_key,
-        samples=samples,
-        load_examples=example_loader(sessions),
-        max_tables=agent_cfg.retrieval_max_tables,
+
+def builtin_spec(settings: Settings) -> ConnectionSpec:
+    """The demo source configured from the environment (ADR-0006); not stored in the app DB."""
+    agent, db = settings.agent, settings.demo_db
+    return ConnectionSpec(
+        key=agent.connection_key,
+        name=DEMO_NAME,
+        kind="postgresql",
+        database=db.name,
+        schema=agent.schema_name,
+        host=db.host,
+        port=db.port,
+        username=db.user,
+        password=db.password,
+        as_of=agent.as_of,
+        pii_columns=tuple(agent.pii_column_list),
+        builtin=True,
     )
 
 
@@ -126,56 +101,52 @@ def create_app(
         ]
 
         agent_cfg = settings.agent
-        catalog = await introspect(demo_engine, agent_cfg.schema_name)
-        glossary = load_glossary(agent_cfg.glossary_path)
         provider = llm or OllamaProvider(
             str(settings.ollama.base_url),
             settings.ollama.llm_model,
             settings.ollama.embedding_model,
             timeout_s=agent_cfg.llm_timeout_s,
         )
-        executor = ReadOnlyExecutor(
-            demo_engine,
-            statement_timeout_ms=agent_cfg.statement_timeout_ms,
-            max_rows=agent_cfg.max_rows,
-        )
-        policy = ValidationPolicy(
-            allowed_tables=catalog.table_names,
-            allowed_schemas=frozenset({agent_cfg.schema_name}),
-            max_rows=agent_cfg.max_rows,
-        )
-        masker = PiiMasker(agent_cfg.pii_column_list)
-        as_of = agent_cfg.as_of or datetime.now(UTC).date()
-
         store = PgDocumentStore(sessions)
         embedder = Embedder(provider, profile_for(settings.ollama.embedding_model))
-        retriever = await _build_retriever(
-            settings,
+        registry = ConnectionRegistry(
+            settings=settings,
             sessions=sessions,
-            demo_engine=demo_engine,
             store=store,
             embedder=embedder,
-            catalog=catalog,
-            glossary=glossary,
+            builtin=builtin_spec(settings),
+            builtin_engine=demo_engine,
         )
+        demo = await registry.get(agent_cfg.connection_key)
+        try:  # schema RAG index (rebuilt only when its fingerprint changes)
+            report = await registry.index(agent_cfg.connection_key)
+            logger.info("rag.index_ready", rebuilt=report.rebuilt, documents=report.documents)
+        except LLMError as exc:  # Ollama not ready: serve with lexical retrieval / full schema
+            logger.warning("rag.index_unavailable", error=str(exc))
 
-        def context_factory(
-            events: EventSink, audit_sink: AuditSink, memory_sink: MemorySink, locale: str
+        async def context_factory(
+            connection_key: str,
+            events: EventSink,
+            audit_sink: AuditSink,
+            memory_sink: MemorySink,
+            locale: str,
         ) -> AgentContext:
+            source = await registry.get(connection_key)
             return AgentContext(
                 llm=provider,
-                catalog=catalog,
-                glossary=glossary,
-                policy=policy,
-                executor=executor,
-                as_of=as_of,
+                catalog=source.catalog,
+                glossary=source.glossary,
+                policy=source.policy,
+                executor=source.executor,
+                as_of=source.as_of,
                 events=events,
                 audit=audit_sink,
-                masker=masker,
-                retriever=retriever,
+                masker=source.masker,
+                retriever=source.retriever,
                 memory=memory_sink,
                 max_repairs=agent_cfg.max_repairs,
                 locale="en" if locale == "en" else "es",
+                dialect=source.profile,
             )
 
         manager = RunManager(sessions, build_graph(), context_factory, EventBroker())
@@ -188,14 +159,8 @@ def create_app(
             ),
             limiter=TokenBucketLimiter(),
             runs=manager,
-            examples=ExampleIndexer(store, embedder, agent_cfg.connection_key),
-            source=await describe_source(
-                demo_engine,
-                settings.demo_db,
-                catalog,
-                key=agent_cfg.connection_key,
-                as_of=as_of,
-            ),
+            examples=ExampleIndexer(store, embedder),
+            registry=registry,
         )
 
         security = settings.security
@@ -211,14 +176,16 @@ def create_app(
             "app.startup",
             version=__version__,
             env=settings.env,
-            tables=len(catalog.tables),
+            tables=len(demo.catalog.tables),
             model=provider.default_model,
-            as_of=as_of.isoformat(),
+            as_of=demo.as_of.isoformat(),
+            connections_enabled=registry.cipher is not None,
         )
         try:
             yield
         finally:
             await manager.shutdown()
+            await registry.close()
             await ollama_client.aclose()
             await demo_engine.dispose()
             await app_engine.dispose()

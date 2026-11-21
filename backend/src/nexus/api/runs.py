@@ -32,6 +32,11 @@ router = APIRouter(prefix="/api/runs", tags=["runs"])
 class RunRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
     conversation_id: uuid.UUID | None = None
+    connection_key: str | None = Field(
+        default=None,
+        max_length=80,
+        description="Data source of a new conversation (default: demo); follow-ups keep theirs.",
+    )
 
 
 class RunCreated(BaseModel):
@@ -43,6 +48,7 @@ class RunCreated(BaseModel):
 class RunOut(BaseModel):
     id: uuid.UUID
     conversation_id: uuid.UUID
+    connection_key: str
     question: str
     status: str
     answer: str | None
@@ -57,6 +63,7 @@ class RunOut(BaseModel):
 class RunSummary(BaseModel):
     id: uuid.UUID
     conversation_id: uuid.UUID
+    connection_key: str
     question: str
     status: str
     created_at: dt.datetime
@@ -76,12 +83,16 @@ async def start_run(
     body: RunRequest, request: Request, user: AuthenticatedUser, services: Services
 ) -> RunCreated:
     enforce_rate_limit(services, "runs", str(user.id))
+    connection_key = body.connection_key or services.registry.builtin.key
+    if not await services.registry.exists(connection_key):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown connection")
     try:
         started = await services.runs.start(
             user_id=user.id,
             question=body.question.strip(),
             conversation_id=body.conversation_id,
             client_ip=client_ip(request),
+            connection_key=connection_key,
         )
     except ConcurrentRunError as exc:
         raise HTTPException(
@@ -105,6 +116,7 @@ async def list_runs(
         RunSummary(
             id=r.id,
             conversation_id=r.conversation_id,
+            connection_key=r.connection_key,
             question=r.question,
             status=r.status,
             created_at=r.created_at,
@@ -120,6 +132,7 @@ async def get_run(run_id: uuid.UUID, user: AuthenticatedUser, session: Session) 
     return RunOut(
         id=run.id,
         conversation_id=run.conversation_id,
+        connection_key=run.connection_key,
         question=run.question,
         status=run.status,
         answer=run.answer,

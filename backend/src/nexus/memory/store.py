@@ -140,15 +140,16 @@ async def update_preferences(
 class ExampleIndexer:
     """Turns confirmed answers into verified few-shot examples and indexes them for retrieval."""
 
-    def __init__(self, store: PgDocumentStore, embedder: Embedder, connection_key: str) -> None:
+    def __init__(self, store: PgDocumentStore, embedder: Embedder) -> None:
         self._store = store
         self._embedder = embedder
-        self._key = connection_key
 
     async def add_from_run(
-        self, session: AsyncSession, run: Run, user_id: uuid.UUID
+        self, session: AsyncSession, run: Run, user_id: uuid.UUID, *, dialect: str = "postgres"
     ) -> list[VerifiedExample]:
-        """One example per answered step (question → validated SQL); idempotent per question."""
+        """One example per answered step (question → validated SQL); idempotent per question and
+        data source (the run's connection)."""
+        connection_key = run.connection_key
         created: list[VerifiedExample] = []
         for step in (run.result or {}).get("results", []):
             question, sql = str(step["question"]), str(step["sql"])
@@ -157,17 +158,18 @@ class ExampleIndexer:
                 select(func.count())
                 .select_from(VerifiedExample)
                 .where(
-                    VerifiedExample.connection_key == self._key, VerifiedExample.question_key == key
+                    VerifiedExample.connection_key == connection_key,
+                    VerifiedExample.question_key == key,
                 )
             )
             if exists:
                 continue
             example = VerifiedExample(
-                connection_key=self._key,
+                connection_key=connection_key,
                 question=question,
                 question_key=key,
                 sql=sql,
-                tables=list(tables_in_sql(sql)),
+                tables=list(tables_in_sql(sql, dialect=dialect)),
                 created_by=user_id,
                 run_id=run.id,
             )
@@ -183,7 +185,7 @@ class ExampleIndexer:
                 example.question,
             )
             (vector,) = await self._embedder.embed_documents([(doc.title, doc.content)])
-            await self._store.add(self._key, self._embedder.profile.model, doc, vector)
+            await self._store.add(connection_key, self._embedder.profile.model, doc, vector)
         if created:
             logger.info("memory.examples_verified", count=len(created), run_id=str(run.id))
         return created

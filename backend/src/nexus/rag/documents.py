@@ -3,22 +3,17 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
 import sqlglot
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlglot import exp
 
 from nexus.agent.catalog import SchemaCatalog
 from nexus.agent.glossary import Glossary
 
 DocType = Literal["table", "column", "glossary", "example"]
-TEXT_TYPES = ("text", "character varying", "character")
-MAX_SAMPLE_DISTINCT = 25
-MAX_SAMPLE_CHARS = 60
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,9 +36,9 @@ class ExampleRecord:
 SampleValues = Mapping[tuple[str, str], Sequence[str]]
 
 
-def tables_in_sql(sql: str) -> tuple[str, ...]:
+def tables_in_sql(sql: str, *, dialect: str = "postgres") -> tuple[str, ...]:
     try:
-        tree = sqlglot.parse_one(sql, dialect="postgres")
+        tree = sqlglot.parse_one(sql, dialect=dialect)
     except sqlglot.errors.ParseError:
         return ()
     ctes = {c.alias_or_name.lower() for c in tree.find_all(exp.CTE)}
@@ -51,43 +46,6 @@ def tables_in_sql(sql: str) -> tuple[str, ...]:
         t.name.lower() for t in tree.find_all(exp.Table) if t.name and t.name.lower() not in ctes
     }
     return tuple(sorted(names))
-
-
-async def collect_samples(
-    engine: AsyncEngine, catalog: SchemaCatalog, pii_columns: Iterable[str]
-) -> dict[tuple[str, str], list[str]]:
-    """Distinct values of low-cardinality text columns (never PII), most frequent first.
-
-    These are database contents, i.e. untrusted: they are only ever rendered inside sanitized
-    data blocks (see nexus.agent.prompts.data_block).
-    """
-    pii = {c.lower() for c in pii_columns}
-    samples: dict[tuple[str, str], list[str]] = {}
-    async with engine.connect() as conn:
-        for table in catalog.tables.values():
-            for column in table.columns:
-                if f"{table.name}.{column.name}" in pii or not column.data_type.startswith(
-                    TEXT_TYPES
-                ):
-                    continue
-                if column.name in table.primary_key:
-                    continue
-                quoted_table = f'"{catalog.schema}"."{table.name}"'
-                quoted_column = f'"{column.name}"'
-                rows = (
-                    await conn.execute(
-                        text(
-                            f"SELECT {quoted_column}, count(*) AS n FROM {quoted_table} "  # noqa: S608 — identifiers come from the catalog
-                            f"WHERE {quoted_column} IS NOT NULL GROUP BY 1 ORDER BY n DESC, 1 "
-                            f"LIMIT {MAX_SAMPLE_DISTINCT + 1}"
-                        )
-                    )
-                ).all()
-                if 0 < len(rows) <= MAX_SAMPLE_DISTINCT:
-                    samples[(table.name, column.name)] = [
-                        str(r[0])[:MAX_SAMPLE_CHARS] for r in rows
-                    ]
-    return samples
 
 
 def _short(comment: str, limit: int = 90) -> str:

@@ -17,4 +17,5 @@ def test_snapshot_matches_the_routes() -> None:
 
 def test_contract_exposes_the_typed_run_result() -> None:
     schemas = openapi_schema()["components"]["schemas"]
-    assert {"RunResult", "StepOut", "ChartSpec", "DashboardOut", "ConnectionOut"} <= set(schemas)
+    expected = {"RunResult", "StepOut", "ChartSpec", "DashboardOut", "ConnectionDetail"}
+    assert expected | {"AnnotationOut", "OptimizationOut"} <= set(schemas)

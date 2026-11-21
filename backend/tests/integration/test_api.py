@@ -4,22 +4,27 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from nexus.agent.state import Plan, SqlCandidate, Understanding
 from nexus.config import DatabaseSettings, Settings
+from nexus.datasources.cipher import CredentialCipher
 from nexus.db.engines import create_engine
 from nexus.db.migrate import upgrade
-from nexus.db.models import Role
+from nexus.db.models import DataConnection, Role
 from nexus.demo.loader import LoadResult
+from nexus.demo.sqlite_export import export_sqlite
 from nexus.main import create_app
 from nexus.security.accounts import create_user
-from tests.integration.conftest import REPO_ROOT
+from tests.integration.conftest import OWNER_PASSWORD, REPO_ROOT, SQL_DIR
 from tests.unit.agent.fakes import ScriptedLLM
 
 pytestmark = pytest.mark.integration
@@ -38,6 +43,12 @@ BRANCH_SQL = (
 )
 FOLLOW_UP = "¿Qué sucursal generó mayores ingresos durante el trimestre anterior?"
 BRANCH_SQL_Q2 = BRANCH_SQL.replace("2026-07-01", "2026-04-01").replace("2026-10-01", "2026-07-01")
+# The same question in SQLite: dates are ISO text and the schema is `main` (ADR-0013).
+SQLITE_SQL = (
+    BRANCH_SQL.replace("retail.", "main.")
+    .replace("DATE '2026-07-01'", "'2026-07-01'")
+    .replace("DATE '2026-10-01'", "'2026-10-01'")
+)
 
 
 class ContentLLM(ScriptedLLM):
@@ -48,6 +59,7 @@ class ContentLLM(ScriptedLLM):
 
     async def complete(self, messages, schema, options=None):  # type: ignore[no-untyped-def,override]
         prompt = messages[-1].content
+        sqlite = "experto en SQLite" in messages[0].content
         follow = "trimestre anterior" in prompt
         question = FOLLOW_UP if follow else QUESTION
         canned = {
@@ -56,7 +68,7 @@ class ContentLLM(ScriptedLLM):
             ),
             Plan: Plan(steps=[question]),
             SqlCandidate: SqlCandidate(
-                sql=BRANCH_SQL_Q2 if follow else BRANCH_SQL,
+                sql=SQLITE_SQL if sqlite else BRANCH_SQL_Q2 if follow else BRANCH_SQL,
                 rationale="Ingresos netos por sucursal.",
             ),
         }
@@ -101,9 +113,23 @@ def migrated_app_db(app_db: DatabaseSettings) -> DatabaseSettings:
     return app_db
 
 
+CREDENTIALS_KEY = "integration-credentials-key-" + "k" * 24
+SQLITE_FILE = "retail.sqlite"
+
+
+@pytest.fixture(scope="module")
+def sqlite_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    base = tmp_path_factory.mktemp("sqlite-sources")
+    export_sqlite(base / SQLITE_FILE, SQL_DIR, scale=0.02)
+    return base
+
+
 @pytest.fixture(scope="module")
 def client(
-    migrated_app_db: DatabaseSettings, reader_db: DatabaseSettings, seeded: LoadResult
+    migrated_app_db: DatabaseSettings,
+    reader_db: DatabaseSettings,
+    seeded: LoadResult,
+    sqlite_dir: Path,
 ) -> Iterator[TestClient]:
     settings = Settings(
         env="test",
@@ -116,6 +142,7 @@ def client(
         },
         agent={"as_of": "2026-11-01", "glossary_path": REPO_ROOT / "data" / "glossary.yaml"},
         rate_limit={"login_per_minute": 60},
+        connections={"credentials_keys": CREDENTIALS_KEY, "sqlite_dir": sqlite_dir},
         cors_origins=["http://localhost:8080"],
     )  # type: ignore[arg-type]
     app = create_app(settings, llm=scripted())
@@ -409,20 +436,176 @@ def test_dashboards_pin_share_and_permissions(client: TestClient) -> None:
 
 
 def test_connections_describe_the_demo_source(client: TestClient) -> None:
-    viewer = client.get("/api/connections", headers=login(client, VIEWER))
-    assert viewer.status_code == 200
-    (conn,) = viewer.json()
-    assert conn["key"] == "retail-demo" and conn["dialect"] == "postgresql"
-    assert conn["read_only"] is True and conn["as_of"] == "2026-11-01"
-    assert conn["host"] is None and conn["user"] is None  # network details are admin-only
+    viewer = login(client, VIEWER)
+    listed = client.get("/api/connections", headers=viewer).json()
+    demo = next(c for c in listed if c["key"] == "retail-demo")
+    assert demo["builtin"] and demo["read_only"] and demo["engine"] == "PostgreSQL"
+    assert demo["host"] is None and demo["user"] is None  # network details are admin-only
+    conn = client.get("/api/connections/retail-demo", headers=viewer).json()
+    assert conn["as_of"] == "2026-11-01"
     tables = {t["name"]: t for t in conn["tables"]}
     assert "detalle_ventas" in tables and tables["detalle_ventas"]["comment"]
     assert set(tables["detalle_ventas"]["references"]) >= {"ventas", "productos"}
     assert tables["detalle_ventas"]["row_estimate"] > 0
     assert conn["index"]["documents"]["table"] == len(tables)
     assert conn["index"]["fingerprint"]
-    admin = client.get("/api/connections", headers=login(client, ADMIN)).json()[0]
+    admin = client.get("/api/connections/retail-demo", headers=login(client, ADMIN)).json()
     assert admin["user"] == "nexus_reader" and admin["port"] > 0
+    assert (
+        client.delete("/api/connections/retail-demo", headers=login(client, ADMIN)).status_code
+        == 400
+    )
+
+
+def _wait_indexed(client: TestClient, headers: dict[str, str], key: str) -> dict[str, object]:
+    deadline = time.monotonic() + 60
+    while True:
+        rows = {c["key"]: c for c in client.get("/api/connections", headers=headers).json()}
+        if rows[key]["index_status"] in ("ready", "failed") or time.monotonic() > deadline:
+            return rows[key]
+        time.sleep(0.2)
+
+
+def test_register_sqlite_source_and_ask_it(
+    client: TestClient, migrated_app_db: DatabaseSettings
+) -> None:
+    admin = login(client, ADMIN)
+    analyst = login(client, ANALYST)
+    body = {"name": "Retail mini (SQLite)", "kind": "sqlite", "database": SQLITE_FILE}
+    assert client.post("/api/connections", json=body, headers=analyst).status_code == 403
+    assert client.get("/api/connections/sqlite-files", headers=admin).json() == [SQLITE_FILE]
+    probe = client.post("/api/connections/test", json=body, headers=admin).json()
+    assert probe["ok"] and probe["tables"] == 10 and not probe["writable"]
+    escape = client.post(
+        "/api/connections/test", json={**body, "database": "../../etc/passwd"}, headers=admin
+    ).json()
+    assert not escape["ok"]
+
+    created = client.post("/api/connections", json=body, headers=admin)
+    assert created.status_code == 201, created.text
+    key = created.json()["key"]
+    assert key == "retail-mini-sqlite"
+    assert client.post("/api/connections", json=body, headers=admin).status_code == 409
+    assert _wait_indexed(client, admin, key)["index_status"] == "ready"
+    detail = client.get(f"/api/connections/{key}", headers=analyst).json()
+    assert detail["engine"] == "SQLite" and detail["schema_name"] == "main"
+    assert detail["index"]["documents"]["table"] == 10
+
+    run = client.post(
+        "/api/runs", json={"question": QUESTION, "connection_key": key}, headers=analyst
+    ).json()
+    read_sse(client, f"/api/runs/{run['run_id']}/events", analyst)
+    result = client.get(f"/api/runs/{run['run_id']}", headers=analyst).json()
+    assert result["connection_key"] == key and result["status"] == "answered"
+    step = result["result"]["results"][0]
+    assert step["sql"].startswith("SELECT") and "main.detalle_ventas" in step["sql"]
+    assert step["row_count"] == 1
+
+    # Follow-ups stay on the conversation's source even if another key is sent.
+    follow = client.post(
+        "/api/runs",
+        json={
+            "question": QUESTION,
+            "conversation_id": run["conversation_id"],
+            "connection_key": "retail-demo",
+        },
+        headers=analyst,
+    ).json()
+    read_sse(client, f"/api/runs/{follow['run_id']}/events", analyst)
+    assert (
+        client.get(f"/api/runs/{follow['run_id']}", headers=analyst).json()["connection_key"] == key
+    )
+
+    bad = client.post(
+        "/api/runs", json={"question": QUESTION, "connection_key": "nope"}, headers=analyst
+    )
+    assert bad.status_code == 422
+
+    # The clause explanation and the optimizer work on the SQLite step too.
+    annotation = client.get(f"/api/runs/{run['run_id']}/steps/0/annotation", headers=analyst).json()
+    assert annotation["dialect"] == "SQLite" and annotation["clauses"][0]["kind"] == "select"
+    plan = client.post(f"/api/runs/{run['run_id']}/steps/0/optimize", headers=analyst).json()
+    assert plan["engine"] == "sqlite" and plan["supports_costs"] is False and plan["plan"]
+
+    assert client.delete(f"/api/connections/{key}", headers=analyst).status_code == 403
+    assert client.delete(f"/api/connections/{key}", headers=admin).status_code == 204
+    assert all(c["key"] != key for c in client.get("/api/connections", headers=admin).json())
+
+
+def test_postgres_source_secret_is_encrypted_and_writers_need_acknowledgement(
+    client: TestClient, migrated_app_db: DatabaseSettings, reader_db: DatabaseSettings
+) -> None:
+    admin = login(client, ADMIN)
+    owner = {
+        "name": "Retail owner",
+        "kind": "postgresql",
+        "host": reader_db.host,
+        "port": reader_db.port,
+        "database": "retail",
+        "schema_name": "retail",
+        "username": "retail_owner",
+        "password": OWNER_PASSWORD,
+    }
+    risky = client.post("/api/connections", json=owner, headers=admin)
+    assert risky.status_code == 409 and "INSERT/UPDATE/DELETE" in risky.json()["detail"]
+    reader = {
+        **owner,
+        "name": "Retail reader",
+        "username": "nexus_reader",
+        "password": reader_db.password.get_secret_value(),
+    }
+    created = client.post("/api/connections", json=reader, headers=admin)
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert (
+        body["read_only"]
+        and "password" not in created.text
+        and reader["password"] not in created.text
+    )
+
+    async def stored() -> str | None:
+        engine = create_engine(migrated_app_db, application_name="test-secret")
+        try:
+            async with async_sessionmaker(engine)() as session:
+                row = await session.scalar(
+                    select(DataConnection).where(DataConnection.key == body["key"])
+                )
+                return row.secret if row else None
+        finally:
+            await engine.dispose()
+
+    secret = asyncio.run(stored())
+    assert secret and secret != reader["password"]
+    assert CredentialCipher(CREDENTIALS_KEY).decrypt(secret) == reader["password"]
+
+    acknowledged = client.post(
+        "/api/connections", json={**owner, "acknowledge_writable": True}, headers=admin
+    )
+    assert acknowledged.status_code == 201 and acknowledged.json()["read_only"] is False
+    for key in (body["key"], acknowledged.json()["key"]):
+        assert client.delete(f"/api/connections/{key}", headers=admin).status_code == 204
+
+
+def test_annotation_and_optimizer_on_the_demo(client: TestClient) -> None:
+    headers = login(client, ANALYST)
+    run_id = client.post("/api/runs", json={"question": QUESTION}, headers=headers).json()["run_id"]
+    read_sse(client, f"/api/runs/{run_id}/events", headers)
+    annotation = client.get(
+        f"/api/runs/{run_id}/steps/0/annotation?locale=es", headers=headers
+    ).json()
+    kinds = [c["kind"] for c in annotation["clauses"]]
+    assert kinds[:3] == ["select", "from", "join"] and "limit" in kinds
+    where = next(c for c in annotation["clauses"] if c["kind"] == "where")
+    assert annotation["sql"][where["start"] : where["end"]].startswith("WHERE")
+    assert any("glosario «ingresos»" in r for r in where["rules"])  # the business rule it applies
+    english = client.get(f"/api/runs/{run_id}/steps/0/annotation?locale=en", headers=headers).json()
+    assert english["clauses"][0]["title"] == "Result columns"
+
+    report = client.post(f"/api/runs/{run_id}/steps/0/optimize", headers=headers).json()
+    assert report["engine"] == "postgresql" and report["total_cost"] > 0 and report["plan"]
+    assert client.get(f"/api/runs/{run_id}/steps/9/annotation", headers=headers).status_code == 404
+    stranger = login(client, VIEWER)
+    assert client.get(f"/api/runs/{run_id}/steps/0/annotation", headers=stranger).status_code == 404
 
 
 # Must stay last: it exhausts the test client's login budget.

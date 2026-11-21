@@ -13,10 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from nexus.agent.catalog import SchemaCatalog, introspect
 from nexus.agent.glossary import Glossary, load_glossary
 from nexus.config import DatabaseSettings
+from nexus.datasources.introspect import collect_samples
 from nexus.db.engines import create_engine
 from nexus.db.migrate import upgrade
 from nexus.demo.loader import LoadResult
-from nexus.rag.documents import ExampleRecord, collect_samples
+from nexus.rag.documents import ExampleRecord
 from nexus.rag.embeddings import Embedder, EmbeddingProfile
 from nexus.rag.indexer import ensure_index
 from nexus.rag.retriever import HybridRetriever, RetrievedExample
@@ -49,7 +50,9 @@ async def rig(
     app_engine = create_engine(app_db, application_name="test-rag")
     demo_engine = create_engine(reader_db, application_name="test-rag-reader")
     catalog = await introspect(demo_engine)
-    samples = await collect_samples(demo_engine, catalog, ["clientes.cedula", "clientes.email"])
+    samples = await collect_samples(
+        demo_engine, "postgresql", catalog, ["clientes.cedula", "clientes.email"]
+    )
     await demo_engine.dispose()
     rig = Rig(
         store=PgDocumentStore(async_sessionmaker(app_engine, expire_on_commit=False)),
