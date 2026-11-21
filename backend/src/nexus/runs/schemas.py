@@ -8,25 +8,31 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from nexus.agent.charts import ChartSpec
 from nexus.sql.executor import JsonScalar
 
 
-class TimeRangeOut(BaseModel):
+class _Out(BaseModel):
+    # Responses always carry every field: make defaulted fields required in the serialization schema
+    # so generated TypeScript types are not needlessly optional.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class TimeRangeOut(_Out):
     expression: str
     start: str
     end: str
     grain: str
 
 
-class ClarificationOut(BaseModel):
+class ClarificationOut(_Out):
     question: str
     options: list[str] = Field(default_factory=list)
 
 
-class StepOut(BaseModel):
+class StepOut(_Out):
     index: int
     question: str
     sql: str
@@ -40,13 +46,13 @@ class StepOut(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-class AttemptErrorOut(BaseModel):
+class AttemptErrorOut(_Out):
     kind: str
     code: str
     message: str
 
 
-class AttemptOut(BaseModel):
+class AttemptOut(_Out):
     step: int
     attempt: int
     sql: str
@@ -55,13 +61,13 @@ class AttemptOut(BaseModel):
     duration_ms: float | None = None
 
 
-class TokensOut(BaseModel):
+class TokensOut(_Out):
     prompt: int = 0
     completion: int = 0
     calls: int = 0
 
 
-class ExplanationOut(BaseModel):
+class ExplanationOut(_Out):
     headline: str
     bullets: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
@@ -71,12 +77,12 @@ class ExplanationOut(BaseModel):
     rejected_numbers: list[str] = Field(default_factory=list)
 
 
-class RankedTableOut(BaseModel):
+class RankedTableOut(_Out):
     table: str
     score: float
 
 
-class RetrievalOut(BaseModel):
+class RetrievalOut(_Out):
     strategy: str
     tables: list[str]
     ranked: list[RankedTableOut] = Field(default_factory=list)
@@ -86,7 +92,7 @@ class RetrievalOut(BaseModel):
     forced_tables: list[str] = Field(default_factory=list)
 
 
-class RunResult(BaseModel):
+class RunResult(_Out):
     status: Literal["answered", "clarification", "refused", "failed", "cancelled"]
     answer: str = ""
     intent: str | None = None

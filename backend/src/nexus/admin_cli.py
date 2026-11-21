@@ -25,7 +25,9 @@ class _AppDbOnly(BaseSettings):
     app_db: DatabaseSettings
 
 
-async def _create(email: str, name: str, role: Role, password: str) -> int:
+async def _create(
+    email: str, name: str, role: Role, password: str, *, if_missing: bool = False
+) -> int:
     engine = create_engine(_AppDbOnly().app_db, application_name="nexus-admin")
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     try:
@@ -35,7 +37,7 @@ async def _create(email: str, name: str, role: Role, password: str) -> int:
             )
             if exists is not None:
                 sys.stderr.write(f"user {email} already exists\n")
-                return 1
+                return 0 if if_missing else 1
             await create_user(session, email=email, password=password, display_name=name, role=role)
     finally:
         await engine.dispose()
@@ -55,11 +57,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="read the password from stdin (no echo, no argv)",
     )
+    create.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="succeed without changes when the user already exists (idempotent provisioning)",
+    )
     args = parser.parse_args(argv)
     password = (
         sys.stdin.readline().rstrip("\n") if args.password_stdin else getpass.getpass("Password: ")
     )
-    return asyncio.run(_create(args.email, args.name, Role(args.role), password))
+    return asyncio.run(
+        _create(args.email, args.name, Role(args.role), password, if_missing=args.if_missing)
+    )
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 import httpx
 import structlog
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -43,6 +43,15 @@ from nexus.sql.executor import ReadOnlyExecutor
 from nexus.sql.validator import ValidationPolicy
 
 logger = structlog.get_logger("nexus.app")
+ROUTERS: tuple[APIRouter, ...] = (
+    health.router,
+    auth.router,
+    runs.router,
+    memory.router,
+    dashboards.router,
+    connections.router,
+    audit.router,
+)
 
 
 async def _build_retriever(
@@ -237,14 +246,6 @@ def create_app(
     )
     app.add_middleware(RequestContextMiddleware)
 
-    for router in (
-        health.router,
-        auth.router,
-        runs.router,
-        memory.router,
-        dashboards.router,
-        connections.router,
-        audit.router,
-    ):
+    for router in ROUTERS:
         app.include_router(router)
     return app
