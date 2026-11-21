@@ -42,7 +42,7 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
 - **Exit**: Playwright e2e of the reference question; axe clean; screenshots of every screen (dark/light,
   desktop/375 px) reviewed and committed under `docs/screenshots/`.
 
-## Phase 5 — Explainability, optimization, multi-DB
+## Phase 5 — Explainability, optimization, multi-DB ✅
 - Clause-by-clause SQL explanation linked to highlighted spans; EXPLAIN (FORMAT JSON) analyzer with before/after
   cost; connection manager for PostgreSQL/MySQL/SQLite with encrypted credentials, test, and indexing.
 - **Exit**: integration tests against MySQL and SQLite; optimizer finds the planted missing-index case.

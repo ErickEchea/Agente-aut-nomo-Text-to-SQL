@@ -19,12 +19,13 @@ npm run api:types            # regenerate src/api/schema.d.ts from the committed
 |---|---|
 | `src/app` | providers (auth session, preferences), router, app shell, command palette |
 | `src/api` | typed client, endpoints, OpenAPI snapshot + generated types, zod schemas for SSE events |
-| `src/features/workspace` | query bar, conversation turns, workspace session (one SSE stream per run) |
+| `src/features/workspace` | query bar, data-source picker, conversation turns, workspace session (one SSE stream per run, conversations pinned to their source) |
 | `src/features/timeline` | live agent timeline: pure event reducer + node renderers (SQL, repair diffs) |
-| `src/features/results` | answer view: KPI cards, tabs, virtualized table, ECharts chart, feedback, pin |
-| `src/features/*` | dashboards, history, connections, benchmark, audit (admin), settings, login |
+| `src/features/results` | answer view: KPI cards, tabs, virtualized table, ECharts chart, annotated SQL (clause ↔ span), optimization panel, feedback, pin |
+| `src/features/connections` | data sources (PostgreSQL, MySQL, SQLite): detail, add/test/re-index/delete for admins |
+| `src/features/*` | dashboards, history, benchmark, audit (admin), settings, login |
 | `src/styles` | `tokens.css` (the only place colors live) and Tailwind mapping; contrast tests |
 
 **End-to-end tests** (`make e2e`, stack up) sign in with the `NEXUS_E2E_*` account from `.env`. They visit
-every screen in dark and light at 1280 px and 375 px, run axe (WCAG 2.2 AA), and write screenshots to
-`docs/screenshots/phase4/`. `make e2e-agent` adds the `@llm` browser run of the reference question.
+every screen in dark and light at 1280 px and 375 px, run axe (WCAG 2.2 AA), register and delete a SQLite
+source as an admin, and write screenshots to `docs/screenshots/phase5/` (`phase4/` is kept as history). `make e2e-agent` adds the `@llm` browser run of the reference question.

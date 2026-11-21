@@ -49,7 +49,9 @@ flowchart TB
             frontend[frontend<br/>nginx serving Vite build<br/>:8080]
             backend[backend<br/>uvicorn FastAPI<br/>:8000]
             appdb[(app-db<br/>pgvector/pgvector:pg18<br/>nexus_app)]
-            demodb[(demo-db<br/>postgres:18<br/>retail)]
+            demodb[(demo-db<br/>postgres:18 + HypoPG<br/>retail)]
+            ext[demo-extensions<br/>one-shot: HypoPG in schema hypopg]
+            sqlite[/data/sqlite<br/>read-only mount<br/>SQLite sources/]
             ollama[ollama<br/>ollama/ollama<br/>GPU or CPU profile]
             init[ollama-init<br/>one-shot: pull models]
             seed[demo-seed<br/>one-shot: generate + load retail data]
@@ -61,6 +63,9 @@ flowchart TB
     backend --> ollama
     init --> ollama
     seed --> demodb
+    ext --> demodb
+    backend -.-> sqlite
+    backend -.->|registered sources| extdb[(Your PostgreSQL / MySQL)]
 ```
 
 - Host ports avoid the defaults already in use on the dev machine (5432, 11434): app-db `55432`,
@@ -81,10 +86,10 @@ backend/src/nexus/
 │   └── temporal/   deterministic relative-date resolver (es/en)
 ├── llm/            LLMProvider protocol + Ollama implementation, structured-output helper
 ├── rag/            schema introspection, document builder, embeddings, hybrid retriever, join-path finder
-├── sql/            SQLGlot validator, dialect handling, executor (per-engine read-only), EXPLAIN analyzer
+├── sql/            SQLGlot validator, per-engine read-only executor, clause annotation, plan optimizer
 ├── security/       JWT, password hashing, RBAC, rate limiting, credential encryption, PII masking, audit
 ├── memory/         short-term (conversation) and long-term (preferences, verified examples, corrections)
-├── connections/    connection registry, engine pools per source, test + index workflows
+├── datasources/    dialect profiles, credential cipher, introspection, connection registry + probe
 ├── observability/  structlog config, request_id middleware, per-node trace spans
 ├── db/             SQLAlchemy models for the app DB + Alembic migrations
 └── config.py       pydantic-settings, single source of configuration
@@ -171,6 +176,17 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
 
+### Implementation status (Phase 5)
+- Every run is bound to a **data source** (`connection_key`). `ConnectionRegistry` builds one runtime
+  per source: engine, executor, catalog, validator policy, masker, retriever and samples. The graph is
+  the same for every engine; prompts receive the source's `DialectProfile` (ADR-0013).
+- Two read-only views explain each answered step, and neither calls the LLM (ADR-0021):
+  - `nexus.sql.annotate` explains the SQL clause by clause, with character spans.
+  - `nexus.sql.optimizer` reads `EXPLAIN` output and suggests indexes. On PostgreSQL it measures each
+    suggestion with HypoPG hypothetical indexes.
+- If the grounded `explain` step falls back, the summary is now a readable sentence in the user's
+  locale.
+
 ### Implementation status (Phase 4)
 Two deterministic guards were added after the live browser QA (ADR-0020):
 - `plan` discards a plan whose steps are SQL and falls back to the standalone question.
@@ -189,7 +205,7 @@ deterministic `respond`. `retrieve_schema` sends the full introspected schema (1
 tokens) until Phase 3 replaces it with hybrid RAG. `visualize`, grounded `explain` and `remember` arrive in
 Phase 3.
 
-### HTTP API (Phases 2–4)
+### HTTP API (Phases 2–5)
 The contract is exported with `python -m nexus.openapi` to `frontend/src/api/openapi.json` (snapshot
 checked by a unit test) and turned into TypeScript types (`make api-types`).
 
@@ -211,7 +227,13 @@ checked by a unit test) and turned into TypeScript types (`make api-types`).
 | GET · POST | `/api/dashboards` | any role (list) · analyst, admin (create) | Own and shared dashboards |
 | GET · PATCH · DELETE | `/api/dashboards/{id}` | readable if owned/shared; changes by owner or admin | A dashboard with its pinned items rendered from the stored run results |
 | POST · DELETE · PUT | `/api/dashboards/{id}/items[/{item}]` · `/items/order` | owner or admin | Pin a run step, unpin, reorder |
-| GET | `/api/connections` | any role (network details: admin) | The data source, its tables (row estimates) and retrieval-index state |
+| GET | `/api/connections` · `/api/connections/{key}` | any role (network details: admin) | Data sources; one source with its tables (row estimates) and retrieval-index state |
+| POST | `/api/connections/test` | admin | Probe a source: version, visible tables, whether the credentials can write |
+| POST · DELETE | `/api/connections` · `/api/connections/{key}` | admin | Register (encrypted secret, `409` if writable and not acknowledged, `503` without keys) or delete; the built-in demo cannot be deleted |
+| POST | `/api/connections/{key}/index` | admin | Rebuild the source's retrieval index in the background |
+| GET | `/api/connections/sqlite-files` | admin | SQLite files available under the data directory |
+| GET | `/api/runs/{id}/steps/{n}/annotation?locale=` | owner or admin | Clause-by-clause explanation with spans (ADR-0021) |
+| POST | `/api/runs/{id}/steps/{n}/optimize` | owner or admin | Plan analysis, findings and index suggestions with cost before/after (ADR-0021) |
 
 ## 6. Request sequence (reference question)
 

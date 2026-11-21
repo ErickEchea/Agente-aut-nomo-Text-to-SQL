@@ -20,3 +20,24 @@ One async SQLAlchemy engine (own pool) per registered connection; SQLGlot dialec
 
 ## Consequences
 - Integration tests run against real PostgreSQL and MySQL containers and a temp SQLite file.
+
+## Implementation notes (Phase 5, 2026-11-21)
+- **Registry.** `nexus.datasources.registry.ConnectionRegistry` lazily builds one `SourceRuntime` per
+  connection. A runtime holds the engine, executor, catalog, dialect-aware validator policy, PII masker,
+  retriever and samples. Each conversation is pinned to the source it started with, and follow-ups
+  reuse that source. Prompts receive the source's `DialectProfile`: its date literals, function hints
+  and engine-specific SQL tips. PostgreSQL has no extra tips: its rules stay byte-identical to the
+  prompt validated end to end, and a unit test pins them by hash. One added line had been enough to
+  change the 7B model's greedy output on the reference question.
+- **MySQL finding.** `START TRANSACTION READ ONLY` alone does **not** stop DDL, because DDL commits the
+  open transaction implicitly and then runs. The executor therefore also sets
+  `SET SESSION transaction_read_only = ON`, and the engine's `init_command` does the same.
+  `test_multidb_mysql.py` runs `CREATE TABLE` with a user that has write grants and asserts error 1792.
+- **PostgreSQL introspection.** SQLAlchemy's PostgreSQL inspector calls `set_config`, which the
+  `nexus_reader` role is not allowed to run. Index introspection therefore uses its own `pg_index`
+  query.
+- **Error classes.** `classify_error` maps each engine's errors to codes the repair loop can act on:
+  SQLSTATE for PostgreSQL, `MY<errno>` for MySQL (1054 and 1064 can be repaired; 3024 is a timeout) and
+  `SQLITE_*` for SQLite.
+- **Optimizer detail.** ADR-0021 covers it. The optimizer gives before/after costs on PostgreSQL through
+  HypoPG, a total plan cost on MySQL, and plan shape only on SQLite.

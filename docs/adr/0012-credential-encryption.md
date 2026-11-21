@@ -17,3 +17,12 @@
 - pgcrypto in the DB: key would have to travel to the DB in queries.
 - Vault/KMS: right for production clusters, overkill for the single-box target; `CredentialCipher` interface keeps
   the seam.
+
+## Implementation notes (Phase 5, 2026-11-21)
+- `nexus.datasources.cipher.CredentialCipher` wraps `MultiFernet`. Each entry of
+  `NEXUS_CREDENTIALS_KEYS` is either a Fernet key or a passphrase of at least 32 characters, which is
+  turned into a key with SHA-256. Without keys, the connection manager answers **503**, and only the
+  built-in demo stays available.
+- The API has **no** secret field in any response model. It is simpler than masking, and a test asserts
+  that the stored column holds ciphertext, not the password.
+- `make rotate-keys` (`nexus-admin rotate-keys`) re-encrypts every stored secret with the first key.

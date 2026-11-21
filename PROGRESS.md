@@ -10,10 +10,108 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | 1 — Infra, demo DB, read-only role | ✅ Done (2026-11-20) |
 | 2 — Agent core + security | ✅ Done (2026-11-20) |
 | 3 — RAG + memory | ✅ Done (2026-11-20) |
-| 4 — Frontend + design system | ✅ Done (2026-11-21) — awaiting go-ahead for Phase 5 |
-| 5 — Explainability, optimization, multi-DB | ⏳ |
+| 4 — Frontend + design system | ✅ Done (2026-11-21) |
+| 5 — Explainability, optimization, multi-DB | ✅ Done (2026-11-21) — awaiting go-ahead for Phase 6 |
 | 6 — Benchmark + default model | ⏳ |
 | 7 — Hardening + docs | ⏳ |
+
+## Phase 5 — 2026-11-21
+
+### Exit criteria
+- ✅ **Integration tests against MySQL and SQLite**:
+  - `test_multidb_mysql.py` (7 tests, `mysql:8.4.9` via Testcontainers) and `test_multidb_sqlite.py`
+    (9 tests) run the real executor, introspection, probe and optimizer on each engine.
+  - They also check the read-only guarantees: DDL is refused even for a user with write grants (MySQL
+    1792), and `mode=ro` plus `query_only` block writes on SQLite.
+  - The API test suite registers a SQLite source, asks a question and gets a SQLite-dialect query.
+- ✅ **The optimizer finds the planted missing index**:
+  - On the full-scale demo, "¿Cuántas unidades de Agua mineral 1.5 L se vendieron en total?" gets the
+    suggestion `detalle_ventas(producto_id)`, with the estimated cost going from 7 521.5 to 3 135.2
+    (−58 %, HypoPG).
+  - `test_optimizer_pg.py` asserts the same at test scale (252.8 → 139.0). On SQLite, the same table is
+    reported as a full scan with the same suggestion.
+- ✅ Tests and checks:
+  - Backend: 546 tests (non-LLM), 94 % coverage on the gated packages.
+  - Frontend: 105 Vitest tests. `make e2e` has 22 Playwright tests: axe on every screen, and the SQLite
+    source lifecycle (desktop only).
+  - `make e2e-agent` passes with the new Explanation/Optimization assertions.
+  - ruff, mypy `--strict`, ESLint and `tsc` are clean, and `make up` is healthy with the HypoPG
+    demo image.
+
+### Done
+- **Clause-by-clause explanation** (`nexus.sql.annotate`, ADR-0021):
+  - Deterministic; each clause has exact spans.
+  - Descriptions come from the catalog's comments; glossary rules are shown only when the clause
+    satisfies them.
+  - Available in es/en.
+  - In the UI, hovering or focusing a clause card highlights its span in the Shiki-rendered SQL, and
+    hovering the SQL selects the clause.
+- **Optimizer** (`nexus.sql.optimizer`):
+  - Reads EXPLAIN output on PostgreSQL, MySQL and SQLite and flags full scans of large tables.
+  - Finds candidate columns from the AST and existing indexes.
+  - On PostgreSQL, measures each candidate with HypoPG hypothetical indexes.
+  - The UI shows findings, the DDL with a copy button, and before/after cost bars. NEXUS never creates
+    the index.
+- **Data sources**:
+  - The `datasources` package: dialect profiles, error classification per engine, introspection,
+    `ConnectionRegistry` with lazy per-source runtimes, and a probe that checks version, tables and write
+    privileges.
+  - Migration `adc942f4f943` adds `data_connections` and `connection_key` on conversations and runs.
+  - Each conversation is pinned to its source.
+- **Credentials**:
+  - Fernet `MultiFernet` with rotation (`NEXUS_CREDENTIALS_KEYS`, `make rotate-keys`).
+  - Writable credentials are rejected unless an admin acknowledges them (`409`).
+  - Secrets are never returned by the API.
+- **Connections screen**:
+  - Source list with index state and polling while indexing; source detail.
+  - Admin add/test/re-index/delete dialog: PostgreSQL, MySQL, SQLite file picker, optional
+    reference date, PII columns.
+  - A source picker in the query bar, and the active source in the header badge.
+- **Demo assets**:
+  - `infra/postgres/demo-image`: PostgreSQL 18.7 + HypoPG 1.4.5, with the extension in schema `hypopg`
+    and usage granted to `nexus_reader` by a one-shot service.
+  - `make sqlite-demo` exports the retail data to SQLite with the same comments and indexes (and the
+    same missing one).
+- **Docs**:
+  - ADR-0021 is new.
+  - Implementation notes were added to ADR-0012 and ADR-0013.
+  - ARCHITECTURE and the READMEs are updated.
+  - Screenshots are in `docs/screenshots/phase5/`.
+
+### Bugs found and fixed this phase
+- **Prompt drift on PostgreSQL** (found by `make e2e-agent`): making the SQL rules a per-engine template
+  added one PostgreSQL tip (`date_trunc`) and moved a line break. With greedy decoding, the 7B model
+  then wrote a branch-revenue query with a grouping error (42803), and three repairs returned the same
+  SQL. The PostgreSQL rules are byte-identical to the validated Phase 4 prompt again, and a unit test
+  pins them by hash. MySQL and SQLite keep their own tips.
+- **MySQL read-only gap**: `START TRANSACTION READ ONLY` does not stop DDL, because DDL implicitly
+  commits and then runs. The session is now also `transaction_read_only = ON` (in `init_command` and in
+  the executor). A regression test uses a user with write grants (ADR-0013).
+- **PostgreSQL index introspection**: SQLAlchemy's inspector calls `set_config`, which is revoked from
+  `nexus_reader`. Indexes are now read with a direct `pg_index` query.
+- **HypoPG state leak**: hypothetical indexes survive `ROLLBACK`. The pooled connection is now
+  invalidated after each measurement, and the validator denies every `hypopg_*` function in generated
+  SQL.
+- **sqlglot 30**: the FROM argument is now `from_`; the annotator was updated. `UNION` branches and
+  binary `IS NULL` nodes had no descriptions; both are fixed.
+- **Accessibility** (found by axe in the `@llm` run): the annotated SQL `<pre>` and the suggested-DDL
+  `<code>` scroll horizontally but could not be focused from the keyboard. Both are now focusable, and
+  the SQL has an accessible name.
+- **Annotation text**: column comments were cut at "p. ej." ("nombre de la categoría, p"). Sentence
+  detection now ignores abbreviations and decimals (unit-tested).
+- **Fallback summary**: when the grounded summary fails its number check, the deterministic fallback
+  used to read "pregunta → 10 filas; primera: …" in Spanish only. It now reads as a sentence in the
+  user's locale.
+
+### Known issues / limitations
+- **MySQL and SQLite optimizer**: no before/after cost. MySQL gives only a total `query_cost`; SQLite
+  has no cost model. The UI says so (ADR-0021).
+- **External PostgreSQL without HypoPG**: suggestions are shown without measured costs.
+- **Live-model QA**: MySQL was verified through integration tests with the fake LLM and through the
+  live probe. A browser run against a live MySQL server was not done, because no MySQL server runs on
+  this machine outside Testcontainers.
+- **Retrieval for new sources**: a new source is indexed without glossary terms or verified examples.
+  The glossary is retail-specific (ADR-0018), and examples accumulate from user feedback.
 
 ## Phase 4 — 2026-11-21
 

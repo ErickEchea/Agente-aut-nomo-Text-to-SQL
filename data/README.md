@@ -6,6 +6,8 @@
 - The deterministic generator lives in the backend package (`nexus.demo`, CLI `nexus-seed-demo`);
   2024-11-01 → 2026-10-31, ≈500k `detalle_ventas`, fixed seed.
 - `glossary.yaml` — versioned business glossary (metric and time definitions).
-- `verified_examples/` — question → SQL pairs used as few-shot examples (disjoint from the benchmark golden set).
+- `sqlite/` — SQLite files that can be registered as data sources (mounted read-only at `/data/sqlite`);
+  `make sqlite-demo` exports `retail_mini.sqlite` there. Generated files are git-ignored.
 
-`verified_examples/` arrives in Phase 3.
+Verified few-shot examples are not files: they are created from answers rated correct in the app and
+stored in the app DB (ADR-0019).
