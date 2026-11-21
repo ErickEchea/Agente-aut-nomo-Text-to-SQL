@@ -1,0 +1,125 @@
+/*
+ * NEXUS AI design tokens — the only place raw colors live (docs/DESIGN.md).
+ * Dark is the default; light is a selected palette applied with [data-theme="light"].
+ * src/styles/tokens.test.ts parses this file to verify WCAG AA contrast.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0a0d10;
+  --surface-1: #12161b;
+  --surface-2: #181d23;
+  --surface-3: #212831;
+  --line: #262d36;
+  --line-strong: #3a4450;
+
+  --fg: #eef2f5;
+  --fg-secondary: #b3bcc7;
+  --fg-muted: #8a95a3;
+
+  --accent: #3fd0c9;
+  --accent-strong: #72e2dc;
+  --accent-ink: #04201e;
+  --accent-soft: rgb(63 208 201 / 0.12);
+
+  --success: #4ad27f;
+  --success-soft: rgb(74 210 127 / 0.13);
+  --warning: #f2b53a;
+  --warning-soft: rgb(242 181 58 / 0.13);
+  --danger: #ff7070;
+  --danger-soft: rgb(255 112 112 / 0.14);
+  --info: #73aaff;
+  --info-soft: rgb(115 170 255 / 0.13);
+
+  --grid-dot: rgb(255 255 255 / 0.045);
+  --scrim: rgb(3 5 7 / 0.72);
+  --nx-shadow-overlay: 0 24px 64px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+
+  /* Data (categorical, fixed order; validated with the dataviz method on surface-1). */
+  --data-1: #3987e5;
+  --data-2: #d95926;
+  --data-3: #199e70;
+  --data-4: #c98500;
+  --data-5: #d55181;
+  --data-6: #0ca30c;
+  --data-7: #9085e9;
+  --data-8: #e66767;
+
+  /* Code (SQL) syntax colors. */
+  --code-keyword: #72e2dc;
+  --code-function: #9fc4ff;
+  --code-string: #f2c879;
+  --code-number: #f59e7a;
+  --code-comment: #7d8896;
+  --code-operator: #b3bcc7;
+  --code-plain: #e3e8ed;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f3f5f7;
+  --surface-1: #ffffff;
+  --surface-2: #f7f8fa;
+  --surface-3: #eceff3;
+  --line: #dfe3e8;
+  --line-strong: #c3cad3;
+
+  --fg: #0d1216;
+  --fg-secondary: #434c57;
+  --fg-muted: #5d6773;
+
+  --accent: #08716c;
+  --accent-strong: #075f5b;
+  --accent-ink: #ffffff;
+  --accent-soft: rgb(8 113 108 / 0.1);
+
+  --success: #1b7a41;
+  --success-soft: rgb(27 122 65 / 0.11);
+  --warning: #8f5d00;
+  --warning-soft: rgb(196 132 0 / 0.14);
+  --danger: #bf2f2f;
+  --danger-soft: rgb(191 47 47 / 0.1);
+  --info: #2456b3;
+  --info-soft: rgb(36 86 179 / 0.1);
+
+  --grid-dot: rgb(13 18 22 / 0.06);
+  --scrim: rgb(13 18 22 / 0.4);
+  --nx-shadow-overlay: 0 24px 64px -16px rgb(13 18 22 / 0.28), 0 0 0 1px rgb(13 18 22 / 0.06);
+
+  --data-1: #2a78d6;
+  --data-2: #eb6834;
+  --data-3: #1baf7a;
+  --data-4: #eda100;
+  --data-5: #e87ba4;
+  --data-6: #008300;
+  --data-7: #6250d6;
+  --data-8: #e34948;
+
+  --code-keyword: #075f5b;
+  --code-function: #2456b3;
+  --code-string: #8a4b00;
+  --code-number: #a8361b;
+  --code-comment: #5d6773;
+  --code-operator: #434c57;
+  --code-plain: #0d1216;
+}
+
+:root {
+  --nx-font-display: "Bricolage Grotesque Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --nx-font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nx-font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --nx-radius-sm: 4px;
+  --nx-radius-md: 8px;
+  --nx-radius-lg: 12px;
+  --nx-radius-xl: 16px;
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 360ms;
+  --nx-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --nx-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
