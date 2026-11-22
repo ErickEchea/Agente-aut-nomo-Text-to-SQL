@@ -8,6 +8,22 @@ x-backend-image: &backend-build
     dockerfile: backend/Dockerfile
   image: nexus-backend:local
 
+# Least privilege (ADR-0023): no privilege escalation and no Linux capabilities by default.
+x-locked-down: &locked-down
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+# Stateless services: read-only root filesystem, scratch space in memory.
+x-read-only: &read-only
+  read_only: true
+  tmpfs: [/tmp]
+
+# The official PostgreSQL entrypoint fixes data-directory ownership as root, then drops to `postgres`.
+x-postgres-caps: &postgres-caps
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+
 x-models: &models
   NEXUS_LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
   NEXUS_EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
@@ -15,6 +31,7 @@ x-models: &models
 
 services:
   app-db:
+    <<: *postgres-caps
     image: pgvector/pgvector:0.8.7-pg18-trixie
     restart: unless-stopped
     environment:
@@ -34,6 +51,7 @@ services:
       start_period: 15s
 
   demo-db:
+    <<: *postgres-caps
     build:
       context: ./infra/postgres/demo-image
     image: nexus-demo-db:local
@@ -57,6 +75,7 @@ services:
 
   # Applies demo-db extensions (HypoPG) idempotently, also on volumes created before Phase 5.
   demo-extensions:
+    <<: [*locked-down, *read-only]
     image: nexus-demo-db:local
     restart: "no"
     command:
@@ -71,7 +90,7 @@ services:
         condition: service_healthy
 
   demo-seed:
-    <<: *backend-build
+    <<: [*backend-build, *locked-down, *read-only]
     command: ["nexus-seed-demo"]
     restart: "no"
     environment:
@@ -86,7 +105,7 @@ services:
         condition: service_healthy
 
   migrate:
-    <<: *backend-build
+    <<: [*backend-build, *locked-down, *read-only]
     command: ["nexus-migrate"]
     restart: "no"
     environment:
@@ -99,6 +118,7 @@ services:
         condition: service_healthy
 
   ollama:
+    <<: *locked-down
     image: ollama/ollama:0.40.16
     restart: unless-stopped
     environment:
@@ -118,6 +138,7 @@ services:
       start_period: 10s
 
   ollama-init:
+    <<: *locked-down
     image: ollama/ollama:0.40.16
     restart: "no"
     environment:
@@ -134,7 +155,7 @@ services:
         condition: service_healthy
 
   backend:
-    <<: *backend-build
+    <<: [*backend-build, *locked-down, *read-only]
     restart: unless-stopped
     environment:
       NEXUS_ENV: ${NEXUS_ENV:-production}
@@ -170,8 +191,8 @@ services:
     volumes:
       # SQLite files admins may register as data sources; mounted read-only (ADR-0013).
       - ./data/sqlite:/data/sqlite:ro
-    ports:
-      - "127.0.0.1:${NEXUS_API_PORT:-8000}:8000"
+    # No published port: nginx (frontend, :8080) is the only way in, so the X-Forwarded-For it sets
+    # is the only one uvicorn ever sees (ADR-0023). Development tools use http://localhost:8080/api.
     depends_on:
       app-db:
         condition: service_healthy
@@ -197,6 +218,7 @@ services:
       start_period: 20s
 
   frontend:
+    <<: [*locked-down, *read-only]
     build:
       context: ./frontend
     image: nexus-frontend:local
@@ -212,6 +234,19 @@ services:
       timeout: 3s
       retries: 6
       start_period: 5s
+
+  # Load sanity check (`make load`, ADR-0023): k6 inside the stack's network, through nginx like a browser.
+  # Only started on demand (profile `tools`); writes docs/load-test.md.
+  k6:
+    <<: [*locked-down, *read-only]
+    image: grafana/k6:2.4.0@sha256:d41bb79cd8de5a7ad619b53570e3712633e8bff0937010a5c6c57a4747e7a276
+    profiles: [tools]
+    environment:
+      NEXUS_WEB_URL: http://frontend:8080
+      NEXUS_LOAD_PASSWORD: ${NEXUS_LOAD_PASSWORD:-}
+    volumes:
+      - ./infra/load:/scripts:ro
+      - ./docs:/out
 
 volumes:
   app-db-data:

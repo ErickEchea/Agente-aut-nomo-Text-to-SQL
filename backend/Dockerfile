@@ -19,7 +19,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable
 
 FROM python:3.13.18-slim-trixie AS runtime
-RUN groupadd --system nexus && useradd --system --gid nexus --home-dir /app --no-create-home nexus
+# OS security fixes published after the base image was built (scanned in CI with Trivy). pip is
+# removed: nothing installs packages at runtime, and its vendored libraries carry their own CVEs.
+RUN apt-get update \
+ && apt-get -y upgrade \
+ && rm -rf /var/lib/apt/lists/* \
+ && python -m pip uninstall --yes --no-cache-dir pip \
+ && groupadd --system nexus && useradd --system --gid nexus --home-dir /app --no-create-home nexus
 COPY --from=builder /opt/venv /opt/venv
 COPY data /app/data
 ENV PATH="/opt/venv/bin:$PATH" \
@@ -28,6 +34,6 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 USER nexus
 EXPOSE 8000
-# nginx (the only way in from outside) overwrites X-Forwarded-For with the real client address, so
-# per-IP rate limits see real clients rather than the proxy.
+# nginx is the only way in (the API port is not published to the host) and it overwrites
+# X-Forwarded-For with the real client address, so per-IP rate limits see real clients.
 CMD ["uvicorn", "nexus.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--proxy-headers", "--forwarded-allow-ips", "*"]

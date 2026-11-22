@@ -10,7 +10,7 @@ The production image is nginx. It serves the build under a strict CSP and revers
 backend, with buffering off so SSE is safe.
 
 ```bash
-npm ci && npm run dev        # http://localhost:5173, proxies /api to 127.0.0.1:8000
+npm ci && npm run dev        # http://localhost:5173, proxies /api to the stack's nginx on 127.0.0.1:8080
 npm run lint && npm run typecheck && npm run test && npm run build
 npm run api:types            # regenerate src/api/schema.d.ts from the committed OpenAPI snapshot
 ```
