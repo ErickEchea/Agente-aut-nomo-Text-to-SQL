@@ -118,7 +118,16 @@ function SourceActions({ source }: { source: ConnectionSummary }) {
     void queryClient.invalidateQueries({ queryKey: ["connection", source.key] });
   };
   const reindex = useMutation({ mutationFn: () => endpoints.reindexConnection(api, source.key), onSuccess: refresh, onError: (e) => toast.error(errorMessage(e, t)) });
-  const remove = useMutation({ mutationFn: () => endpoints.deleteConnection(api, source.key), onSuccess: refresh, onError: (e) => toast.error(errorMessage(e, t)) });
+  const remove = useMutation({
+    mutationFn: () => endpoints.deleteConnection(api, source.key),
+    onSuccess: () => {
+      // Drop the source first so its detail unmounts, then forget the detail instead of refetching a 404.
+      queryClient.setQueryData<ConnectionSummary[]>(["connections"], (list) => list?.filter((s) => s.key !== source.key));
+      queryClient.removeQueries({ queryKey: ["connection", source.key] });
+      void queryClient.invalidateQueries({ queryKey: ["connections"] });
+    },
+    onError: (e) => toast.error(errorMessage(e, t)),
+  });
   return (
     <div className="flex flex-wrap gap-2">
       <Button size="sm" disabled={reindex.isPending || source.index_status === "indexing"} onClick={() => { reindex.mutate(); }}>
