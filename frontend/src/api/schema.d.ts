@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/benchmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_benchmark_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/benchmark/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run Detail */
+        get: operations["run_detail_api_benchmark_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/connections": {
         parameters: {
             query?: never;
@@ -527,6 +561,116 @@ export interface components {
              */
             type: "category" | "value" | "time";
         };
+        /**
+         * BenchConfig
+         * @description A model configuration: default model, optional per-node routing, reasoning toggle.
+         */
+        BenchConfig: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Nodes */
+            nodes?: {
+                [key: string]: string;
+            };
+            /** Think */
+            think?: boolean | null;
+        };
+        /** BenchmarkOverview */
+        BenchmarkOverview: {
+            /** Reference Items */
+            reference_items: string[];
+            /** Runs */
+            runs: components["schemas"]["BenchmarkRunOut"][];
+            /** Selected */
+            selected: string | null;
+            /** Selection Margin */
+            selection_margin: number;
+            serving: components["schemas"]["ServingModel"];
+        };
+        /** BenchmarkResultOut */
+        BenchmarkResultOut: {
+            /** Correct */
+            correct: boolean;
+            /** Difficulty */
+            difficulty: string;
+            /** Error */
+            error: string | null;
+            /** Item Id */
+            item_id: string;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Question */
+            question: string;
+            /** Reason */
+            reason: string;
+            /** Repairs */
+            repairs: number;
+            /** Sql */
+            sql: string[];
+            /** Status */
+            status: string;
+            /** Tokens */
+            tokens: number;
+        };
+        /** BenchmarkRunDetail */
+        BenchmarkRunDetail: {
+            config: components["schemas"]["BenchConfig"];
+            /** Dataset Version */
+            dataset_version: string;
+            /** Eligible */
+            eligible: boolean;
+            /** Finished At */
+            finished_at: string | null;
+            /** Git Sha */
+            git_sha: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Results */
+            results: components["schemas"]["BenchmarkResultOut"][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Subset */
+            subset: string;
+            summary: components["schemas"]["Summary"];
+        };
+        /** BenchmarkRunOut */
+        BenchmarkRunOut: {
+            config: components["schemas"]["BenchConfig"];
+            /** Dataset Version */
+            dataset_version: string;
+            /** Eligible */
+            eligible: boolean;
+            /** Finished At */
+            finished_at: string | null;
+            /** Git Sha */
+            git_sha: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Subset */
+            subset: string;
+            summary: components["schemas"]["Summary"];
+        };
         /** ChartSpec */
         ChartSpec: {
             /** Candidates */
@@ -797,6 +941,15 @@ export interface components {
             name?: string | null;
             /** Shared */
             shared?: boolean | null;
+        };
+        /** DifficultyScore */
+        DifficultyScore: {
+            /** Accuracy */
+            accuracy: number;
+            /** Correct */
+            correct: number;
+            /** Items */
+            items: number;
         };
         /** EChartsOption */
         EChartsOption: {
@@ -1196,6 +1349,17 @@ export interface components {
              */
             type: "bar" | "line" | "pie" | "scatter";
         };
+        /** ServingModel */
+        ServingModel: {
+            /** Model */
+            model: string;
+            /** Nodes */
+            nodes: {
+                [key: string]: string;
+            };
+            /** Think */
+            think: boolean | null;
+        };
         /** StepOut */
         StepOut: {
             /** Assumptions */
@@ -1245,6 +1409,45 @@ export interface components {
             table: string;
             /** Used By Planner */
             used_by_planner: boolean | null;
+        };
+        /** Summary */
+        Summary: {
+            /** Accuracy */
+            accuracy: number;
+            /** By Difficulty */
+            by_difficulty: {
+                [key: string]: components["schemas"]["DifficultyScore"];
+            };
+            /** Context Complete Rate */
+            context_complete_rate: number | null;
+            /** Correct */
+            correct: number;
+            /** Error Rate */
+            error_rate: number;
+            /** First Attempt Rate */
+            first_attempt_rate: number;
+            /** Grounding Fallback Rate */
+            grounding_fallback_rate: number | null;
+            /** Items */
+            items: number;
+            /** Latency P50 Ms */
+            latency_p50_ms: number;
+            /** Latency P95 Ms */
+            latency_p95_ms: number;
+            /** Node Latency Ms */
+            node_latency_ms: {
+                [key: string]: number;
+            };
+            /** Reasons */
+            reasons: {
+                [key: string]: number;
+            };
+            /** Recall At 5 */
+            recall_at_5: number | null;
+            /** Recovery Rate */
+            recovery_rate: number | null;
+            /** Tokens Per Question */
+            tokens_per_question: number;
         };
         /** TableOut */
         TableOut: {
@@ -1456,6 +1659,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    overview_api_benchmark_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkOverview"];
+                };
+            };
+        };
+    };
+    run_detail_api_benchmark_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BenchmarkRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

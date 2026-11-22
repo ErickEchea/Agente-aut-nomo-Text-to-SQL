@@ -2,6 +2,8 @@ import type { ApiClient } from "./client";
 import type {
   AnnotationOut,
   AuditEntry,
+  BenchmarkOverview,
+  BenchmarkRunDetail,
   ConnectionDetail,
   ConnectionIn,
   ConnectionSummary,
@@ -180,4 +182,12 @@ export function listAudit(
   if (params.beforeId) query.set("before_id", String(params.beforeId));
   if (params.outcome) query.set("outcome", params.outcome);
   return api.request(`/api/audit?${query.toString()}`);
+}
+
+export function benchmarkOverview(api: ApiClient): Promise<BenchmarkOverview> {
+  return api.request("/api/benchmark");
+}
+
+export function benchmarkRun(api: ApiClient, runId: string): Promise<BenchmarkRunDetail> {
+  return api.request(`/api/benchmark/runs/${encodeURIComponent(runId)}`);
 }

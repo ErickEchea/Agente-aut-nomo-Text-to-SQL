@@ -280,6 +280,322 @@
         "title": "AxisSpec",
         "type": "object"
       },
+      "BenchConfig": {
+        "additionalProperties": false,
+        "description": "A model configuration: default model, optional per-node routing, reasoning toggle.",
+        "properties": {
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "name": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{1,60}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "nodes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "understand",
+                "plan",
+                "generate",
+                "repair",
+                "visualize",
+                "explain"
+              ]
+            },
+            "title": "Nodes",
+            "type": "object"
+          },
+          "think": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Think"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "title": "BenchConfig",
+        "type": "object"
+      },
+      "BenchmarkOverview": {
+        "properties": {
+          "reference_items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reference Items",
+            "type": "array"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkRunOut"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "selected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected"
+          },
+          "selection_margin": {
+            "title": "Selection Margin",
+            "type": "number"
+          },
+          "serving": {
+            "$ref": "#/components/schemas/ServingModel"
+          }
+        },
+        "required": [
+          "runs",
+          "selected",
+          "selection_margin",
+          "reference_items",
+          "serving"
+        ],
+        "title": "BenchmarkOverview",
+        "type": "object"
+      },
+      "BenchmarkResultOut": {
+        "properties": {
+          "correct": {
+            "title": "Correct",
+            "type": "boolean"
+          },
+          "difficulty": {
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "item_id": {
+            "title": "Item Id",
+            "type": "string"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "number"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "repairs": {
+            "title": "Repairs",
+            "type": "integer"
+          },
+          "sql": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sql",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tokens": {
+            "title": "Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "item_id",
+          "difficulty",
+          "question",
+          "correct",
+          "reason",
+          "status",
+          "latency_ms",
+          "tokens",
+          "repairs",
+          "sql",
+          "error"
+        ],
+        "title": "BenchmarkResultOut",
+        "type": "object"
+      },
+      "BenchmarkRunDetail": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/BenchConfig"
+          },
+          "dataset_version": {
+            "title": "Dataset Version",
+            "type": "string"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "git_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Sha"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BenchmarkResultOut"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "subset": {
+            "title": "Subset",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        },
+        "required": [
+          "id",
+          "config",
+          "subset",
+          "dataset_version",
+          "git_sha",
+          "started_at",
+          "finished_at",
+          "summary",
+          "eligible",
+          "results"
+        ],
+        "title": "BenchmarkRunDetail",
+        "type": "object"
+      },
+      "BenchmarkRunOut": {
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/BenchConfig"
+          },
+          "dataset_version": {
+            "title": "Dataset Version",
+            "type": "string"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "git_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Git Sha"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "subset": {
+            "title": "Subset",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          }
+        },
+        "required": [
+          "id",
+          "config",
+          "subset",
+          "dataset_version",
+          "git_sha",
+          "started_at",
+          "finished_at",
+          "summary",
+          "eligible"
+        ],
+        "title": "BenchmarkRunOut",
+        "type": "object"
+      },
       "ChartSpec": {
         "properties": {
           "candidates": {
@@ -1078,6 +1394,29 @@
           }
         },
         "title": "DashboardUpdate",
+        "type": "object"
+      },
+      "DifficultyScore": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "correct": {
+            "title": "Correct",
+            "type": "integer"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "correct",
+          "accuracy"
+        ],
+        "title": "DifficultyScore",
         "type": "object"
       },
       "EChartsOption": {
@@ -2313,6 +2652,39 @@
         "title": "SeriesSpec",
         "type": "object"
       },
+      "ServingModel": {
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "nodes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Nodes",
+            "type": "object"
+          },
+          "think": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Think"
+          }
+        },
+        "required": [
+          "model",
+          "nodes",
+          "think"
+        ],
+        "title": "ServingModel",
+        "type": "object"
+      },
       "StepOut": {
         "properties": {
           "assumptions": {
@@ -2489,6 +2861,126 @@
           "used_by_planner"
         ],
         "title": "SuggestionOut",
+        "type": "object"
+      },
+      "Summary": {
+        "properties": {
+          "accuracy": {
+            "title": "Accuracy",
+            "type": "number"
+          },
+          "by_difficulty": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DifficultyScore"
+            },
+            "title": "By Difficulty",
+            "type": "object"
+          },
+          "context_complete_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Complete Rate"
+          },
+          "correct": {
+            "title": "Correct",
+            "type": "integer"
+          },
+          "error_rate": {
+            "title": "Error Rate",
+            "type": "number"
+          },
+          "first_attempt_rate": {
+            "title": "First Attempt Rate",
+            "type": "number"
+          },
+          "grounding_fallback_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounding Fallback Rate"
+          },
+          "items": {
+            "title": "Items",
+            "type": "integer"
+          },
+          "latency_p50_ms": {
+            "title": "Latency P50 Ms",
+            "type": "number"
+          },
+          "latency_p95_ms": {
+            "title": "Latency P95 Ms",
+            "type": "number"
+          },
+          "node_latency_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Node Latency Ms",
+            "type": "object"
+          },
+          "reasons": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Reasons",
+            "type": "object"
+          },
+          "recall_at_5": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall At 5"
+          },
+          "recovery_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recovery Rate"
+          },
+          "tokens_per_question": {
+            "title": "Tokens Per Question",
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "correct",
+          "accuracy",
+          "by_difficulty",
+          "latency_p50_ms",
+          "latency_p95_ms",
+          "error_rate",
+          "first_attempt_rate",
+          "recovery_rate",
+          "tokens_per_question",
+          "grounding_fallback_rate",
+          "recall_at_5",
+          "context_complete_rate",
+          "node_latency_ms",
+          "reasons"
+        ],
+        "title": "Summary",
         "type": "object"
       },
       "TableOut": {
@@ -2860,6 +3352,70 @@
         "summary": "Refresh",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/benchmark": {
+      "get": {
+        "operationId": "overview_api_benchmark_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "benchmark"
+        ]
+      }
+    },
+    "/api/benchmark/runs/{run_id}": {
+      "get": {
+        "operationId": "run_detail_api_benchmark_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkRunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Detail",
+        "tags": [
+          "benchmark"
         ]
       }
     },
