@@ -1,0 +1,79 @@
+name: Stack (CPU) — e2e and benchmark subset
+
+# The full stack exactly as `make up` builds it (CPU profile, demo data at scale 1.0, models pulled by
+# ollama-init, hardened containers). On that one stack:
+#   1. Playwright visits every screen in both themes at 1280 and 375 px with axe (WCAG 2.2 AA), registers
+#      and deletes a SQLite source, and checks the Benchmark page (`make e2e`);
+#   2. the golden-set CI subset runs through the real agent and gates on the calibrated accuracy
+#      (`make bench-ci`, ADR-0015, ADR-0022).
+# Separate from CI because CPU inference takes a while.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stack:
+    name: Full stack on CPU — Playwright e2e, then the benchmark subset
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      NEXUS_PROFILE: cpu
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          version: "0.13.9"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install host tools (SQLite export, Playwright + Chromium)
+        run: |
+          (cd backend && uv sync --frozen)
+          (cd frontend && npm ci && npx playwright install --with-deps chromium)
+      - name: Build the SQLite demo source before the stack mounts data/sqlite
+        run: make data/sqlite/retail_mini.sqlite
+      - name: Start the stack (CPU profile, waits for every healthcheck)
+        run: make up
+      - name: Playwright end-to-end (every screen, axe, SQLite source lifecycle)
+        run: make e2e
+      - name: Let the container user write run records into the mounted bench/ and docs/
+        run: chmod -R a+rwX bench docs
+      - name: Run the benchmark CI subset and check the accuracy gate
+        run: make bench-ci
+      - name: Keep the benchmark run record
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-ci-results
+          path: bench/results/*-ci-*.json
+          if-no-files-found: ignore
+      - name: Keep Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: frontend/test-results
+          if-no-files-found: ignore
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200 backend frontend ollama

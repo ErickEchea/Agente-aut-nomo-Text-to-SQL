@@ -1,0 +1,46 @@
+# Weekly version updates (security updates are not delayed). A 7-day cooldown keeps a freshly published
+# release (the window in which compromised releases are usually caught) out of the proposals.
+# Model weights are not dependencies here: the default model is a benchmark decision (ADR-0022).
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      javascript:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directories: ["/backend", "/frontend", "/infra/postgres/demo-image"]
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  # Ollama is pinned to the version the benchmark measured; review its updates with `make bench`.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

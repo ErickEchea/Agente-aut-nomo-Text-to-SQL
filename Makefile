@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration test-security coverage e2e e2e-user e2e-agent eval-retrieval bench bench-freeze bench-report bench-ci api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage audit audit-deps audit-secrets audit-images load load-users e2e e2e-user e2e-agent eval-retrieval bench bench-freeze bench-report bench-ci api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -65,6 +65,34 @@ test-security: ## Attack suite: validator alone, DB layers alone, validator over
 coverage: ## All non-LLM tests + coverage gate (>= 85 % on agent, security and sql)
 	$(BACKEND) uv run pytest --cov --cov-report= && uv run coverage report --fail-under=85 --include="src/nexus/agent/*,src/nexus/security/*,src/nexus/sql/*"
 
+# Security audit (ADR-0023): pinned tool versions and image digests; CI runs these same targets.
+PIP_AUDIT := pip-audit@2.10.1
+GITLEAKS_IMAGE := zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+TRIVY_IMAGE := aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
+IMAGE_TAG ?= local
+# Fixable HIGH/CRITICAL vulnerabilities fail the target.
+TRIVY = MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v nexus-trivy-cache:/root/.cache/trivy \
+	$(TRIVY_IMAGE) image --quiet --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1
+
+audit: audit-deps audit-secrets audit-images ## Dependency, secret and image audit (images from `make up`)
+
+audit-deps: ## Known vulnerabilities in the locked Python and npm dependencies (pip-audit, npm audit)
+	req=$$(mktemp) && (cd backend && uv export --frozen --no-emit-project --quiet -o "$$req") \
+	  && uvx $(PIP_AUDIT) -r "$$req" --disable-pip --progress-spinner off; status=$$?; rm -f "$$req"; exit $$status
+	$(FRONTEND) npm audit --audit-level=high
+
+audit-secrets: ## Secrets anywhere in the git history (gitleaks)
+	MSYS_NO_PATHCONV=1 docker run --rm -v "$(CURDIR):/repo:ro" \
+	  -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+	  $(GITLEAKS_IMAGE) git /repo --redact --no-banner
+
+audit-images: ## Fixable HIGH/CRITICAL CVEs in the images this repo builds (Trivy; IMAGE_TAG=local)
+	$(TRIVY) nexus-backend:$(IMAGE_TAG)
+	$(TRIVY) nexus-frontend:$(IMAGE_TAG)
+	@# gosu only drops privileges in the PostgreSQL entrypoint; its maintainers document why the Go
+	@# standard-library CVEs scanners report in it do not apply (https://github.com/tianon/gosu).
+	$(TRIVY) --skip-files /usr/local/bin/gosu nexus-demo-db:$(IMAGE_TAG)
+
 # Default selection skips the slow real-model specs; override, e.g. E2E_ARGS="--grep @llm --workers 1".
 E2E_ARGS ?= --grep-invert @llm
 E2E_ENV = NEXUS_E2E_EMAIL='$(call ENV_VAL,NEXUS_E2E_EMAIL)' NEXUS_E2E_PASSWORD='$(call ENV_VAL,NEXUS_E2E_PASSWORD)'
@@ -102,6 +130,18 @@ bench-report: ## Render docs/benchmark.md from bench/results
 bench-ci: ## CI subset on the CPU model and the calibrated accuracy gate (stack up)
 	$(BENCH_RUN) nexus-bench run --configs qwen2.5-coder-3b --subset ci --git-sha "$$(git rev-parse --short HEAD)"
 	$(BENCH_RUN) nexus-bench check
+
+LOAD_USERS ?= 4
+
+load-users: env ## Create the load-test analyst accounts load-1..N@nexus.local if missing (stack up)
+	@for i in $$(seq 1 $(LOAD_USERS)); do \
+	  printf '%s\n' '$(call ENV_VAL,NEXUS_LOAD_PASSWORD)' | $(COMPOSE) exec -T backend nexus-admin create-user \
+	    --email "load-$$i@nexus.local" --name "Load $$i" --role analyst --password-stdin --if-missing || exit 1; \
+	done
+
+load: load-users ## Load sanity check (k6): browsing while LOAD_USERS ask the agent -> docs/load-test.md (stack up)
+	MSYS_NO_PATHCONV=1 $(COMPOSE) --profile tools run --rm -e LOAD_USERS=$(LOAD_USERS) \
+	  -e NEXUS_LLM_MODEL="$(LLM_MODEL)" -e LOAD_HARDWARE="$(BENCH_HARDWARE)" k6 run /scripts/smoke.js
 
 eval-retrieval: ## Measure schema retrieval (recall@5, completeness) per embedding model (stack up)
 	$(BACKEND) NEXUS_APP_DB__HOST=127.0.0.1 NEXUS_APP_DB__PORT=$(call ENV_VAL,NEXUS_APP_DB_PORT) 	  NEXUS_APP_DB__NAME=nexus_app NEXUS_APP_DB__USER=nexus_app NEXUS_APP_DB__PASSWORD=$(call ENV_VAL,NEXUS_APP_DB_PASSWORD) 	  NEXUS_DEMO_DB__HOST=127.0.0.1 NEXUS_DEMO_DB__PORT=$(call ENV_VAL,NEXUS_DEMO_DB_PORT) NEXUS_DEMO_DB__NAME=retail 	  NEXUS_DEMO_DB__USER=nexus_reader NEXUS_DEMO_DB__PASSWORD=$(call ENV_VAL,NEXUS_DEMO_READER_PASSWORD) 	  NEXUS_OLLAMA__BASE_URL=http://127.0.0.1:$(call ENV_VAL,NEXUS_OLLAMA_PORT) PYTHONIOENCODING=utf-8 	  uv run nexus-eval-retrieval
