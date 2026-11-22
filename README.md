@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/estado-fase%205%20de%207-3fd0c9" alt="Estado: fase 5 de 7">
+  <img src="https://img.shields.io/badge/estado-fase%206%20de%207-3fd0c9" alt="Estado: fase 6 de 7">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -27,10 +27,11 @@ Todo corre **en tu máquina**: los modelos de lenguaje se sirven con [Ollama](ht
 pago y sin que tus datos salgan de tu red.
 
 > [!NOTE]
-> **Estado del proyecto.** Se construye por fases ([hoja de ruta](#-hoja-de-ruta)). Las **fases 1 a 5 están
+> **Estado del proyecto.** Se construye por fases ([hoja de ruta](#-hoja-de-ruta)). Las **fases 1 a 6 están
 > completas**: la aplicación web ya permite preguntar a PostgreSQL, MySQL o SQLite, ver el razonamiento del
 > agente en vivo, explorar el resultado en tabla, gráfico y SQL anotado cláusula por cláusula, analizar el plan
-> de ejecución con índices sugeridos, fijarlo en dashboards y revisar historial, conexiones y auditoría. Esta página distingue siempre lo que **ya funciona** ✅ de lo que **está
+> de ejecución con índices sugeridos, fijarlo en dashboards y revisar historial, conexiones y auditoría. Un
+> benchmark de 126 preguntas mide la exactitud del agente y eligió el modelo por defecto con datos. Esta página distingue siempre lo que **ya funciona** ✅ de lo que **está
 > planificado** 🗓️.
 
 ## Contenido
@@ -84,7 +85,7 @@ Lo que hace a NEXUS distinto de "pedirle SQL a un chatbot":
 | 📖 | **SQL anotado cláusula por cláusula:** cada parte de la consulta explicada con los comentarios del esquema y las reglas del glosario que cumple, sin LLM y resaltada en el código. | ✅ |
 | ⚡ | **Optimización:** analiza el `EXPLAIN` sin ejecutar la consulta, detecta lecturas completas y sugiere índices con el costo antes/después medido con índices hipotéticos (HypoPG). NEXUS nunca crea el índice. | ✅ |
 | 🔌 | **Multi-base de datos:** PostgreSQL, MySQL y SQLite con credenciales cifradas (Fernet, rotación de llaves), prueba de conexión que detecta permisos de escritura e indexación del esquema. | ✅ |
-| 📈 | **Benchmark propio** de 120+ preguntas que mide la precisión y elige el modelo por defecto con datos. | 🗓️ Fase 6 |
+| 📈 | **Benchmark propio** de 126 preguntas con respuesta conocida: mide la exactitud de ejecución de cada modelo local y elige el modelo por defecto con una regla fijada de antemano ([resultados](docs/benchmark.md)). | ✅ 71,4 % con `qwen2.5-coder:7b` |
 
 ## 🧭 Cómo funciona
 
@@ -198,39 +199,47 @@ En la máquina de referencia tarda menos de 4 minutos.
 | PostgreSQL de la app / de demostración | `localhost:55432` / `localhost:55433` |
 
 <p align="center">
-  <img src="docs/screenshots/phase5/workspace-answer-desktop-dark.png" alt="Respuesta de NEXUS AI: resumen con cifras verificadas, supuestos de fechas y el razonamiento del agente paso a paso" width="100%">
+  <img src="docs/screenshots/phase6/workspace-answer-desktop-dark.png" alt="Respuesta de NEXUS AI: resumen con cifras verificadas, supuestos de fechas y el razonamiento del agente paso a paso" width="100%">
   <br><sub>La pregunta de referencia respondida: resumen con cifras verificadas, supuesto de fechas visible y el timeline del agente con cada paso, su duración y sus tokens.</sub>
 </p>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/phase5/workspace-live-desktop-dark.png" alt="Timeline del agente en vivo mientras planifica"></td>
-    <td width="50%"><img src="docs/screenshots/phase5/dashboard-desktop-dark.png" alt="Dashboard con el top 5 de productos fijado"></td>
+    <td width="50%"><img src="docs/screenshots/phase6/workspace-live-desktop-dark.png" alt="Timeline del agente en vivo mientras planifica"></td>
+    <td width="50%"><img src="docs/screenshots/phase6/dashboard-desktop-dark.png" alt="Dashboard con el top 5 de productos fijado"></td>
   </tr>
   <tr>
     <td><sub><b>En vivo:</b> cada nodo del grafo aparece al empezar, con su cronómetro; los pendientes se ven atenuados.</sub></td>
     <td><sub><b>Dashboards:</b> cualquier resultado se fija y se vuelve a ver sin consultar de nuevo.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/phase5/workspace-answer-desktop-light.png" alt="La misma respuesta en modo claro"></td>
-    <td><img src="docs/screenshots/phase5/connections-desktop-dark.png" alt="Pantalla de conexiones: tablas, filas estimadas e índice de recuperación"></td>
+    <td><img src="docs/screenshots/phase6/workspace-answer-desktop-light.png" alt="La misma respuesta en modo claro"></td>
+    <td><img src="docs/screenshots/phase6/connections-desktop-dark.png" alt="Pantalla de conexiones: tablas, filas estimadas e índice de recuperación"></td>
   </tr>
   <tr>
     <td><sub>Modo claro (seleccionado, no invertido) con contraste AA verificado por tests.</sub></td>
     <td><sub><b>Conexiones:</b> tablas con sus comentarios, filas estimadas y estado del índice RAG.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/phase5/workspace-explanation-desktop-dark.png" alt="SQL anotado cláusula por cláusula con el filtro resaltado"></td>
-    <td><img src="docs/screenshots/phase5/workspace-optimization-desktop-dark.png" alt="Análisis del plan: hallazgos e índice sugerido con costo antes y después"></td>
+    <td><img src="docs/screenshots/phase6/workspace-explanation-desktop-dark.png" alt="SQL anotado cláusula por cláusula con el filtro resaltado"></td>
+    <td><img src="docs/screenshots/phase6/workspace-optimization-desktop-dark.png" alt="Análisis del plan: hallazgos e índice sugerido con costo antes y después"></td>
   </tr>
   <tr>
     <td><sub><b>SQL anotado:</b> cada cláusula explicada con los comentarios del esquema y las reglas del glosario; al pasar el cursor se resalta en el SQL.</sub></td>
     <td><sub><b>Optimización:</b> lecturas completas detectadas en el plan e índices sugeridos, medidos con índices hipotéticos (HypoPG).</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/phase6/benchmark-results-desktop-dark.png" alt="Página Benchmark: modelo por defecto elegido con datos y la regla de selección"></td>
+    <td><img src="docs/screenshots/phase6/benchmark-tradeoff-desktop-dark.png" alt="Exactitud frente a latencia p95 por configuración, con la banda de selección"></td>
+  </tr>
+  <tr>
+    <td><sub><b>Benchmark:</b> 126 preguntas con respuesta conocida eligen el modelo por defecto con una regla fijada de antemano.</sub></td>
+    <td><sub><b>Exactitud frente a latencia:</b> los puntos huecos no responden la conversación de referencia y no pueden ser el modelo por defecto.</sub></td>
+  </tr>
 </table>
 
 Todas las capturas (cada pantalla en oscuro/claro × escritorio/375 px) están en
-[`docs/screenshots/phase5`](docs/screenshots/phase5) y las regenera `make e2e`.
+[`docs/screenshots/phase6`](docs/screenshots/phase6) y las regenera `make e2e`.
 
 ### Probar el agente
 
@@ -294,7 +303,7 @@ exactamente igual que consultaría una base externa tuya, sin ningún camino hac
 | Frontend | React 19, TypeScript estricto, Vite 8, Tailwind v4 con design tokens, primitivas Radix al estilo shadcn/ui, Motion, TanStack Query/Table/Virtual, ECharts 6, Shiki, cmdk, i18next (es/en) |
 | Backend | Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2 (async), structlog |
 | Agente | LangGraph, SQLGlot, interfaz `LLMProvider` intercambiable |
-| Modelos | Ollama — candidatos `qwen2.5-coder:7b`, `qwen3:8b`, `gemma4:e4b-it-qat`; embeddings `qwen3-embedding:0.6b` ([ADR-0003](docs/adr/0003-llm-provider-and-model-selection.md)) |
+| Modelos | Ollama — por defecto `qwen2.5-coder:7b`, elegido por el benchmark entre `qwen3:8b`, `gemma4:e4b-it-qat` y una configuración por nodo ([ADR-0022](docs/adr/0022-default-model-from-benchmark.md)); embeddings `qwen3-embedding:0.6b` |
 | Datos | PostgreSQL 18 (pgvector, HypoPG), MySQL 8, SQLite |
 | Infraestructura | Docker Compose, Makefile, GitHub Actions |
 | Calidad | pytest, Testcontainers, Hypothesis, Vitest, Playwright, ruff, mypy estricto, ESLint |
@@ -311,8 +320,8 @@ Cada decisión importante está documentada como un ADR, con su contexto, las al
 | 3 | RAG del esquema, ejemplos verificados, memoria, gráficos y explicación con cifras verificadas | ✅ |
 | 4 | Interfaz completa: sistema de diseño, timeline del agente en vivo, dashboards, paleta de comandos | ✅ |
 | 5 | Explicación cláusula por cláusula, optimización con `EXPLAIN`, multi-base de datos | ✅ |
-| 6 | Benchmark de 120+ preguntas y selección del modelo por defecto | 🔜 siguiente |
-| 7 | Endurecimiento, documentación final y demo animada | 🗓️ |
+| 6 | Benchmark de 126 preguntas y selección del modelo por defecto | ✅ |
+| 7 | Endurecimiento, documentación final y demo animada | 🔜 siguiente |
 
 Criterios de cierre de cada fase en [`docs/ROADMAP.md`](docs/ROADMAP.md) y bitácora en [`PROGRESS.md`](PROGRESS.md).
 
@@ -322,11 +331,11 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 
 | Área | Estado actual |
 |---|---|
-| Backend | 546 tests (unitarios, seguridad e integración con PostgreSQL, MySQL y SQLite reales) · cobertura 94 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
-| Agente | End-to-end con el modelo real: pregunta de referencia **y** su seguimiento correctos 3/3 (`make e2e-agent`) |
+| Backend | 619 tests (unitarios, seguridad e integración con PostgreSQL, MySQL y SQLite reales) · cobertura 95 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
+| Agente | Exactitud de ejecución 71,4 % en 126 preguntas (fáciles 95 %, medias 65 %, difíciles 39 %, ambiguas 93 %) · [benchmark](docs/benchmark.md) · pregunta de referencia **y** su seguimiento correctos con el modelo real (`make e2e-agent`) |
 | Recuperación | Todas las tablas necesarias en 32/32 preguntas, ~4,5 de 10 tablas por pregunta ([reporte](docs/retrieval-eval.md)) |
-| Frontend | 105 tests de Vitest (contraste AA de los tokens, parser SSE, timeline, gráficos, CSV, i18n) · 22 tests de Playwright: cada pantalla en oscuro/claro × escritorio/375 px con axe (WCAG 2.2 AA), alta y baja de una fuente SQLite · la pregunta de referencia en el navegador con el modelo real · ESLint estricto · `tsc` estricto |
-| CI | GitHub Actions: lint, tipos, tests unitarios e integración, build de imágenes Docker |
+| Frontend | 110 tests de Vitest (contraste AA de los tokens, parser SSE, timeline, gráficos, CSV, i18n, escalas del benchmark) · 26 tests de Playwright: cada pantalla en oscuro/claro × escritorio/375 px con axe (WCAG 2.2 AA), alta y baja de una fuente SQLite, página Benchmark con datos reales · la pregunta de referencia en el navegador con el modelo real · ESLint estricto · `tsc` estricto |
+| CI | GitHub Actions: lint, tipos, tests unitarios e integración, build de imágenes Docker · subconjunto del benchmark con el modelo de CPU y umbral calibrado |
 | Datos | Checksum determinista verificado en Windows y Linux · tests de estacionalidad, integridad referencial y anomalías |
 
 ## 📁 Estructura del repositorio

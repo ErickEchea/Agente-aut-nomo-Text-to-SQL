@@ -47,7 +47,7 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
   cost; connection manager for PostgreSQL/MySQL/SQLite with encrypted credentials, test, and indexing.
 - **Exit**: integration tests against MySQL and SQLite; optimizer finds the planted missing-index case.
 
-## Phase 6 — Benchmark and default model
+## Phase 6 — Benchmark and default model ✅
 - ≥ 120 golden questions; runner; report; Benchmark page; CI subset; superseding ADR with the chosen default.
 
 ## Phase 7 — Hardening and documentation

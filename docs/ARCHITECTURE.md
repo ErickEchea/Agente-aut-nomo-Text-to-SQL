@@ -87,6 +87,7 @@ backend/src/nexus/
 ├── llm/            LLMProvider protocol + Ollama implementation, structured-output helper
 ├── rag/            schema introspection, document builder, embeddings, hybrid retriever, join-path finder
 ├── sql/            SQLGlot validator, per-engine read-only executor, clause annotation, plan optimizer
+├── bench/          golden set, execution-accuracy comparison, runner, metrics, report (nexus-bench)
 ├── security/       JWT, password hashing, RBAC, rate limiting, credential encryption, PII masking, audit
 ├── memory/         short-term (conversation) and long-term (preferences, verified examples, corrections)
 ├── datasources/    dialect profiles, credential cipher, introspection, connection registry + probe
@@ -176,6 +177,14 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
 
+### Implementation status (Phase 6)
+- `nexus.bench` measures the agent end to end on the golden set (ADR-0015, ADR-0022).
+  - It builds each question's context with `SourceRuntime.agent_context()`, the same call the API uses.
+  - Per-node model routing is configuration (`NEXUS_AGENT__MODELS__*`), and `NEXUS_OLLAMA__THINK`
+    turns off the reasoning phase of models that think by default.
+  - Results go to `bench/results/*.json`, the app DB (`benchmark_runs`, `benchmark_results`) for the
+    Benchmark page, and `docs/benchmark.md`.
+
 ### Implementation status (Phase 5)
 - Every run is bound to a **data source** (`connection_key`). `ConnectionRegistry` builds one runtime
   per source: engine, executor, catalog, validator policy, masker, retriever and samples. The graph is
@@ -205,7 +214,7 @@ deterministic `respond`. `retrieve_schema` sends the full introspected schema (1
 tokens) until Phase 3 replaces it with hybrid RAG. `visualize`, grounded `explain` and `remember` arrive in
 Phase 3.
 
-### HTTP API (Phases 2–5)
+### HTTP API (Phases 2–6)
 The contract is exported with `python -m nexus.openapi` to `frontend/src/api/openapi.json` (snapshot
 checked by a unit test) and turned into TypeScript types (`make api-types`).
 
@@ -234,6 +243,8 @@ checked by a unit test) and turned into TypeScript types (`make api-types`).
 | GET | `/api/connections/sqlite-files` | admin | SQLite files available under the data directory |
 | GET | `/api/runs/{id}/steps/{n}/annotation?locale=` | owner or admin | Clause-by-clause explanation with spans (ADR-0021) |
 | POST | `/api/runs/{id}/steps/{n}/optimize` | owner or admin | Plan analysis, findings and index suggestions with cost before/after (ADR-0021) |
+| GET | `/api/benchmark` | any role | Newest full golden-set run of each model configuration, the selected default and the serving model |
+| GET | `/api/benchmark/runs/{id}` | any role | One run with every question's outcome, latency, repairs and SQL |
 
 ## 6. Request sequence (reference question)
 

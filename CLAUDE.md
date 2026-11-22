@@ -59,7 +59,9 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 | `make create-user email=… name=… role=…` | Create analyst/viewer accounts | 2 |
 | `make sqlite-demo` | Export the retail demo to `data/sqlite/retail_mini.sqlite` (second engine; `make e2e` builds it if missing) | 5 |
 | `make rotate-keys` | Re-encrypt stored connection secrets with the first `NEXUS_CREDENTIALS_KEYS` key | 5 |
-| `make bench MODELS="…"` | Run golden-set benchmark, write `docs/benchmark.md` | 6 |
+| `make bench` (`CONFIGS="…"`, `MODELS="…"`, `SUBSET=…`) | Golden-set benchmark through the real agent → `bench/results/`, app DB, `docs/benchmark.md` | 6 |
+| `make bench-freeze` | Re-run the gold SQL and freeze `bench/golden/expected.json` (needed after editing a gold query) | 6 |
+| `make bench-ci` / `make bench-report` | CI subset on the CPU model + accuracy gate / re-render the report | 6 |
 
 Backend directly: `cd backend && uv run pytest`, `uv run ruff check`, `uv run mypy src`.
 Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typecheck`, `npx playwright test`.
@@ -73,6 +75,9 @@ Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typec
 - GNU make lives in `%LOCALAPPDATA%\Microsoft\WinGet\Packages\ezwinports.make_*\bin` (on PATH in new terminals).
 - Demo data checksum (seed 20241101, scale 1.0, dataset v1.0.0): `7ce932275db5…` — identical on Windows and Linux.
 - Avoid multi-heredoc Bash commands containing apostrophes in this environment; write files with the editor tools.
+- Benchmark runs take hours of GPU time: do not run CPU-heavy tests (Testcontainers) at the same time,
+  or latency numbers are skewed. The PostgreSQL SQL prompt is pinned by hash: re-validate prompt edits
+  with `make e2e-agent` and the benchmark.
 - The demo DB image is built locally (`infra/postgres/demo-image`, PostgreSQL 18 + HypoPG); integration
   tests build the same Dockerfile as `nexus-demo-db:test`.
 - Playwright signs in as `NEXUS_E2E_EMAIL` (generated into `.env`, created by `make e2e-user`); logins are rate

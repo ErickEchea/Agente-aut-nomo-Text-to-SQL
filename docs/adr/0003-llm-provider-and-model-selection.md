@@ -1,6 +1,7 @@
 # ADR-0003 — LLM provider abstraction and model selection
 
-- Status: Accepted (default model **pending benchmark**, Phase 6)
+- Status: Accepted. The default model was selected by the Phase 6 benchmark: `qwen2.5-coder:7b`, see
+  [ADR-0022](0022-default-model-from-benchmark.md), which also adds an eligibility gate to the rule in §4.
 - Date: 2026-11-20
 
 ## Context

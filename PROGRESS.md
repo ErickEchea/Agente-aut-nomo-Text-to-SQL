@@ -11,9 +11,91 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | 2 — Agent core + security | ✅ Done (2026-11-20) |
 | 3 — RAG + memory | ✅ Done (2026-11-20) |
 | 4 — Frontend + design system | ✅ Done (2026-11-21) |
-| 5 — Explainability, optimization, multi-DB | ✅ Done (2026-11-21) — awaiting go-ahead for Phase 6 |
-| 6 — Benchmark + default model | ⏳ |
+| 5 — Explainability, optimization, multi-DB | ✅ Done (2026-11-21) |
+| 6 — Benchmark + default model | ✅ Done (2026-11-22) — awaiting go-ahead for Phase 7 |
 | 7 — Hardening + docs | ⏳ |
+
+## Phase 6 — 2026-11-22
+
+### Exit criteria
+- ✅ **At least 120 golden questions**:
+  - 126 Spanish questions: 40 easy, 40 medium, 31 hard (one is a follow-up asked after its earlier turn)
+    and 15 ambiguous.
+  - Every gold query follows the glossary and passes the agent's validator (unit test). Every one also
+    runs read-only on PostgreSQL (integration test).
+  - The answers are frozen with SQL hashes and the dataset version.
+- ✅ **Runner** (`nexus-bench`, `make bench`):
+  - Same graph, source runtime, validator and read-only role as the API.
+  - Questions are isolated, and verified examples are checked for leakage first.
+  - Outputs: JSON records, the app DB, and the report.
+- ✅ **Report**: [docs/benchmark.md](docs/benchmark.md), generated from `bench/results/`.
+- ✅ **Benchmark page**:
+  - The chosen model, and the rule that chose it.
+  - An accuracy-versus-p95 chart with the selection band.
+  - A comparison table with eligibility.
+  - Every question's outcome and SQL.
+- ✅ **CI subset**:
+  - `.github/workflows/bench.yml` runs the full stack on the CPU profile, 15 questions on
+    `qwen2.5-coder:3b`, with a gate at 0.6.
+  - Calibrated against 11/15 = 0.733, reproduced exactly in a second run.
+- ✅ **Superseding ADR**: [ADR-0022](docs/adr/0022-default-model-from-benchmark.md). The default stays
+  `qwen2.5-coder:7b` (71.4 %), now as a measured decision.
+- ✅ Tests and checks:
+  - Backend: 619 tests (non-LLM), 95 % coverage on the gated packages.
+  - Frontend: 110 Vitest tests and 26 Playwright tests (`make e2e`).
+  - `make e2e-agent` passes with the selected model.
+  - ruff, mypy `--strict`, ESLint and `tsc` are clean, and `make up` is healthy.
+
+### Results (final run, identical code for all)
+| Configuration | Accuracy | Hard | p95 | Reference conversation |
+|---|---|---|---|---|
+| `qwen3:8b`, reasoning off | 72.2 % | 58.1 % | 43.3 s | ✗ |
+| **`qwen2.5-coder:7b`** | **71.4 %** | 38.7 % | 42.8 s | ✓ (selected) |
+| `gemma4:e4b-it-qat`, reasoning off | 71.4 % | 38.7 % | 26.4 s | ✗ |
+| routed qwen3 + coder | 69.0 % | 35.5 % | 58.0 s | ✓ |
+| `qwen2.5-coder:3b` (CPU) | 57.1 % | 22.6 % | 32.0 s | ✗ |
+
+### Done
+- **Data-driven selection**, encoded in `nexus.bench.metrics`:
+  - Only configurations that answer the reference conversation (h001 plus its follow-up h031) are
+    eligible.
+  - Among them, the highest accuracy wins; within 2 points of it, the lowest p95.
+- **Model options**:
+  - A reasoning toggle (`NEXUS_LLM_THINK`) for models that think by default.
+  - Per-node routing as configuration (`NEXUS_LLM_MODEL_<NODE>`, plus `NEXUS_LLM_EXTRA_MODELS`, which
+    ollama-init pulls).
+  - Both are wired through compose and `.env.example`.
+- **`SourceRuntime.agent_context()`**: the API and the benchmark now build the agent's context the same
+  way.
+- **API**: `GET /api/benchmark` and `/api/benchmark/runs/{id}`, with migration `d29f69672965`. A test
+  checks that migration against the models.
+
+### Bugs found by the benchmark and fixed
+- **Validator crash on tokenizer errors**: an unterminated string in model SQL raised `TokenError`,
+  which crashed the run instead of being repaired. The validator now fails closed on any sqlglot error
+  (`parse_error`); two cases were added to the attack suite.
+- **Truncated plan JSON crashed the run**: the plan node now falls back to a single step (unit test).
+- **The first selection was reversed by the acceptance test**:
+  - `gemma4` would have won the latency tie-break, but it never splits the reference question.
+  - `qwen3:8b` drops the revenue figure in the follow-up.
+  - Both fail `make e2e-agent`, so the eligibility gate was added and the benchmark was re-run on
+    identical code.
+- **Git Bash rewrote `./bench:/app/bench` volume specs**: `MSYS_NO_PATHCONV=1` in `BENCH_RUN`.
+
+### Known issues / limitations
+- **Accuracy is about 71 %; hard questions about 39 %.** Recurring failures:
+  - `LIMIT 1` added to "¿Cuál es el … promedio por …?";
+  - only one part of a ratio computed;
+  - filters dropped;
+  - returns exclusion missing after the repairs run out.
+  These are documented in ADR-0022 as input for prompt and glossary work. The PostgreSQL prompt is
+  pinned by hash, so any such change must be re-benchmarked.
+- **Sample size**: 126 questions give about ±8 points at 95 %. The top three configurations are
+  statistically tied on accuracy.
+- **CI subset on CPU**: the first GitHub Actions run is the real check of the CPU calibration. The gate
+  allows two questions of drift.
+- **CPU profile**: `qwen2.5-coder:3b` reaches 57 % (53 % on ambiguous questions); GPU is the supported
+  profile.
 
 ## Phase 5 — 2026-11-21
 

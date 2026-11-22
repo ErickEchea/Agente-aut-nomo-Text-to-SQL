@@ -26,3 +26,4 @@ ADRs are immutable once **Accepted**; a change of mind is a new ADR that superse
 | [0019](0019-retrieval-memory-and-grounded-answers.md) | Retrieval, memory and grounded answers | Accepted |
 | [0020](0020-frontend-architecture-and-ui-hardening.md) | Frontend architecture and UI hardening | Accepted |
 | [0021](0021-sql-annotation-and-plan-optimizer.md) | Deterministic SQL annotation and the plan-based optimizer | Accepted |
+| [0022](0022-default-model-from-benchmark.md) | Default model chosen from the golden-set benchmark | Accepted |

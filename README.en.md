@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/status-phase%205%20of%207-3fd0c9" alt="Status: phase 5 of 7">
+  <img src="https://img.shields.io/badge/status-phase%206%20of%207-3fd0c9" alt="Status: phase 6 of 7">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -30,10 +30,11 @@ Everything runs **on your machine**. Models are served by [Ollama](https://ollam
 data never leaves your network.
 
 > [!NOTE]
-> **Project status.** NEXUS AI is built in phases ([roadmap](#-roadmap)). **Phases 1–5 are complete**: the
+> **Project status.** NEXUS AI is built in phases ([roadmap](#-roadmap)). **Phases 1–6 are complete**: the
 > web app lets you ask PostgreSQL, MySQL or SQLite, watch the agent reason live, explore the result as a table,
 > chart and clause-by-clause annotated SQL, analyze the query plan with suggested indexes, pin it to dashboards,
-> and review history, connections and the audit log. This page
+> and review history, connections and the audit log. A 126-question benchmark measures the agent and chose
+> the default model from data. This page
 > always separates what **works today** ✅ from what is **planned** 🗓️.
 
 ## ✨ What it does
@@ -69,7 +70,7 @@ and returned lines are excluded, as defined in the [business glossary](data/glos
 | 📖 | Clause-by-clause annotated SQL: every part of the query explained from the schema comments and the glossary rules it satisfies, with no LLM, highlighted in the code | ✅ |
 | ⚡ | Optimization: reads `EXPLAIN` without running the query, flags full scans and suggests indexes with cost before/after measured with hypothetical indexes (HypoPG). NEXUS never creates the index | ✅ |
 | 🔌 | Multiple databases (PostgreSQL, MySQL, SQLite) with credentials encrypted at rest (Fernet, key rotation), a connection test that detects write privileges, and schema indexing | ✅ |
-| 📈 | Accuracy benchmark of 120+ questions that picks the default model from data | 🗓️ Phase 6 |
+| 📈 | Benchmark of 126 questions with known answers: execution accuracy per local model, and the default model chosen by a rule fixed in advance ([results](docs/benchmark.md)) | ✅ 71.4 % with `qwen2.5-coder:7b` |
 
 ## 🧭 How it works
 
@@ -165,39 +166,47 @@ It takes under 4 minutes on the reference machine. Once it finishes:
 - Readiness check: http://localhost:8080/api/health/ready
 
 <p align="center">
-  <img src="docs/screenshots/phase5/workspace-answer-desktop-dark.png" alt="NEXUS AI answer: verified summary, date assumptions and the agent's step-by-step reasoning" width="100%">
+  <img src="docs/screenshots/phase6/workspace-answer-desktop-dark.png" alt="NEXUS AI answer: verified summary, date assumptions and the agent's step-by-step reasoning" width="100%">
   <br><sub>The reference question answered: summary with verified figures, a visible date assumption, and the agent timeline with every step, its duration and tokens.</sub>
 </p>
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/phase5/workspace-live-desktop-dark.png" alt="Live agent timeline while planning"></td>
-    <td width="50%"><img src="docs/screenshots/phase5/dashboard-desktop-dark.png" alt="Dashboard with the pinned top-5 products"></td>
+    <td width="50%"><img src="docs/screenshots/phase6/workspace-live-desktop-dark.png" alt="Live agent timeline while planning"></td>
+    <td width="50%"><img src="docs/screenshots/phase6/dashboard-desktop-dark.png" alt="Dashboard with the pinned top-5 products"></td>
   </tr>
   <tr>
     <td><sub><b>Live:</b> each graph node appears as it starts, with a running timer; pending steps are dimmed.</sub></td>
     <td><sub><b>Dashboards:</b> pin any result and come back to it without querying again.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/phase5/workspace-answer-desktop-light.png" alt="The same answer in light mode"></td>
-    <td><img src="docs/screenshots/phase5/connections-desktop-dark.png" alt="Connections screen: tables, estimated rows and retrieval index"></td>
+    <td><img src="docs/screenshots/phase6/workspace-answer-desktop-light.png" alt="The same answer in light mode"></td>
+    <td><img src="docs/screenshots/phase6/connections-desktop-dark.png" alt="Connections screen: tables, estimated rows and retrieval index"></td>
   </tr>
   <tr>
     <td><sub>Light mode (designed, not inverted), with AA contrast checked by tests.</sub></td>
     <td><sub><b>Connections:</b> tables with their comments, row estimates and the RAG index state.</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/phase5/workspace-explanation-desktop-dark.png" alt="Annotated SQL, clause by clause, with the filter highlighted"></td>
-    <td><img src="docs/screenshots/phase5/workspace-optimization-desktop-dark.png" alt="Plan analysis: findings and a suggested index with cost before and after"></td>
+    <td><img src="docs/screenshots/phase6/workspace-explanation-desktop-dark.png" alt="Annotated SQL, clause by clause, with the filter highlighted"></td>
+    <td><img src="docs/screenshots/phase6/workspace-optimization-desktop-dark.png" alt="Plan analysis: findings and a suggested index with cost before and after"></td>
   </tr>
   <tr>
     <td><sub><b>Annotated SQL:</b> each clause explained from the schema comments and glossary rules; hovering highlights it in the SQL.</sub></td>
     <td><sub><b>Optimization:</b> full scans found in the plan and suggested indexes, measured with hypothetical indexes (HypoPG).</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/screenshots/phase6/benchmark-results-desktop-dark.png" alt="Benchmark page: the default model chosen from data and the selection rule"></td>
+    <td><img src="docs/screenshots/phase6/benchmark-tradeoff-desktop-dark.png" alt="Accuracy versus p95 latency per configuration, with the selection band"></td>
+  </tr>
+  <tr>
+    <td><sub><b>Benchmark:</b> 126 questions with known answers choose the default model with a rule fixed in advance.</sub></td>
+    <td><sub><b>Accuracy vs latency:</b> hollow points fail the reference conversation and cannot be the default.</sub></td>
+  </tr>
 </table>
 
 All screenshots (every screen in dark/light × desktop/375 px) are in
-[`docs/screenshots/phase5`](docs/screenshots/phase5), regenerated by `make e2e`.
+[`docs/screenshots/phase6`](docs/screenshots/phase6), regenerated by `make e2e`.
 
 On Windows, run the commands from Git Bash after `winget install ezwinports.make`.
 
@@ -208,7 +217,7 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 | Frontend | React 19, TypeScript (strict), Vite 8, Tailwind v4 on design tokens, Radix primitives styled the shadcn/ui way, Motion, TanStack Query/Table/Virtual, ECharts 6, Shiki, cmdk, i18next (es/en) |
 | Backend | Python 3.13, FastAPI, Pydantic v2, SQLAlchemy 2 (async), structlog |
 | Agent | LangGraph, SQLGlot, swappable `LLMProvider` |
-| Models | Ollama. Candidates: `qwen2.5-coder:7b`, `qwen3:8b`, `gemma4:e4b-it-qat`. Embeddings: `qwen3-embedding:0.6b` |
+| Models | Ollama. Default `qwen2.5-coder:7b`, chosen by the benchmark over `qwen3:8b`, `gemma4:e4b-it-qat` and a per-node routing ([ADR-0022](docs/adr/0022-default-model-from-benchmark.md)). Embeddings: `qwen3-embedding:0.6b` |
 | Data | PostgreSQL 18 (pgvector, HypoPG), MySQL 8, SQLite |
 | Quality | pytest, Testcontainers, Hypothesis, Vitest, Playwright, ruff, mypy `--strict`, ESLint, GitHub Actions |
 
@@ -222,23 +231,26 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 | 3 | Schema RAG, verified examples, memory, charts, grounded explanations | ✅ |
 | 4 | Full UI: design system, live agent timeline, dashboards, command palette | ✅ |
 | 5 | Clause-level explainability, `EXPLAIN`-based optimization, multi-database support | ✅ |
-| 6 | Benchmark of 120+ questions; default model selection | 🔜 next |
-| 7 | Hardening, final docs, demo GIF | 🗓️ |
+| 6 | Benchmark of 126 questions; default model selection | ✅ |
+| 7 | Hardening, final docs, demo GIF | 🔜 next |
 
 ## 🧪 Quality
 
-**Backend.** 546 tests (unit, security and integration against real PostgreSQL, MySQL and SQLite). Coverage is 94 % on
+**Backend.** 619 tests (unit, security and integration against real PostgreSQL, MySQL and SQLite). Coverage is 95 % on
 `agent/`, `security/` and `sql/`, gated at 85 % in CI. ruff and `mypy --strict` are clean.
 
-**Agent.** A live end-to-end test runs the reference question and its follow-up against the real model
-(`make e2e-agent`). [Retrieval evaluation](docs/retrieval-eval.md): every needed table was in context for
+**Agent.** 71.4 % execution accuracy on 126 golden questions (easy 95 %, medium 65 %, hard 39 %, ambiguous
+93 %; [benchmark](docs/benchmark.md)). A live end-to-end test runs the reference question and its follow-up
+against the real model (`make e2e-agent`). [Retrieval evaluation](docs/retrieval-eval.md): every needed table was in context for
 32/32 questions.
 
-**Frontend.** 105 Vitest tests (token AA contrast, SSE parser, timeline, charts, CSV, i18n parity). 22 Playwright
-tests visit every screen in dark/light × desktop/375 px with axe (WCAG 2.2 AA), register and delete a SQLite source, and the reference question
+**Frontend.** 110 Vitest tests (token AA contrast, SSE parser, timeline, charts, CSV, i18n parity, benchmark scales).
+26 Playwright tests visit every screen in dark/light × desktop/375 px with axe (WCAG 2.2 AA), register and delete a
+SQLite source, check the Benchmark page with real results, and the reference question
 also runs in the browser against the real model. Strict ESLint and `tsc`.
 
-**CI.** Every push runs the above in GitHub Actions and builds the Docker images.
+**CI.** Every push runs the above in GitHub Actions and builds the Docker images. A separate workflow runs
+the benchmark's CI subset on the CPU model against a calibrated accuracy gate.
 
 ## 📚 Documentation
 
