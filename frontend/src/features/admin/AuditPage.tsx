@@ -63,7 +63,7 @@ export function AuditPage() {
         <EmptyState icon={ScrollText} title={t("audit.empty")} />
       ) : (
         <Panel className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label={t("audit.tableLabel")} className="overflow-x-auto">
             <table className="w-full min-w-[44rem] text-small">
               <thead className="bg-surface-2 text-left text-fg-muted">
                 <tr>

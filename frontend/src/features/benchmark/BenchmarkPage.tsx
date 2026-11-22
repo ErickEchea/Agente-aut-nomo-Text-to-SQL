@@ -42,7 +42,7 @@ function EmptyBenchmark() {
         <div className="grid w-full gap-2">
           <p className="label-micro">{t("benchmark.howTo")}</p>
           <div className="flex items-center gap-2 rounded-md border border-line bg-surface-2 py-1 pr-1 pl-3">
-            <code className="min-w-0 flex-1 overflow-x-auto font-mono text-small whitespace-nowrap text-fg">{COMMAND}</code>
+            <code tabIndex={0} className="min-w-0 flex-1 overflow-x-auto font-mono text-small whitespace-nowrap text-fg">{COMMAND}</code>
             <CopyButton text={COMMAND} />
           </div>
         </div>

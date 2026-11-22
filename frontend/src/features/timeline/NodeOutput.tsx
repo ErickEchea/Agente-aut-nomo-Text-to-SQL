@@ -42,10 +42,11 @@ function Chips({ items, mono = true }: { items: string[]; mono?: boolean }) {
 }
 
 function Preview({ columns, rows }: { columns: string[]; rows: unknown[][] }) {
+  const { t } = useTranslation();
   const { locale } = usePreferences();
   const kinds = columns.map((c, i) => kindForColumn(c, rows.map((r) => r[i])));
   return (
-    <div className="overflow-x-auto rounded-sm border border-line">
+    <div tabIndex={0} role="region" aria-label={t("timeline.out.preview")} className="overflow-x-auto rounded-sm border border-line">
       <table className="w-full text-[0.75rem]">
         <thead className="bg-surface-2 text-fg-muted">
           <tr>

@@ -5,7 +5,8 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
   retries: 0,
-  reporter: [["list"]],
+  // In CI the github reporter turns failures into annotations readable without signing in.
+  reporter: process.env["CI"] ? [["list"], ["github"]] : [["list"]],
   use: {
     baseURL: process.env["NEXUS_WEB_URL"] ?? "http://127.0.0.1:8080",
     trace: "retain-on-failure",

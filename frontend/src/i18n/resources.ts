@@ -442,6 +442,7 @@ const es = {
   audit: {
     title: "Auditoría",
     subtitle: "Cada consulta ejecutada y cada intento de acceso, con su resultado.",
+    tableLabel: "Registro de auditoría",
     all: "Todos",
     outcome: "Resultado",
     outcomes: { ok: "Correcto", error: "Error", denied: "Denegado", rejected: "Rechazado" },
@@ -946,6 +947,7 @@ const en: Shape<typeof es> = {
   audit: {
     title: "Audit",
     subtitle: "Every executed query and every access attempt, with its outcome.",
+    tableLabel: "Audit log",
     all: "All",
     outcome: "Outcome",
     outcomes: { ok: "OK", error: "Error", denied: "Denied", rejected: "Rejected" },
