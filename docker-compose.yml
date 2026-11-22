@@ -11,6 +11,7 @@ x-backend-image: &backend-build
 x-models: &models
   NEXUS_LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
   NEXUS_EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+  NEXUS_LLM_EXTRA_MODELS: ${NEXUS_LLM_EXTRA_MODELS:-}
 
 services:
   app-db:
@@ -123,7 +124,11 @@ services:
       <<: *models
       OLLAMA_HOST: ollama:11434
     entrypoint: ["/bin/sh", "-c"]
-    command: ['ollama pull "$$NEXUS_LLM_MODEL" && ollama pull "$$NEXUS_EMBEDDING_MODEL"']
+    # Extra models (comma-separated) serve the per-node routing (ADR-0003 §3, ADR-0022).
+    command:
+      - >-
+        ollama pull "$$NEXUS_LLM_MODEL" && ollama pull "$$NEXUS_EMBEDDING_MODEL" &&
+        for m in $$(echo "$$NEXUS_LLM_EXTRA_MODELS" | tr ',' ' '); do ollama pull "$$m" || exit 1; done
     depends_on:
       ollama:
         condition: service_healthy
@@ -146,6 +151,14 @@ services:
       NEXUS_OLLAMA__BASE_URL: http://ollama:11434
       NEXUS_OLLAMA__LLM_MODEL: ${NEXUS_LLM_MODEL:-qwen2.5-coder:3b}
       NEXUS_OLLAMA__EMBEDDING_MODEL: ${NEXUS_EMBEDDING_MODEL:-qwen3-embedding:0.6b}
+      NEXUS_OLLAMA__THINK: ${NEXUS_LLM_THINK:-}
+      NEXUS_OLLAMA__EXTRA_MODELS: ${NEXUS_LLM_EXTRA_MODELS:-}
+      NEXUS_AGENT__MODELS__UNDERSTAND: ${NEXUS_LLM_MODEL_UNDERSTAND:-}
+      NEXUS_AGENT__MODELS__PLAN: ${NEXUS_LLM_MODEL_PLAN:-}
+      NEXUS_AGENT__MODELS__GENERATE: ${NEXUS_LLM_MODEL_GENERATE:-}
+      NEXUS_AGENT__MODELS__REPAIR: ${NEXUS_LLM_MODEL_REPAIR:-}
+      NEXUS_AGENT__MODELS__VISUALIZE: ${NEXUS_LLM_MODEL_VISUALIZE:-}
+      NEXUS_AGENT__MODELS__EXPLAIN: ${NEXUS_LLM_MODEL_EXPLAIN:-}
       NEXUS_SECURITY__JWT_SECRET: ${NEXUS_JWT_SECRET:?run `make env` first}
       NEXUS_SECURITY__BOOTSTRAP_ADMIN_EMAIL: ${NEXUS_ADMIN_EMAIL:-admin@nexus.local}
       NEXUS_SECURITY__BOOTSTRAP_ADMIN_PASSWORD: ${NEXUS_ADMIN_PASSWORD:?run `make env` first}

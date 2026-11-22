@@ -29,6 +29,7 @@ class OllamaProvider:
         *,
         timeout_s: float = 120.0,
         keep_alive: str = "30m",
+        think: bool | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         client_kwargs: dict[str, Any] = {"timeout": timeout_s}
@@ -38,6 +39,7 @@ class OllamaProvider:
         self._default_model = default_model
         self._embedding_model = embedding_model
         self._keep_alive = keep_alive
+        self._think = think  # default reasoning toggle when a call does not set one
 
     @property
     def default_model(self) -> str:
@@ -59,8 +61,9 @@ class OllamaProvider:
         if opts.max_tokens is not None:
             model_options["num_predict"] = opts.max_tokens
         extra: dict[str, Any] = {}
-        if opts.think is not None:
-            extra["think"] = opts.think
+        think = opts.think if opts.think is not None else self._think
+        if think is not None:
+            extra["think"] = think
 
         started = time.perf_counter()
         try:

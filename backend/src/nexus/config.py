@@ -62,10 +62,35 @@ class OllamaSettings(BaseModel):
     llm_model: str = "qwen2.5-coder:7b"
     embedding_model: str = "qwen3-embedding:0.6b"
     request_timeout_s: float = Field(default=5.0, gt=0)
+    # Reasoning toggle for models that think by default (qwen3, gemma4); None = model default.
+    think: bool | None = None
+    # Extra models the per-node routing uses (AgentSettings.models); they must be pulled too.
+    extra_models: str = ""
+
+    @field_validator("think", mode="before")
+    @classmethod
+    def _empty_means_default(cls, value: object) -> object:
+        return None if value == "" else value
 
     @property
     def required_models(self) -> tuple[str, ...]:
-        return (self.llm_model, self.embedding_model)
+        extra = tuple(m.strip() for m in self.extra_models.split(",") if m.strip())
+        return tuple(dict.fromkeys((self.llm_model, *extra, self.embedding_model)))
+
+
+class NodeModelSettings(BaseModel):
+    """Per-node model routing (ADR-0003); empty = the default model (``ollama.llm_model``)."""
+
+    understand: str | None = None
+    plan: str | None = None
+    generate: str | None = None
+    repair: str | None = None
+    visualize: str | None = None
+    explain: str | None = None
+
+    def routing(self) -> dict[str, str | None]:
+        """Keyword arguments for ``nexus.agent.state.NodeModels`` (blank = the default model)."""
+        return {name: (value or None) for name, value in self.model_dump().items()}
 
 
 class SecuritySettings(BaseModel):
@@ -96,6 +121,7 @@ class AgentSettings(BaseModel):
     llm_timeout_s: float = Field(default=180.0, gt=0)
     connection_key: str = "retail-demo"
     retrieval_max_tables: int = Field(default=4, ge=1, le=20)
+    models: NodeModelSettings = Field(default_factory=NodeModelSettings)
 
     @field_validator("as_of", mode="before")
     @classmethod

@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import (
 
 from nexus.agent.catalog import SchemaCatalog
 from nexus.agent.glossary import Glossary, load_glossary
+from nexus.agent.state import AgentContext, AuditSink, EventSink, MemorySink, NodeModels
 from nexus.config import Settings
 from nexus.datasources.cipher import CredentialCipher
 from nexus.datasources.dialects import DialectProfile, Kind, profile_for
@@ -37,6 +38,7 @@ from nexus.datasources.introspect import (
 )
 from nexus.db.engines import create_engine
 from nexus.db.models import DataConnection
+from nexus.llm import LLMProvider
 from nexus.rag.embeddings import Embedder
 from nexus.rag.indexer import IndexReport, ensure_index, example_loader, load_example_records
 from nexus.rag.retriever import HybridRetriever
@@ -249,6 +251,58 @@ class SourceRuntime:
     @property
     def key(self) -> str:
         return self.spec.key
+
+    def agent_context(
+        self,
+        *,
+        llm: LLMProvider,
+        events: EventSink,
+        audit: AuditSink,
+        memory: MemorySink,
+        locale: str = "es",
+        max_repairs: int = 3,
+        models: NodeModels | None = None,
+    ) -> AgentContext:
+        """The agent's view of this source; the API and the benchmark build it the same way."""
+        return AgentContext(
+            llm=llm,
+            catalog=self.catalog,
+            glossary=self.glossary,
+            policy=self.policy,
+            executor=self.executor,
+            as_of=self.as_of,
+            events=events,
+            audit=audit,
+            masker=self.masker,
+            retriever=self.retriever,
+            memory=memory,
+            models=models or NodeModels(),
+            max_repairs=max_repairs,
+            locale="en" if locale == "en" else "es",
+            dialect=self.profile,
+        )
+
+
+DEMO_NAME = "Retail demo (Ecuador)"
+
+
+def builtin_spec(settings: Settings) -> ConnectionSpec:
+    """The demo source configured from the environment (ADR-0006); not stored in the app DB."""
+    agent, db = settings.agent, settings.demo_db
+    return ConnectionSpec(
+        key=agent.connection_key,
+        name=DEMO_NAME,
+        kind="postgresql",
+        database=db.name,
+        schema=agent.schema_name,
+        host=db.host,
+        port=db.port,
+        username=db.user,
+        password=db.password,
+        as_of=agent.as_of,
+        pii_columns=tuple(agent.pii_column_list),
+        builtin=True,
+    )
 
 
 class ConnectionRegistry:

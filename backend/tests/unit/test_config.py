@@ -76,3 +76,30 @@ def test_libpq_conninfo_quotes_values() -> None:
 def test_weak_jwt_secret_is_rejected() -> None:
     with pytest.raises(ValidationError, match="at least 32"):
         Settings(app_db=_db(), demo_db=_db(), security=_security("short"))  # type: ignore[arg-type]
+
+
+def test_model_routing_and_reasoning_toggle_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    for name, value in {
+        "NEXUS_APP_DB__HOST": "a", "NEXUS_APP_DB__NAME": "a", "NEXUS_APP_DB__USER": "a",
+        "NEXUS_APP_DB__PASSWORD": "a", "NEXUS_DEMO_DB__HOST": "d", "NEXUS_DEMO_DB__NAME": "d",
+        "NEXUS_DEMO_DB__USER": "d", "NEXUS_DEMO_DB__PASSWORD": "d",
+        "NEXUS_SECURITY__JWT_SECRET": "s" * 40,
+        "NEXUS_OLLAMA__THINK": "",  # docker compose passes empty values for unset options
+        "NEXUS_OLLAMA__EXTRA_MODELS": "qwen3:8b, ",
+        "NEXUS_AGENT__MODELS__PLAN": "qwen3:8b",
+        "NEXUS_AGENT__MODELS__GENERATE": "",
+    }.items():  # fmt: skip
+        monkeypatch.setenv(name, value)
+    settings = Settings()  # type: ignore[call-arg]
+    assert settings.ollama.think is None
+    assert settings.ollama.required_models == (
+        "qwen2.5-coder:7b",
+        "qwen3:8b",
+        "qwen3-embedding:0.6b",
+    )
+    routing = settings.agent.models.routing()
+    assert routing["plan"] == "qwen3:8b" and routing["generate"] is None
+    monkeypatch.setenv("NEXUS_OLLAMA__THINK", "false")
+    assert Settings().ollama.think is False  # type: ignore[call-arg]
