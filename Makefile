@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration test-security coverage audit audit-deps audit-secrets audit-images load load-users e2e e2e-user e2e-agent eval-retrieval bench bench-freeze bench-report bench-ci api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage audit audit-deps audit-secrets audit-images load load-users demo-gif e2e e2e-user e2e-agent eval-retrieval bench bench-freeze bench-report bench-ci api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -93,8 +93,9 @@ audit-images: ## Fixable HIGH/CRITICAL CVEs in the images this repo builds (Triv
 	@# standard-library CVEs scanners report in it do not apply (https://github.com/tianon/gosu).
 	$(TRIVY) --skip-files /usr/local/bin/gosu nexus-demo-db:$(IMAGE_TAG)
 
-# Default selection skips the slow real-model specs; override, e.g. E2E_ARGS="--grep @llm --workers 1".
-E2E_ARGS ?= --grep-invert @llm
+# Default selection skips the slow real-model specs (@llm, and the @demo recording); override, e.g.
+# E2E_ARGS="--grep @llm --workers 1".
+E2E_ARGS ?= --grep-invert "@llm|@demo"
 E2E_ENV = NEXUS_E2E_EMAIL='$(call ENV_VAL,NEXUS_E2E_EMAIL)' NEXUS_E2E_PASSWORD='$(call ENV_VAL,NEXUS_E2E_PASSWORD)'
 
 e2e-user: env ## Create the Playwright account from .env if it does not exist (stack up)
@@ -107,6 +108,10 @@ e2e: e2e-user data/sqlite/retail_mini.sqlite ## Playwright end-to-end tests: eve
 e2e-agent: e2e-user ## Reference question with the real model: API (pytest) and browser (Playwright) (stack up)
 	$(BACKEND) PYTHONIOENCODING=utf-8 uv run pytest tests/e2e -m llm -s
 	$(FRONTEND) $(E2E_ENV) npx playwright test --grep @llm --workers 1
+
+demo-gif: e2e-user ## Record the reference question + follow-up with the real model -> docs/assets/demo.gif (stack up, ffmpeg)
+	$(FRONTEND) $(E2E_ENV) npx playwright test --grep @demo --project desktop --workers 1
+	node scripts/demo-gif.mjs frontend/test-results/demo/demo.json docs/assets/demo.gif
 
 # Benchmark CLI inside the backend image (same code, roles and Ollama as the API), bench/ and docs/ mounted
 # (MSYS_NO_PATHCONV keeps Git Bash from rewriting the ./bench:/app/bench volume spec on Windows).
