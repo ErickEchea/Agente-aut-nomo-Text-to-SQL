@@ -137,8 +137,42 @@ test.describe("signed in", () => {
     await page.getByRole("button", { name: "Eliminar" }).click();
     await page.getByRole("dialog", { name: `¿Eliminar «${name}»?` }).getByRole("button", { name: "Eliminar" }).click();
     await expect(card).toBeHidden();
+    await page.waitForLoadState("networkidle"); // a late refetch of the deleted source would 404
     expect(errors).toEqual([]);
   });
+
+  for (const scheme of ["dark", "light"] as const) {
+    test(`benchmark results: chosen model, trade-off, comparison and questions (${scheme})`, async ({}, testInfo) => {
+      await setTheme(page, scheme);
+      await page.goto("/benchmark");
+      await expect(page.getByRole("heading", { level: 1, name: "Benchmark de modelos" })).toBeVisible();
+      const chosen = page.getByText("Modelo por defecto elegido con datos");
+      const empty = page.getByText("Aún no hay resultados");
+      await expect(chosen.or(empty)).toBeVisible(); // wait for the data, whichever state it is
+      if (await empty.isVisible()) {
+        // No `make bench` run on this stack: the honest empty state, never invented numbers.
+        return;
+      }
+      await expect(page.getByRole("group", { name: "Exactitud frente a latencia" })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Comparación por configuración" })).toBeVisible();
+      const points = page.getByRole("img", { name: /exactitud .* latencia p95/ });
+      expect(await points.count()).toBeGreaterThanOrEqual(1);
+      await points.first().focus();
+      await page.getByRole("radio", { name: "Todas", exact: true }).click();
+      const questions = page.locator("details");
+      await expect(questions.first()).toBeVisible();
+      await page.getByLabel("Dificultad").selectOption("ambiguous");
+      await expect(page.getByText(/^a0\d\d$/).first()).toBeVisible();
+      await page.waitForTimeout(400);
+      await expectNoHorizontalScroll(page);
+      await expectAccessible(page);
+      await page.getByText("Modelo por defecto elegido con datos").scrollIntoViewIfNeeded();
+      await screenshot(page, testInfo, "benchmark-results", scheme);
+      await page.getByRole("group", { name: "Exactitud frente a latencia" }).scrollIntoViewIfNeeded();
+      await screenshot(page, testInfo, "benchmark-tradeoff", scheme);
+      expect(errors).toEqual([]);
+    });
+  }
 
   test("language and theme preferences apply instantly", async () => {
     await setTheme(page, "dark");

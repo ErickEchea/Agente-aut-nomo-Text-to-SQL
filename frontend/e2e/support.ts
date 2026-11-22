@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Browser, type Page, type TestInfo } from "@playwright/test";
 
-export const SCREENSHOTS = "../docs/screenshots/phase5";
+export const SCREENSHOTS = "../docs/screenshots/phase6";
 export const E2E_EMAIL = process.env["NEXUS_E2E_EMAIL"] ?? "";
 export const E2E_PASSWORD = process.env["NEXUS_E2E_PASSWORD"] ?? "";
 export const HAS_CREDENTIALS = E2E_EMAIL !== "" && E2E_PASSWORD !== "";
