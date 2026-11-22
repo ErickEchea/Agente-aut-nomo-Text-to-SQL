@@ -17,6 +17,15 @@ Small models hallucinate figures. An executive summary with a wrong number is wo
   from resolved ranges are allowed explicitly.
 - On failure: regenerate with the offending numbers listed (max 2 retries). If still ungrounded, fall back to a
   deterministic template summary built from the data — the UI marks it as such.
+- **One number format (Phase 7)**: the model mixes `291,168.77` and `291.168,77` in one Spanish answer. After
+  the check passes, every token that cites a quantity of the results is re-rendered in the UI's format (`es-EC`
+  / `en-US`), with the decimals the text showed. The reading that matched the data decides the value. Left
+  as written:
+  - year columns and numbers that come from dates or the question;
+  - text cells such as `Agua mineral 1.5 L`;
+  - ambiguous readings.
+
+  (`nexus.agent.grounding.localize_numbers`.)
 
 ## Consequences
 - Summaries can be less fluent but are never numerically wrong; the benchmark tracks the grounding failure rate.

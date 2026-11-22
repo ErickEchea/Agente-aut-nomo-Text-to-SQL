@@ -444,6 +444,29 @@ async def test_answer_uses_grounded_explanation_and_charts() -> None:
     ]
 
 
+async def test_grounded_numbers_reach_the_user_in_one_format() -> None:
+    """The model wrote English separators in a Spanish answer; the user sees the UI's format."""
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood()],
+            Plan: [Plan(steps=["Top 5 productos por unidades", "Sucursal con más ingresos"])],
+            SqlCandidate: [candidate(TOP5_SQL), candidate(BRANCH_SQL)],
+            Explanation: [
+                Explanation(
+                    headline="Samborondón lideró con $299,672.19 en ingresos.",
+                    bullets=["Agua mineral 1.5 L vendió 4,768 unidades."],
+                )
+            ],
+        }
+    )
+    final, sink, _ = await run(llm, FakeExecutor([("unidades", TOP5), ("ingresos", BRANCH)]))
+    assert final["answer"].startswith("Samborondón lideró con $299.672,19")
+    assert final["explanation"] is not None
+    assert final["explanation"].explanation.bullets == ["Agua mineral 1.5 L vendió 4.768 unidades."]
+    event = next(d for e, d in sink.events if e == "node.completed" and d["node"] == "explain")
+    assert "299.672,19" in event["output"]["text"]  # type: ignore[index]
+
+
 async def test_ungrounded_explanation_is_retried_then_falls_back() -> None:
     q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
     invented = Explanation(headline="Samborondón facturó $312.450,00, un 12 % más.")

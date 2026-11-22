@@ -12,6 +12,7 @@ import re
 import unicodedata
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from nexus.sql.executor import JsonScalar
 
@@ -110,3 +111,73 @@ def ungrounded(text: str, allowed: set[float]) -> list[str]:
         for token in extract_numbers(text)
         if not any(_matches(value, tol, allowed) for value, tol in token.readings)
     ]
+
+
+def format_number(value: float, decimals: int, locale: Literal["es", "en"]) -> str:
+    """The UI's number format (``Intl`` es-EC / en-US): grouped thousands, fixed decimals."""
+    english = f"{value:,.{decimals}f}"
+    if locale == "en":
+        return english
+    return english.translate(str.maketrans(",.", ".,"))
+
+
+YEAR_COLUMNS = frozenset({"anio", "año", "ano", "year"})
+
+
+def quantity_values(
+    results: Iterable[tuple[Sequence[str], Sequence[Sequence[JsonScalar]]]],
+) -> set[float]:
+    """Numeric cells that are quantities: every number in (columns, rows) except year columns.
+
+    Years come from the resolved dates or from ``anio`` columns, and "2.026" would be wrong.
+    """
+    values: set[float] = set()
+    for columns, rows in results:
+        wanted = [i for i, name in enumerate(columns) if name.strip().lower() not in YEAR_COLUMNS]
+        for row in rows:
+            for i in wanted:
+                cell = row[i] if i < len(row) else None
+                if isinstance(cell, int | float) and not isinstance(cell, bool):
+                    values.add(float(cell))
+    return values
+
+
+def localize_numbers(
+    text: str, quantities: set[float], locale: Literal["es", "en"], *, keep: Iterable[str] = ()
+) -> str:
+    """Rewrite each number that cites a quantity in the locale's format, with its shown decimals.
+
+    The model mixes "291,168.77" and "291.168,77" in one Spanish answer. Only tokens that match a
+    quantity of the results (``quantity_values``) change; the reading that matched decides the
+    value. Left as written:
+    - numbers inside ``keep`` strings, i.e. text cells such as "Agua mineral 1.5 L";
+    - numbers that come from the question, the dates or text cells (years, "1.5 L");
+    - tokens whose readings match different quantities (e.g. "1.500" when 1.5 and 1500 occur).
+    """
+    lowered = text.lower()
+    protected: list[tuple[int, int]] = []
+    for phrase in {k.strip().lower() for k in keep if k.strip()}:
+        start = lowered.find(phrase)
+        while start != -1:
+            protected.append((start, start + len(phrase)))
+            start = lowered.find(phrase, start + 1)
+    pieces: list[str] = []
+    last = 0
+    for match in _NUMBER.finditer(text):
+        start, end = match.span("num")
+        if any(p_start <= start < p_end for p_start, p_end in protected):
+            continue
+        suffix = (match.group("suffix") or "").strip().lower()
+        scale = _SCALES.get(suffix, 1.0) if suffix and suffix != "%" else 1.0
+        matched = [
+            (value, decimals)
+            for value, decimals in _readings(match.group("num"))
+            if _matches(value * scale, 0.5 * 10 ** (-decimals) * scale, quantities)
+        ]
+        if len({value for value, _ in matched}) != 1:
+            continue
+        value, decimals = matched[0]
+        pieces += [text[last:start], format_number(value, decimals, locale)]
+        last = end
+    pieces.append(text[last:])
+    return "".join(pieces)

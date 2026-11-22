@@ -8,11 +8,18 @@ timeline shows (JSON-safe, already trimmed). Nodes never emit events themselves:
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from typing import Literal
 
 from nexus.agent import prompts
 from nexus.agent.charts import ChartChoice, ChartSpec, build_spec, candidates_for
-from nexus.agent.grounding import allowed_values, ungrounded
+from nexus.agent.grounding import (
+    allowed_values,
+    localize_numbers,
+    quantity_values,
+    ungrounded,
+)
 from nexus.agent.state import (
     AgentContext,
     AgentState,
@@ -545,6 +552,25 @@ def _template_summary(results: list[StepResult], locale: str = "es") -> str:
     return "\n".join(lines)
 
 
+def _localized(
+    explanation: Explanation, locale: Literal["es", "en"], results: Sequence[StepResult]
+) -> Explanation:
+    """Grounded numbers in the UI format (ADR-0014); text cells such as product names stay."""
+    quantities = quantity_values((r.columns, r.rows) for r in results)
+    keep = [cell for r in results for row in r.rows for cell in row if isinstance(cell, str)]
+
+    def fix(text: str) -> str:
+        return localize_numbers(text, quantities, locale, keep=keep)
+
+    return explanation.model_copy(
+        update={
+            "headline": fix(explanation.headline),
+            "bullets": [fix(b) for b in explanation.bullets],
+            "caveats": [fix(c) for c in explanation.caveats],
+        }
+    )
+
+
 def _explanation_text(explanation: Explanation) -> str:
     lines = [explanation.headline, *(f"• {b}" for b in explanation.bullets)]
     lines += [f"⚠ {c}" for c in explanation.caveats]
@@ -655,12 +681,16 @@ async def explain(state: AgentState, ctx: AgentContext) -> NodeResult:
         text = _explanation_text(completion.parsed)
         offending = ungrounded(text, allowed)
         if not offending:
-            outcome = ExplanationResult(
-                completion.parsed, grounded=True, fallback=False, attempts=attempts
-            )
+            localized = _localized(completion.parsed, ctx.locale, results)
+            outcome = ExplanationResult(localized, grounded=True, fallback=False, attempts=attempts)
             return NodeResult(
                 {"explanation": outcome, "usage": usage},
-                {"grounded": True, "fallback": False, "attempts": attempts, "text": text},
+                {
+                    "grounded": True,
+                    "fallback": False,
+                    "attempts": attempts,
+                    "text": _explanation_text(localized),
+                },
             )
     fallback = Explanation(headline=_template_summary(results, ctx.locale), bullets=[], caveats=[])
     outcome = ExplanationResult(
