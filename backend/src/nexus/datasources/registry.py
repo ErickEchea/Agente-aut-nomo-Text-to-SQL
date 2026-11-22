@@ -36,6 +36,7 @@ from nexus.datasources.introspect import (
     introspect_catalog,
     row_estimates,
 )
+from nexus.datasources.targets import target_problem
 from nexus.db.engines import create_engine
 from nexus.db.models import DataConnection
 from nexus.llm import LLMProvider
@@ -204,9 +205,20 @@ _VERSION_SQL: dict[Kind, str] = {
 }
 
 
+async def check_target(spec: ConnectionSpec, settings: Settings) -> None:
+    """Refuse network targets that are NEXUS's own services or forbidden ranges (ADR-0023)."""
+    if spec.builtin or spec.kind == "sqlite":
+        return
+    port = spec.port or profile_for(spec.kind).default_port or 0
+    problem = await target_problem(spec.host or "", port, settings)
+    if problem is not None:
+        raise SourceError(problem)
+
+
 async def probe(spec: ConnectionSpec, settings: Settings) -> ProbeResult:
     """Open, read the version, count visible tables and check write privileges."""
     try:
+        await check_target(spec, settings)
         engine = create_source_engine(spec, settings)
     except SourceError as exc:
         return ProbeResult(ok=False, error=str(exc))
@@ -397,6 +409,7 @@ class ConnectionRegistry:
         settings = self.settings
         agent = settings.agent
         profile = profile_for(spec.kind)
+        await check_target(spec, settings)
         engine = (
             self._builtin_engine
             if spec.builtin and self._builtin_engine is not None

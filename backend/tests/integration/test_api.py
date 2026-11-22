@@ -457,6 +457,28 @@ def test_connections_describe_the_demo_source(client: TestClient) -> None:
     )
 
 
+def test_the_application_database_cannot_become_a_data_source(
+    client: TestClient, migrated_app_db: DatabaseSettings
+) -> None:
+    """Even with valid credentials, NEXUS's own database is refused before any driver connects."""
+    admin = login(client, ADMIN)
+    body = {
+        "name": "App DB",
+        "kind": "postgresql",
+        "host": migrated_app_db.host,
+        "port": migrated_app_db.port,
+        "database": migrated_app_db.name,
+        "username": migrated_app_db.user,
+        "password": migrated_app_db.password.get_secret_value(),
+    }
+    probe = client.post("/api/connections/test", json=body, headers=admin).json()
+    assert not probe["ok"]
+    assert "base de datos de la aplicación" in probe["error"]
+    created = client.post("/api/connections", json=body, headers=admin)
+    assert created.status_code == 422
+    assert "servicio interno" in created.json()["detail"]
+
+
 def _wait_indexed(client: TestClient, headers: dict[str, str], key: str) -> dict[str, object]:
     deadline = time.monotonic() + 60
     while True:
