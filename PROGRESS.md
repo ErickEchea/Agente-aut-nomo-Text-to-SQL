@@ -92,8 +92,9 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
   pinned by hash, so any such change must be re-benchmarked.
 - **Sample size**: 126 questions give about ±8 points at 95 %. The top three configurations are
   statistically tied on accuracy.
-- **CI subset on CPU**: the first GitHub Actions run is the real check of the CPU calibration. The gate
-  allows two questions of drift.
+- **CI subset on CPU**: the first GitHub Actions run (run 45071212312, about 30 minutes) passed the 0.6
+  gate on CPU. The exact CPU accuracy is in that run's `bench-ci-results` artifact, which is readable
+  only when signed in to GitHub.
 - **CPU profile**: `qwen2.5-coder:3b` reaches 57 % (53 % on ambiguous questions); GPU is the supported
   profile.
 
