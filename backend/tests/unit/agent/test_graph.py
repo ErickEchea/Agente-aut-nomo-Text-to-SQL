@@ -143,6 +143,22 @@ async def test_plan_made_of_sql_falls_back_to_the_question() -> None:
     assert plan_event["output"]["rejected"] == "sql_in_plan"  # type: ignore[index]
 
 
+async def test_unusable_plan_falls_back_to_the_question() -> None:
+    q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood(q)],
+            Plan: [invalid_output()],  # e.g. JSON truncated by the token budget
+            SqlCandidate: [candidate(BRANCH_SQL)],
+        }
+    )
+    final, sink, _ = await run(llm, FakeExecutor([("ingresos", BRANCH)]), question=q)
+    assert final["status"] is RunStatus.ANSWERED
+    assert final["steps"] == [q]
+    plan_event = next(d for e, d in sink.events if e == "node.completed" and d["node"] == "plan")
+    assert plan_event["output"]["rejected"] == "invalid_plan"  # type: ignore[index]
+
+
 async def test_guard_refuses_without_calling_the_model() -> None:
     llm = ScriptedLLM({})
     final, sink, _ = await run(

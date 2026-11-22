@@ -148,11 +148,22 @@ async def understand(state: AgentState, ctx: AgentContext) -> NodeResult:
 
 async def plan(state: AgentState, ctx: AgentContext) -> NodeResult:
     question = state["standalone_question"]
-    completion = await ctx.llm.complete(
-        prompts.plan_messages(question),
-        Plan,
-        GenerationOptions(model=ctx.models.plan, max_tokens=300),
-    )
+    try:
+        completion = await ctx.llm.complete(
+            prompts.plan_messages(question),
+            Plan,
+            GenerationOptions(model=ctx.models.plan, max_tokens=300),
+        )
+    except StructuredOutputError as exc:
+        # Splitting is an optimization: an unusable plan (e.g. truncated JSON) means one step.
+        summary_invalid: dict[str, object] = {
+            "steps": [question],
+            "strategy": "single_query",
+            "rejected": "invalid_plan",
+        }
+        return NodeResult(
+            {"steps": [question], "current_step": 0, "usage": [exc.usage]}, summary_invalid
+        )
     steps = [s.strip() for s in completion.parsed.steps if s.strip()][:MAX_STEPS] or [question]
     summary: dict[str, object] = {}
     if any(_SQL_STEP.search(step) for step in steps):
