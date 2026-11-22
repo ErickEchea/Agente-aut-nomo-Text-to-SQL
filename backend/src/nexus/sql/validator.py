@@ -13,7 +13,7 @@ from enum import StrEnum
 
 import sqlglot
 from sqlglot import exp
-from sqlglot.errors import ParseError
+from sqlglot.errors import SqlglotError
 
 # sqlglot logs a warning when it falls back to exp.Command; we reject Command anyway.
 logging.getLogger("sqlglot").setLevel(logging.ERROR)
@@ -210,7 +210,7 @@ def validate_sql(sql: str, policy: ValidationPolicy) -> ValidatedSQL:
         raise SQLValidationError(ViolationCode.TOO_LONG, f"over {MAX_SQL_LENGTH} characters")
     try:
         statements = [s for s in sqlglot.parse(text, dialect=policy.dialect) if s is not None]
-    except ParseError as exc:
+    except SqlglotError as exc:  # parse and tokenizer errors (unterminated strings): fail closed
         raise SQLValidationError(ViolationCode.PARSE_ERROR, str(exc).splitlines()[0]) from exc
     if len(statements) != 1:
         raise SQLValidationError(

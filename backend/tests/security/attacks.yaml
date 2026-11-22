@@ -32,6 +32,9 @@ sql_attacks:
   - {id: leading_comment_delete, sql: "/* reporte */ DELETE FROM ventas", code: forbidden_statement, destructive: true}
   - {id: line_comment_drop, sql: "-- consulta segura\nDROP TABLE ventas", code: forbidden_statement, destructive: true}
   - {id: comment_split_keyword, sql: "DEL/**/ETE FROM ventas", code: parse_error, destructive: true}
+  # Malformed model output (found by the Phase 6 benchmark): a tokenizer error must be a rejection, not a crash.
+  - {id: unterminated_string, sql: "SELECT COUNT(*) FROM ventas v WHERE v.fecha_venta < DATE '2026-11-01 AND v.estado = 'x'", code: parse_error, destructive: false}
+  - {id: unterminated_identifier, sql: "SELECT \"nombre FROM sucursales", code: parse_error, destructive: false}
 
   # --- Data-modifying CTEs -----------------------------------------------------------------------
   - {id: cte_delete, sql: "WITH d AS (DELETE FROM ventas RETURNING *) SELECT count(*) FROM d", code: forbidden_statement, destructive: true}
