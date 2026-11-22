@@ -13,11 +13,21 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from nexus import __version__
 from nexus.agent.graph import build_graph
-from nexus.agent.state import AgentContext, AuditSink, EventSink, MemorySink
-from nexus.api import audit, auth, connections, dashboards, health, insights, memory, runs
+from nexus.agent.state import AgentContext, AuditSink, EventSink, MemorySink, NodeModels
+from nexus.api import (
+    audit,
+    auth,
+    benchmark,
+    connections,
+    dashboards,
+    health,
+    insights,
+    memory,
+    runs,
+)
 from nexus.api.deps import AppServices
 from nexus.config import Settings, get_settings
-from nexus.datasources.registry import ConnectionRegistry, ConnectionSpec
+from nexus.datasources.registry import ConnectionRegistry, builtin_spec
 from nexus.db.engines import create_engine
 from nexus.health.checks import AppDatabaseCheck, DemoDatabaseCheck, HealthCheck, OllamaCheck
 from nexus.llm import LLMError, LLMProvider
@@ -42,29 +52,9 @@ ROUTERS: tuple[APIRouter, ...] = (
     memory.router,
     dashboards.router,
     connections.router,
+    benchmark.router,
     audit.router,
 )
-
-DEMO_NAME = "Retail demo (Ecuador)"
-
-
-def builtin_spec(settings: Settings) -> ConnectionSpec:
-    """The demo source configured from the environment (ADR-0006); not stored in the app DB."""
-    agent, db = settings.agent, settings.demo_db
-    return ConnectionSpec(
-        key=agent.connection_key,
-        name=DEMO_NAME,
-        kind="postgresql",
-        database=db.name,
-        schema=agent.schema_name,
-        host=db.host,
-        port=db.port,
-        username=db.user,
-        password=db.password,
-        as_of=agent.as_of,
-        pii_columns=tuple(agent.pii_column_list),
-        builtin=True,
-    )
 
 
 def create_app(
@@ -106,6 +96,7 @@ def create_app(
             settings.ollama.llm_model,
             settings.ollama.embedding_model,
             timeout_s=agent_cfg.llm_timeout_s,
+            think=settings.ollama.think,
         )
         store = PgDocumentStore(sessions)
         embedder = Embedder(provider, profile_for(settings.ollama.embedding_model))
@@ -132,21 +123,14 @@ def create_app(
             locale: str,
         ) -> AgentContext:
             source = await registry.get(connection_key)
-            return AgentContext(
+            return source.agent_context(
                 llm=provider,
-                catalog=source.catalog,
-                glossary=source.glossary,
-                policy=source.policy,
-                executor=source.executor,
-                as_of=source.as_of,
                 events=events,
                 audit=audit_sink,
-                masker=source.masker,
-                retriever=source.retriever,
                 memory=memory_sink,
+                locale=locale,
                 max_repairs=agent_cfg.max_repairs,
-                locale="en" if locale == "en" else "es",
-                dialect=source.profile,
+                models=NodeModels(**agent_cfg.models.routing()),
             )
 
         manager = RunManager(sessions, build_graph(), context_factory, EventBroker())

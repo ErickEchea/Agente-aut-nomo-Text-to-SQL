@@ -1,0 +1,34 @@
+# Model configurations for `make bench` (ADR-0003 candidates, ADR-0015 methodology).
+# `think: false` turns off the reasoning phase of models that think by default (qwen3, gemma4): the agent
+# asks for small JSON objects, and thinking tokens would multiply latency and eat the output budget.
+configs:
+  - name: qwen2.5-coder-7b
+    model: qwen2.5-coder:7b
+    description: Code specialist; the default before this benchmark.
+  - name: qwen3-8b
+    model: qwen3:8b
+    think: false
+    description: Generalist with good Spanish, reasoning off.
+  - name: gemma4-e4b
+    model: gemma4:e4b-it-qat
+    think: false
+    description: Newest small generalist (QAT), reasoning off.
+  - name: routed-qwen3-coder
+    model: qwen2.5-coder:7b
+    nodes:
+      understand: qwen3:8b
+      plan: qwen3:8b
+      explain: qwen3:8b
+    think: false
+    description: Generalist for language nodes, code specialist for SQL (model swaps on 8 GB VRAM).
+  - name: qwen2.5-coder-3b
+    model: qwen2.5-coder:3b
+    description: CPU profile model; also the model of the CI subset.
+
+# CI gate (`make bench-ci`, .github/workflows/bench.yml): a fixed subset on the CPU model.
+ci:
+  config: qwen2.5-coder-3b
+  items: [e001, e004, e008, e016, e025, e028, e035, m001, m002, m003, m018, m021, h005, a001, a003]
+  # Calibrated 2026-11-22 (ADR-0022): baseline 11/15 = 0.733 with qwen2.5-coder:3b on the reference GPU.
+  # The gate allows two questions of drift for CPU inference (different numeric paths at temperature 0).
+  min_accuracy: 0.6

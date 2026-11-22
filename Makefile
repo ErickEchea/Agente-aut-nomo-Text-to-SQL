@@ -13,7 +13,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down restart clean ps logs seed reseed \
-        install test test-unit test-integration test-security coverage e2e e2e-user e2e-agent eval-retrieval api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
+        install test test-unit test-integration test-security coverage e2e e2e-user e2e-agent eval-retrieval bench bench-freeze bench-report bench-ci api-types sqlite-demo rotate-keys create-user         lint format typecheck check hooks
 
 help: ## List available targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -79,6 +79,29 @@ e2e: e2e-user data/sqlite/retail_mini.sqlite ## Playwright end-to-end tests: eve
 e2e-agent: e2e-user ## Reference question with the real model: API (pytest) and browser (Playwright) (stack up)
 	$(BACKEND) PYTHONIOENCODING=utf-8 uv run pytest tests/e2e -m llm -s
 	$(FRONTEND) $(E2E_ENV) npx playwright test --grep @llm --workers 1
+
+# Benchmark CLI inside the backend image (same code, roles and Ollama as the API), bench/ and docs/ mounted
+# (MSYS_NO_PATHCONV keeps Git Bash from rewriting the ./bench:/app/bench volume spec on Windows).
+BENCH_RUN = MSYS_NO_PATHCONV=1 $(COMPOSE) run --rm --no-deps -v ./bench:/app/bench -v ./docs:/app/docs -e PYTHONIOENCODING=utf-8 backend
+MODELS ?=
+CONFIGS ?= qwen2.5-coder-7b qwen3-8b gemma4-e4b routed-qwen3-coder
+SUBSET ?= full
+BENCH_HARDWARE ?= NVIDIA RTX 5060 Laptop (8 GB VRAM), Ollama 0.40.16, Windows 11 + Docker Desktop
+
+bench-freeze: ## Execute the gold SQL (validated, read-only) and freeze bench/golden/expected.json (stack up)
+	$(BENCH_RUN) nexus-bench freeze
+
+bench: ## Golden-set benchmark -> bench/results + docs/benchmark.md (CONFIGS="...", MODELS="...", SUBSET=full|ci|ids)
+	$(BENCH_RUN) nexus-bench run $(if $(strip $(CONFIGS)),--configs $(CONFIGS),) $(if $(strip $(MODELS)),--models $(MODELS),) \
+	  --subset $(SUBSET) --git-sha "$$(git rev-parse --short HEAD)"
+	$(MAKE) bench-report
+
+bench-report: ## Render docs/benchmark.md from bench/results
+	$(BENCH_RUN) nexus-bench report --hardware "$(BENCH_HARDWARE)"
+
+bench-ci: ## CI subset on the CPU model and the calibrated accuracy gate (stack up)
+	$(BENCH_RUN) nexus-bench run --configs qwen2.5-coder-3b --subset ci --git-sha "$$(git rev-parse --short HEAD)"
+	$(BENCH_RUN) nexus-bench check
 
 eval-retrieval: ## Measure schema retrieval (recall@5, completeness) per embedding model (stack up)
 	$(BACKEND) NEXUS_APP_DB__HOST=127.0.0.1 NEXUS_APP_DB__PORT=$(call ENV_VAL,NEXUS_APP_DB_PORT) 	  NEXUS_APP_DB__NAME=nexus_app NEXUS_APP_DB__USER=nexus_app NEXUS_APP_DB__PASSWORD=$(call ENV_VAL,NEXUS_APP_DB_PASSWORD) 	  NEXUS_DEMO_DB__HOST=127.0.0.1 NEXUS_DEMO_DB__PORT=$(call ENV_VAL,NEXUS_DEMO_DB_PORT) NEXUS_DEMO_DB__NAME=retail 	  NEXUS_DEMO_DB__USER=nexus_reader NEXUS_DEMO_DB__PASSWORD=$(call ENV_VAL,NEXUS_DEMO_READER_PASSWORD) 	  NEXUS_OLLAMA__BASE_URL=http://127.0.0.1:$(call ENV_VAL,NEXUS_OLLAMA_PORT) PYTHONIOENCODING=utf-8 	  uv run nexus-eval-retrieval

@@ -1,0 +1,477 @@
+# Golden set: medium questions (joins plus aggregation, glossary metrics, time grain).
+# "ingresos" and "unidades vendidas" follow data/glossary.yaml: completed sales only, returned lines excluded.
+difficulty: medium
+items:
+  - id: m001
+    question: "¿Cuáles fueron los cinco productos más vendidos durante el último trimestre?"
+    tags: [unidades_vendidas, productos, ranking, tiempo_relativo]
+    order_matters: true
+    gold_sql: |
+      SELECT p.nombre, SUM(dv.cantidad) AS unidades
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY p.producto_id, p.nombre
+      ORDER BY unidades DESC LIMIT 5
+
+  - id: m002
+    question: "¿Qué sucursal generó mayores ingresos durante el último trimestre?"
+    tags: [ingresos, sucursales, ranking, tiempo_relativo]
+    order_matters: true
+    gold_sql: |
+      SELECT s.nombre, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY s.sucursal_id, s.nombre
+      ORDER BY ingresos DESC LIMIT 1
+
+  - id: m003
+    question: "Ingresos por región en 2025"
+    tags: [ingresos, regiones, agrupacion]
+    gold_sql: |
+      SELECT r.nombre, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      JOIN retail.regiones r ON r.region_id = s.region_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY r.nombre
+
+  - id: m004
+    question: "¿Cuál es el ticket promedio por método de pago este año?"
+    tags: [ticket_promedio, metodo_pago, tiempo_relativo]
+    gold_sql: |
+      SELECT v.metodo_pago,
+             SUM(dv.cantidad * dv.precio_unitario - dv.descuento) / COUNT(DISTINCT v.venta_id) AS ticket_promedio
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-01-01' AND v.fecha_venta < DATE '2026-11-01'
+      GROUP BY v.metodo_pago
+
+  - id: m005
+    question: "¿Qué categoría tuvo más devoluciones registradas en 2025?"
+    tags: [devoluciones, categorias, ranking]
+    order_matters: true
+    gold_sql: |
+      SELECT c.nombre, COUNT(*) AS devoluciones
+      FROM retail.devoluciones d
+      JOIN retail.detalle_ventas dv ON dv.detalle_id = d.detalle_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE d.fecha_devolucion >= DATE '2025-01-01' AND d.fecha_devolucion < DATE '2026-01-01'
+      GROUP BY c.nombre
+      ORDER BY devoluciones DESC LIMIT 1
+
+  - id: m006
+    question: "Ordena los motivos de devolución de este año del más frecuente al menos frecuente."
+    tags: [devoluciones, ranking, tiempo_relativo]
+    order_matters: true
+    gold_sql: |
+      SELECT motivo, COUNT(*) AS devoluciones FROM retail.devoluciones
+      WHERE fecha_devolucion >= DATE '2026-01-01' AND fecha_devolucion < DATE '2026-11-01'
+      GROUP BY motivo ORDER BY devoluciones DESC
+
+  - id: m007
+    question: "¿Qué productos estaban por debajo del stock mínimo en la sucursal Cuenca Centro al cierre de septiembre de 2026?"
+    tags: [inventario, bajo_stock_minimo, sucursales]
+    gold_sql: |
+      SELECT p.nombre
+      FROM retail.inventario i
+      JOIN retail.productos p ON p.producto_id = i.producto_id
+      JOIN retail.sucursales s ON s.sucursal_id = i.sucursal_id
+      WHERE s.nombre = 'Cuenca Centro' AND i.fecha_corte = DATE '2026-09-30' AND i.stock < i.stock_minimo
+
+  - id: m008
+    question: "¿Cuántos productos tenían quiebre de stock en cada sucursal al cierre de agosto de 2026?"
+    tags: [inventario, quiebre_de_stock, sucursales]
+    gold_sql: |
+      SELECT s.nombre, COUNT(*) AS productos_sin_stock
+      FROM retail.inventario i JOIN retail.sucursales s ON s.sucursal_id = i.sucursal_id
+      WHERE i.fecha_corte = DATE '2026-08-31' AND i.stock = 0
+      GROUP BY s.nombre
+
+  - id: m009
+    question: "¿Qué cajero registró más ventas completadas en la sucursal Quito Iñaquito en 2025? Indica su id de empleado."
+    tags: [empleados, ventas, ranking]
+    order_matters: true
+    gold_sql: |
+      SELECT e.empleado_id, COUNT(*) AS ventas
+      FROM retail.ventas v
+      JOIN retail.empleados e ON e.empleado_id = v.empleado_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE s.nombre = 'Quito Iñaquito' AND e.cargo = 'cajero' AND v.estado = 'completada'
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY e.empleado_id
+      ORDER BY ventas DESC LIMIT 1
+
+  - id: m010
+    question: "Número de ventas completadas por mes y por canal (online y tienda) en 2026"
+    tags: [ventas, canal, serie_mensual]
+    gold_sql: |
+      SELECT date_trunc('month', fecha_venta) AS mes, canal, COUNT(*) AS ventas
+      FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2026-01-01' AND fecha_venta < DATE '2027-01-01'
+      GROUP BY 1, 2
+
+  - id: m011
+    question: "¿Cuál fue el margen bruto de cada categoría en 2025?"
+    tags: [margen_bruto, categorias]
+    gold_sql: |
+      SELECT c.nombre,
+             SUM(dv.cantidad * dv.precio_unitario - dv.descuento) - SUM(dv.cantidad * p.costo_unitario) AS margen_bruto
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY c.nombre
+
+  - id: m012
+    question: "¿Cuáles son los 10 clientes con más ingresos este año? Muestra su id de cliente."
+    tags: [ingresos, clientes, ranking, tiempo_relativo]
+    order_matters: true
+    gold_sql: |
+      SELECT v.cliente_id, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      WHERE v.estado = 'completada' AND v.cliente_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-01-01' AND v.fecha_venta < DATE '2026-11-01'
+      GROUP BY v.cliente_id
+      ORDER BY ingresos DESC LIMIT 10
+
+  - id: m013
+    question: "¿Cuántas unidades de Útiles Escolares se vendieron en cada región en abril de 2026?"
+    tags: [unidades_vendidas, categorias, regiones, estacionalidad]
+    gold_sql: |
+      SELECT r.nombre, SUM(dv.cantidad) AS unidades
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      JOIN retail.regiones r ON r.region_id = s.region_id
+      WHERE c.nombre = 'Útiles Escolares' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-04-01' AND v.fecha_venta < DATE '2026-05-01'
+      GROUP BY r.nombre
+
+  - id: m014
+    question: "Evolución mensual de los ingresos de la sucursal de Manta en 2026"
+    tags: [ingresos, sucursales, serie_mensual]
+    gold_sql: |
+      SELECT date_trunc('month', v.fecha_venta) AS mes, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE s.nombre = 'Manta' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-01-01' AND v.fecha_venta < DATE '2027-01-01'
+      GROUP BY 1
+
+  - id: m015
+    question: "¿Qué marca de televisores vendió más unidades en 2025?"
+    tags: [unidades_vendidas, productos, marcas, ranking]
+    order_matters: true
+    gold_sql: |
+      SELECT p.marca, SUM(dv.cantidad) AS unidades
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      WHERE p.nombre LIKE 'Smart TV%' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY p.marca
+      ORDER BY unidades DESC LIMIT 1
+
+  - id: m016
+    question: "¿Qué porcentaje del número de ventas completadas de 2025 se pagó con billetera móvil?"
+    tags: [ventas, metodo_pago, porcentaje]
+    gold_sql: |
+      SELECT 100.0 * COUNT(*) FILTER (WHERE metodo_pago = 'billetera_movil') / COUNT(*) AS porcentaje
+      FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: m017
+    question: "¿Cuál fue el monto reembolsado por devoluciones en cada sucursal en 2025?"
+    tags: [devoluciones, sucursales, suma]
+    gold_sql: |
+      SELECT s.nombre, SUM(d.monto_reembolsado) AS monto_reembolsado
+      FROM retail.devoluciones d
+      JOIN retail.ventas v ON v.venta_id = d.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE d.fecha_devolucion >= DATE '2025-01-01' AND d.fecha_devolucion < DATE '2026-01-01'
+      GROUP BY s.nombre
+
+  - id: m018
+    question: "Unidades vendidas por categoría en diciembre de 2025"
+    tags: [unidades_vendidas, categorias, estacionalidad]
+    gold_sql: |
+      SELECT c.nombre, SUM(dv.cantidad) AS unidades
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-12-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY c.nombre
+
+  - id: m019
+    question: "¿Cuántos clientes se registraron cada mes de 2025?"
+    tags: [clientes, serie_mensual]
+    gold_sql: |
+      SELECT date_trunc('month', fecha_registro) AS mes, COUNT(*) AS clientes
+      FROM retail.clientes
+      WHERE fecha_registro >= DATE '2025-01-01' AND fecha_registro < DATE '2026-01-01'
+      GROUP BY 1
+
+  - id: m020
+    question: "¿Cuántas ventas completadas hubo en cada hora del día durante 2025?"
+    tags: [ventas, hora]
+    gold_sql: |
+      SELECT EXTRACT(HOUR FROM fecha_venta) AS hora, COUNT(*) AS ventas
+      FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+      GROUP BY 1
+
+  - id: m021
+    question: "Ingresos por canal de venta en el último trimestre"
+    tags: [ingresos, canal, tiempo_relativo]
+    gold_sql: |
+      SELECT v.canal, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY v.canal
+
+  - id: m022
+    question: "Ingresos por formato de sucursal en 2025"
+    tags: [ingresos, sucursales, agrupacion]
+    gold_sql: |
+      SELECT s.formato, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY s.formato
+
+  - id: m023
+    question: "¿Cuántas unidades de la Licuadora Xpert 10 velocidades se devolvieron en 2025?"
+    tags: [devoluciones, productos]
+    gold_sql: |
+      SELECT SUM(d.cantidad) AS unidades_devueltas
+      FROM retail.devoluciones d
+      JOIN retail.detalle_ventas dv ON dv.detalle_id = d.detalle_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      WHERE p.nombre = 'Licuadora Xpert 10 velocidades'
+        AND d.fecha_devolucion >= DATE '2025-01-01' AND d.fecha_devolucion < DATE '2026-01-01'
+
+  - id: m024
+    question: "Ventas brutas por categoría en el último trimestre"
+    tags: [ventas_brutas, categorias, tiempo_relativo]
+    gold_sql: |
+      SELECT c.nombre, SUM(dv.cantidad * dv.precio_unitario) AS ventas_brutas
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE v.estado = 'completada'
+        AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY c.nombre
+
+  - id: m025
+    question: "Número de ventas completadas por método de pago en 2025"
+    tags: [ventas, metodo_pago, agrupacion]
+    gold_sql: |
+      SELECT metodo_pago, COUNT(*) AS ventas FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+      GROUP BY metodo_pago
+
+  - id: m026
+    question: "¿Qué sucursal tuvo más ventas anuladas este año?"
+    tags: [ventas, anuladas, sucursales, ranking, tiempo_relativo]
+    order_matters: true
+    gold_sql: |
+      SELECT s.nombre, COUNT(*) AS anuladas
+      FROM retail.ventas v JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE v.estado = 'anulada' AND v.fecha_venta >= DATE '2026-01-01' AND v.fecha_venta < DATE '2026-11-01'
+      GROUP BY s.nombre
+      ORDER BY anuladas DESC LIMIT 1
+
+  - id: m027
+    question: "Ingresos por provincia en 2025"
+    tags: [ingresos, sucursales, agrupacion]
+    gold_sql: |
+      SELECT s.provincia, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY s.provincia
+
+  - id: m028
+    question: "Total facturado con IVA por región en lo que va del año"
+    tags: [total_facturado, regiones, tiempo_relativo]
+    gold_sql: |
+      SELECT r.nombre, SUM(v.total) AS total_facturado
+      FROM retail.ventas v
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      JOIN retail.regiones r ON r.region_id = s.region_id
+      WHERE v.estado = 'completada' AND v.fecha_venta >= DATE '2026-01-01' AND v.fecha_venta < DATE '2026-11-01'
+      GROUP BY r.nombre
+
+  - id: m029
+    question: "¿Cuántos clientes registrados distintos compraron en la sucursal Samborondón en 2025?"
+    tags: [clientes, sucursales, conteo_distinto]
+    gold_sql: |
+      SELECT COUNT(DISTINCT v.cliente_id) AS clientes
+      FROM retail.ventas v JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE s.nombre = 'Samborondón' AND v.estado = 'completada' AND v.cliente_id IS NOT NULL
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+
+  - id: m030
+    question: "Ingresos mensuales de la categoría Juguetes en 2025"
+    tags: [ingresos, categorias, serie_mensual, estacionalidad]
+    gold_sql: |
+      SELECT date_trunc('month', v.fecha_venta) AS mes, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE c.nombre = 'Juguetes' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY 1
+
+  - id: m031
+    question: "¿Cuántos empleados reportan directamente al gerente de la sucursal Cuenca Centro?"
+    tags: [empleados, jerarquia]
+    gold_sql: |
+      SELECT COUNT(*) AS empleados
+      FROM retail.empleados e
+      JOIN retail.empleados g ON g.empleado_id = e.supervisor_id
+      JOIN retail.sucursales s ON s.sucursal_id = g.sucursal_id
+      WHERE g.cargo = 'gerente de sucursal' AND s.nombre = 'Cuenca Centro'
+
+  - id: m032
+    question: "¿Cuál es la nómina mensual (suma de salarios) de cada sucursal?"
+    tags: [empleados, sucursales, suma]
+    gold_sql: |
+      SELECT s.nombre, SUM(e.salario_mensual) AS nomina
+      FROM retail.empleados e JOIN retail.sucursales s ON s.sucursal_id = e.sucursal_id
+      GROUP BY s.nombre
+
+  - id: m033
+    question: "¿Cuántas unidades del Smart TV LED 55\" Samsung se vendieron en cada sucursal el último trimestre?"
+    tags: [unidades_vendidas, productos, sucursales, tiempo_relativo]
+    gold_sql: |
+      SELECT s.nombre, SUM(dv.cantidad) AS unidades
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE p.nombre = 'Smart TV LED 55" Samsung' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY s.nombre
+
+  - id: m034
+    question: "¿Cuáles fueron las 3 sucursales con más ventas online completadas en 2025?"
+    tags: [ventas, canal, sucursales, ranking]
+    order_matters: true
+    gold_sql: |
+      SELECT s.nombre, COUNT(*) AS ventas_online
+      FROM retail.ventas v JOIN retail.sucursales s ON s.sucursal_id = v.sucursal_id
+      WHERE v.canal = 'online' AND v.estado = 'completada'
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY s.nombre
+      ORDER BY ventas_online DESC LIMIT 3
+
+  - id: m035
+    question: "¿Cuánto vendió en ingresos cada categoría el mes pasado?"
+    tags: [ingresos, categorias, tiempo_relativo]
+    gold_sql: |
+      SELECT c.nombre, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2026-10-01' AND v.fecha_venta < DATE '2026-11-01'
+      GROUP BY c.nombre
+
+  - id: m036
+    question: "¿Cuál fue el producto de la categoría Deportes con más ingresos en 2025?"
+    tags: [ingresos, productos, categorias, ranking]
+    order_matters: true
+    gold_sql: |
+      SELECT p.nombre, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      JOIN retail.productos p ON p.producto_id = dv.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE c.nombre = 'Deportes' AND v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+        AND v.fecha_venta >= DATE '2025-01-01' AND v.fecha_venta < DATE '2026-01-01'
+      GROUP BY p.producto_id, p.nombre
+      ORDER BY ingresos DESC LIMIT 1
+
+  - id: m037
+    question: "¿Cuántos clientes de cada segmento compraron al menos una vez el último trimestre?"
+    tags: [clientes, conteo_distinto, tiempo_relativo]
+    gold_sql: |
+      SELECT c.segmento, COUNT(DISTINCT c.cliente_id) AS clientes
+      FROM retail.ventas v JOIN retail.clientes c ON c.cliente_id = v.cliente_id
+      WHERE v.estado = 'completada' AND v.fecha_venta >= DATE '2026-07-01' AND v.fecha_venta < DATE '2026-10-01'
+      GROUP BY c.segmento
+
+  - id: m038
+    question: "¿Cuál es el stock total de cada categoría al cierre de octubre de 2026?"
+    tags: [inventario, categorias, suma]
+    gold_sql: |
+      SELECT c.nombre, SUM(i.stock) AS stock
+      FROM retail.inventario i
+      JOIN retail.productos p ON p.producto_id = i.producto_id
+      JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE i.fecha_corte = DATE '2026-10-31'
+      GROUP BY c.nombre
+
+  - id: m039
+    question: "Ingresos por año"
+    tags: [ingresos, serie_anual]
+    gold_sql: |
+      SELECT date_trunc('year', v.fecha_venta) AS anio, SUM(dv.cantidad * dv.precio_unitario - dv.descuento) AS ingresos
+      FROM retail.detalle_ventas dv
+      JOIN retail.ventas v ON v.venta_id = dv.venta_id
+      WHERE v.estado = 'completada'
+        AND NOT EXISTS (SELECT 1 FROM retail.devoluciones d WHERE d.detalle_id = dv.detalle_id)
+      GROUP BY 1
+
+  - id: m040
+    question: "¿Cuál fue el descuento promedio por venta completada en cada canal en 2025?"
+    tags: [ventas, descuento, canal, promedio]
+    gold_sql: |
+      SELECT canal, AVG(descuento_total) AS descuento_promedio FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+      GROUP BY canal

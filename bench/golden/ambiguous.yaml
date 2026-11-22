@@ -1,0 +1,79 @@
+# Golden set: ambiguous questions. Success = the agent asks for clarification and executes no SQL
+# (ADR-0015). Some are vague about the metric ("mejor", "rinde"), which the model must notice; others use a
+# vague period ("recientemente", "últimamente"), which nexus.agent.temporal flags deterministically.
+difficulty: ambiguous
+items:
+  - id: a001
+    question: "¿Cuál es el mejor producto?"
+    expected_behavior: clarify
+    note: "Mejor en unidades, ingresos, margen o calificación: el criterio cambia la respuesta."
+
+  - id: a002
+    question: "¿Cuál es la mejor sucursal?"
+    expected_behavior: clarify
+    note: "Por ingresos, número de ventas, crecimiento o margen."
+
+  - id: a003
+    question: "¿Cómo nos fue recientemente?"
+    expected_behavior: clarify
+    note: "Periodo vago («recientemente») y métrica sin indicar."
+
+  - id: a004
+    question: "¿Cuánto vendimos últimamente en Quito?"
+    expected_behavior: clarify
+    note: "Periodo vago («últimamente»)."
+
+  - id: a005
+    question: "¿Quién es el mejor empleado?"
+    expected_behavior: clarify
+    note: "Criterio sin definir: ventas, ingresos, antigüedad; además cargos distintos."
+
+  - id: a006
+    question: "¿Cuál es nuestro cliente más importante?"
+    expected_behavior: clarify
+    note: "Importante por monto comprado, frecuencia o antigüedad."
+
+  - id: a007
+    question: "¿Qué categoría rinde peor?"
+    expected_behavior: clarify
+    note: "Rendimiento en ingresos, margen, crecimiento o devoluciones."
+
+  - id: a008
+    question: "¿Qué tal van las devoluciones hace poco?"
+    expected_behavior: clarify
+    note: "Periodo vago («hace poco»)."
+
+  - id: a009
+    question: "¿Cuál es la marca más exitosa?"
+    expected_behavior: clarify
+    note: "Éxito en unidades, ingresos o margen."
+
+  - id: a010
+    question: "¿Cuál fue el mejor mes?"
+    expected_behavior: clarify
+    note: "Mejor en ingresos, unidades o número de ventas."
+
+  - id: a011
+    question: "¿Qué región es la más rentable recientemente?"
+    expected_behavior: clarify
+    note: "Periodo vago («recientemente»)."
+
+  - id: a012
+    question: "¿Qué productos funcionan bien?"
+    expected_behavior: clarify
+    note: "«Funcionar bien» no define métrica ni umbral."
+
+  - id: a013
+    question: "¿Cuál es el producto estrella de la temporada?"
+    expected_behavior: clarify
+    note: "Qué temporada (escolar Costa o Sierra, Navidad…) y medido cómo."
+
+  - id: a014
+    question: "¿Cómo están las ventas de la sucursal más grande?"
+    expected_behavior: clarify
+    note: "«Más grande» por metros cuadrados, ingresos o personal; periodo sin indicar es aceptable, el criterio no."
+
+  - id: a015
+    question: "Dame un resumen de cómo vamos últimamente"
+    expected_behavior: clarify
+    note: "Periodo vago («últimamente») y sin métrica."

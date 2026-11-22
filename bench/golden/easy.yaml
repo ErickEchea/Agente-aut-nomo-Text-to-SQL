@@ -1,0 +1,262 @@
+# Golden set: easy questions (one table or a single join, simple filters and aggregates).
+# Methodology: docs/adr/0015-benchmark-methodology.md. Gold SQL follows data/glossary.yaml; relative dates
+# are relative to the demo's reference date (as_of = 2026-11-01). Expected results live in expected.json
+# (`make bench-freeze`); editing a gold_sql without re-freezing fails a unit test.
+difficulty: easy
+items:
+  - id: e001
+    question: "¿Cuántas sucursales tiene la cadena?"
+    tags: [sucursales, conteo]
+    gold_sql: SELECT COUNT(*) AS sucursales FROM retail.sucursales
+
+  - id: e002
+    question: "¿Cuántas sucursales hay en la región Costa?"
+    tags: [sucursales, regiones, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS sucursales
+      FROM retail.sucursales s JOIN retail.regiones r ON r.region_id = s.region_id
+      WHERE r.nombre = 'Costa'
+
+  - id: e003
+    question: "¿Cuántos productos hay en el catálogo?"
+    tags: [productos, conteo]
+    gold_sql: SELECT COUNT(*) AS productos FROM retail.productos
+
+  - id: e004
+    question: "¿Cuántos clientes registrados hay en cada segmento?"
+    tags: [clientes, agrupacion]
+    gold_sql: SELECT segmento, COUNT(*) AS clientes FROM retail.clientes GROUP BY segmento
+
+  - id: e005
+    question: "¿Cuántos empleados hay por cargo?"
+    tags: [empleados, agrupacion]
+    gold_sql: SELECT cargo, COUNT(*) AS empleados FROM retail.empleados GROUP BY cargo
+
+  - id: e006
+    question: "¿Cuál es el salario mensual promedio por cargo?"
+    tags: [empleados, promedio]
+    gold_sql: SELECT cargo, AVG(salario_mensual) AS salario_promedio FROM retail.empleados GROUP BY cargo
+
+  - id: e007
+    question: "¿Qué sucursales tienen formato express?"
+    tags: [sucursales, filtro]
+    gold_sql: SELECT nombre FROM retail.sucursales WHERE formato = 'express'
+
+  - id: e008
+    question: "¿Cuántas ventas se anularon en 2025?"
+    tags: [ventas, anuladas, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas_anuladas FROM retail.ventas
+      WHERE estado = 'anulada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: e009
+    question: "¿Cuántas ventas completadas se hicieron por el canal online en 2025?"
+    tags: [ventas, canal, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas_online FROM retail.ventas
+      WHERE estado = 'completada' AND canal = 'online'
+        AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: e010
+    question: "¿Qué sucursales están en la provincia del Guayas?"
+    tags: [sucursales, filtro]
+    gold_sql: SELECT nombre FROM retail.sucursales WHERE provincia = 'Guayas'
+
+  - id: e011
+    question: "¿Cuál es el producto con el precio de lista más alto?"
+    tags: [productos, maximo]
+    order_matters: true
+    gold_sql: SELECT nombre, precio_lista FROM retail.productos ORDER BY precio_lista DESC LIMIT 1
+
+  - id: e012
+    question: "¿Cuántos productos del catálogo graban IVA?"
+    tags: [productos, conteo]
+    gold_sql: SELECT COUNT(*) AS productos FROM retail.productos WHERE graba_iva
+
+  - id: e013
+    question: "¿Cuántas devoluciones hubo por cada motivo?"
+    tags: [devoluciones, agrupacion]
+    gold_sql: SELECT motivo, COUNT(*) AS devoluciones FROM retail.devoluciones GROUP BY motivo
+
+  - id: e014
+    question: "¿Cuál fue el monto total reembolsado por devoluciones en 2025?"
+    tags: [devoluciones, suma]
+    gold_sql: |
+      SELECT SUM(monto_reembolsado) AS monto_reembolsado FROM retail.devoluciones
+      WHERE fecha_devolucion >= DATE '2025-01-01' AND fecha_devolucion < DATE '2026-01-01'
+
+  - id: e015
+    question: "¿Cuántos clientes se registraron en 2025?"
+    tags: [clientes, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS clientes FROM retail.clientes
+      WHERE fecha_registro >= DATE '2025-01-01' AND fecha_registro < DATE '2026-01-01'
+
+  - id: e016
+    question: "¿Cuántas ventas completadas se pagaron con billetera móvil este año?"
+    tags: [ventas, metodo_pago, conteo, tiempo_relativo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas FROM retail.ventas
+      WHERE estado = 'completada' AND metodo_pago = 'billetera_movil'
+        AND fecha_venta >= DATE '2026-01-01' AND fecha_venta < DATE '2026-11-01'
+
+  - id: e017
+    question: "¿Cuántas categorías de productos existen?"
+    tags: [categorias, conteo]
+    gold_sql: SELECT COUNT(*) AS categorias FROM retail.categorias
+
+  - id: e018
+    question: "¿Qué productos de la marca Oster vende la cadena?"
+    tags: [productos, filtro]
+    gold_sql: SELECT nombre FROM retail.productos WHERE marca = 'Oster'
+
+  - id: e019
+    question: "¿Cuánto IVA se cobró en las ventas completadas de 2025?"
+    tags: [ventas, iva, suma]
+    gold_sql: |
+      SELECT SUM(iva) AS iva FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: e020
+    question: "¿Cuántas sucursales tienen formato hipermercado?"
+    tags: [sucursales, conteo]
+    gold_sql: SELECT COUNT(*) AS sucursales FROM retail.sucursales WHERE formato = 'hipermercado'
+
+  - id: e021
+    question: "¿En qué fecha abrió la sucursal de Manta?"
+    tags: [sucursales, fecha]
+    gold_sql: SELECT fecha_apertura FROM retail.sucursales WHERE nombre = 'Manta'
+
+  - id: e022
+    question: "¿Cuántos empleados trabajan en la sucursal Quito Iñaquito?"
+    tags: [empleados, sucursales, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS empleados
+      FROM retail.empleados e JOIN retail.sucursales s ON s.sucursal_id = e.sucursal_id
+      WHERE s.nombre = 'Quito Iñaquito'
+
+  - id: e023
+    question: "¿Cuál es el precio de lista del Celular iPhone 16 128 GB?"
+    tags: [productos, busqueda]
+    gold_sql: SELECT precio_lista FROM retail.productos WHERE nombre = 'Celular iPhone 16 128 GB'
+
+  - id: e024
+    question: "Lista los productos de la categoría Útiles Escolares con su precio de lista."
+    tags: [productos, categorias, filtro]
+    gold_sql: |
+      SELECT p.nombre, p.precio_lista
+      FROM retail.productos p JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE c.nombre = 'Útiles Escolares'
+
+  - id: e025
+    question: "¿Cuántas ventas completadas hubo el mes pasado?"
+    tags: [ventas, conteo, tiempo_relativo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2026-10-01' AND fecha_venta < DATE '2026-11-01'
+
+  - id: e026
+    question: "¿Cuál fue el descuento total de las ventas completadas del mes pasado?"
+    tags: [ventas, descuento, suma, tiempo_relativo]
+    gold_sql: |
+      SELECT SUM(descuento_total) AS descuento FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2026-10-01' AND fecha_venta < DATE '2026-11-01'
+
+  - id: e027
+    question: "¿Cuántos clientes corporativos viven en Guayaquil?"
+    tags: [clientes, filtro, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS clientes FROM retail.clientes
+      WHERE segmento = 'corporativo' AND ciudad = 'Guayaquil'
+
+  - id: e028
+    question: "¿Cuántos productos tiene cada categoría?"
+    tags: [productos, categorias, agrupacion]
+    gold_sql: |
+      SELECT c.nombre, COUNT(*) AS productos
+      FROM retail.productos p JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      GROUP BY c.nombre
+
+  - id: e029
+    question: "¿Cuál es el costo unitario promedio de los productos de Electrónica?"
+    tags: [productos, categorias, promedio]
+    gold_sql: |
+      SELECT AVG(p.costo_unitario) AS costo_promedio
+      FROM retail.productos p JOIN retail.categorias c ON c.categoria_id = p.categoria_id
+      WHERE c.nombre = 'Electrónica'
+
+  - id: e030
+    question: "¿Cuántos supervisores tiene la cadena?"
+    tags: [empleados, conteo]
+    gold_sql: SELECT COUNT(*) AS supervisores FROM retail.empleados WHERE cargo = 'supervisor'
+
+  - id: e031
+    question: "¿Cuántas ventas completadas fueron a consumidor final en 2025?"
+    tags: [ventas, consumidor_final, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas FROM retail.ventas
+      WHERE estado = 'completada' AND cliente_id IS NULL
+        AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: e032
+    question: "¿Cuántas devoluciones se registraron el último trimestre?"
+    tags: [devoluciones, conteo, tiempo_relativo]
+    gold_sql: |
+      SELECT COUNT(*) AS devoluciones FROM retail.devoluciones
+      WHERE fecha_devolucion >= DATE '2026-07-01' AND fecha_devolucion < DATE '2026-10-01'
+
+  - id: e033
+    question: "¿Cuál es el salario mensual más alto de la cadena?"
+    tags: [empleados, maximo]
+    gold_sql: SELECT MAX(salario_mensual) AS salario_maximo FROM retail.empleados
+
+  - id: e034
+    question: "¿Qué sucursales están en la región Amazonía?"
+    tags: [sucursales, regiones, filtro]
+    gold_sql: |
+      SELECT s.nombre
+      FROM retail.sucursales s JOIN retail.regiones r ON r.region_id = s.region_id
+      WHERE r.nombre = 'Amazonía'
+
+  - id: e035
+    question: "¿Cuál fue el total facturado con IVA en 2025?"
+    tags: [ventas, total_facturado, suma]
+    gold_sql: |
+      SELECT SUM(total) AS total_facturado FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+
+  - id: e036
+    question: "¿Cuántos productos se lanzaron en 2025?"
+    tags: [productos, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS productos FROM retail.productos
+      WHERE fecha_lanzamiento >= DATE '2025-01-01' AND fecha_lanzamiento < DATE '2026-01-01'
+
+  - id: e037
+    question: "¿Cuántas marcas distintas hay en el catálogo?"
+    tags: [productos, conteo_distinto]
+    gold_sql: SELECT COUNT(DISTINCT marca) AS marcas FROM retail.productos
+
+  - id: e038
+    question: "¿Cuántas ventas online se anularon este año?"
+    tags: [ventas, anuladas, canal, tiempo_relativo]
+    gold_sql: |
+      SELECT COUNT(*) AS ventas FROM retail.ventas
+      WHERE estado = 'anulada' AND canal = 'online'
+        AND fecha_venta >= DATE '2026-01-01' AND fecha_venta < DATE '2026-11-01'
+
+  - id: e039
+    question: "¿Cuál fue la venta completada con el total más alto en 2025? Dame su número de venta y el total."
+    tags: [ventas, maximo]
+    order_matters: true
+    gold_sql: |
+      SELECT venta_id, total FROM retail.ventas
+      WHERE estado = 'completada' AND fecha_venta >= DATE '2025-01-01' AND fecha_venta < DATE '2026-01-01'
+      ORDER BY total DESC LIMIT 1
+
+  - id: e040
+    question: "¿Cuántos empleados ingresaron a la empresa en 2024?"
+    tags: [empleados, conteo]
+    gold_sql: |
+      SELECT COUNT(*) AS empleados FROM retail.empleados
+      WHERE fecha_ingreso >= DATE '2024-01-01' AND fecha_ingreso < DATE '2025-01-01'

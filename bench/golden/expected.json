@@ -1,0 +1,3933 @@
+{
+ "dataset_version": "1.0.0",
+ "as_of": "2026-11-01",
+ "items": {
+  "e001": {
+   "sql_sha256": "d47f042b7bd22fcc9226e3ce614fd6a26182814de1ac99ccb0eaabd1a49e92d8",
+   "results": [
+    {
+     "columns": [
+      "sucursales"
+     ],
+     "rows": [
+      [
+       "n:24.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e002": {
+   "sql_sha256": "ea60db699781b3118f52ebb6f400363f73a516771955a91f147d77e489b647f2",
+   "results": [
+    {
+     "columns": [
+      "sucursales"
+     ],
+     "rows": [
+      [
+       "n:10.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e003": {
+   "sql_sha256": "29a0b2b88728817d7d5e025dd024006401c2c5b3e367aeb633bd26d3701d7ebe",
+   "results": [
+    {
+     "columns": [
+      "productos"
+     ],
+     "rows": [
+      [
+       "n:404.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e004": {
+   "sql_sha256": "92144fb196357d772dce20e502741ba67523c8348d706a586e8d813bf1f6a3ea",
+   "results": [
+    {
+     "columns": [
+      "segmento",
+      "clientes"
+     ],
+     "rows": [
+      [
+       "s:frecuente",
+       "n:6318.00"
+      ],
+      [
+       "s:corporativo",
+       "n:1295.00"
+      ],
+      [
+       "s:ocasional",
+       "n:17387.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e005": {
+   "sql_sha256": "c90244e77e1744697e8120a97ef4fd1ac8ad288603eb20730ce052a6ac6d754e",
+   "results": [
+    {
+     "columns": [
+      "cargo",
+      "empleados"
+     ],
+     "rows": [
+      [
+       "s:vendedor",
+       "n:70.00"
+      ],
+      [
+       "s:supervisor",
+       "n:41.00"
+      ],
+      [
+       "s:cajero",
+       "n:160.00"
+      ],
+      [
+       "s:gerente regional",
+       "n:4.00"
+      ],
+      [
+       "s:gerente de sucursal",
+       "n:24.00"
+      ],
+      [
+       "s:gerente general",
+       "n:1.00"
+      ],
+      [
+       "s:bodeguero",
+       "n:49.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e006": {
+   "sql_sha256": "2a563af3ee99f177e3e9522a5fd9f8bb8f8e1d8894d0df7ea24646ec6dd0b586",
+   "results": [
+    {
+     "columns": [
+      "cargo",
+      "salario_promedio"
+     ],
+     "rows": [
+      [
+       "s:vendedor",
+       "n:605.21"
+      ],
+      [
+       "s:supervisor",
+       "n:1088.54"
+      ],
+      [
+       "s:cajero",
+       "n:521.19"
+      ],
+      [
+       "s:gerente regional",
+       "n:3477.50"
+      ],
+      [
+       "s:gerente de sucursal",
+       "n:2258.75"
+      ],
+      [
+       "s:gerente general",
+       "n:5640.00"
+      ],
+      [
+       "s:bodeguero",
+       "n:530.61"
+      ]
+     ]
+    }
+   ]
+  },
+  "e007": {
+   "sql_sha256": "af488a79fb1e9da21ab14557289a91d33317f9c74812c273284fa3e5c239b43b",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Riobamba"
+      ],
+      [
+       "s:Latacunga"
+      ],
+      [
+       "s:Esmeraldas"
+      ],
+      [
+       "s:Quevedo"
+      ],
+      [
+       "s:Puyo"
+      ],
+      [
+       "s:Nueva Loja"
+      ],
+      [
+       "s:Puerto Ayora"
+      ]
+     ]
+    }
+   ]
+  },
+  "e008": {
+   "sql_sha256": "82bfda995373f35bb6bd9499978bead604c7db38ea4812a4efdaaecbc70ad5d2",
+   "results": [
+    {
+     "columns": [
+      "ventas_anuladas"
+     ],
+     "rows": [
+      [
+       "n:960.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e009": {
+   "sql_sha256": "faeb1b6e2eff2af89f8a70f18fdc1f3f3b5d45ced4d24fe995d9adf1bc19fdd0",
+   "results": [
+    {
+     "columns": [
+      "ventas_online"
+     ],
+     "rows": [
+      [
+       "n:7058.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e010": {
+   "sql_sha256": "673cb1a69f87e14e98c1e72e07343ef97b19769d6d6b0f18760eece6e6fc90f9",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Guayaquil Norte - Alborada"
+      ],
+      [
+       "s:Guayaquil Centro"
+      ],
+      [
+       "s:Guayaquil Sur - Guasmo"
+      ],
+      [
+       "s:Samborondón"
+      ]
+     ]
+    }
+   ]
+  },
+  "e011": {
+   "sql_sha256": "96e25bb07d2b16285c4b01836ee582c38d413b278f8c37e392491b08446a4a32",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "precio_lista"
+     ],
+     "rows": [
+      [
+       "s:Refrigeradora 17 pies",
+       "n:1336.99"
+      ]
+     ]
+    }
+   ]
+  },
+  "e012": {
+   "sql_sha256": "b7c9f56c91513783765a44c05a91ae1f8ded56ff66fb1090306fa132fc4ce132",
+   "results": [
+    {
+     "columns": [
+      "productos"
+     ],
+     "rows": [
+      [
+       "n:348.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e013": {
+   "sql_sha256": "925a7bf81981ea73c2b6e5e5531b9fba1cdf1690dfa270ea4782376ebae6ad5e",
+   "results": [
+    {
+     "columns": [
+      "motivo",
+      "devoluciones"
+     ],
+     "rows": [
+      [
+       "s:no cumple expectativas",
+       "n:2459.00"
+      ],
+      [
+       "s:talla o modelo incorrecto",
+       "n:1489.00"
+      ],
+      [
+       "s:error en el pedido",
+       "n:686.00"
+      ],
+      [
+       "s:defecto de fábrica",
+       "n:1908.00"
+      ],
+      [
+       "s:producto dañado",
+       "n:1191.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e014": {
+   "sql_sha256": "48150a3027a617af1429778e5a717f4d2d54fa23366620559228622e5d9037bb",
+   "results": [
+    {
+     "columns": [
+      "monto_reembolsado"
+     ],
+     "rows": [
+      [
+       "n:354924.08"
+      ]
+     ]
+    }
+   ]
+  },
+  "e015": {
+   "sql_sha256": "184355e92c2e0c7a866ea4a49c5e93e21eb54dff6d937b02d9c61fdf21985982",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:4051.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e016": {
+   "sql_sha256": "bc06099c2928cd2cd7f9dbece4096df4a4e27735ff226bd72592fb89e12b2a2a",
+   "results": [
+    {
+     "columns": [
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:9001.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e017": {
+   "sql_sha256": "e3207316f01a692f95f55aaefe85d7bf897e668efa480f71f9028265a9d8932b",
+   "results": [
+    {
+     "columns": [
+      "categorias"
+     ],
+     "rows": [
+      [
+       "n:10.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e018": {
+   "sql_sha256": "5d3b57f517c47047b65cb6e2e6cec6da29caa8aa217be29df6ef18770654579a",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Licuadora Clásica 3 velocidades"
+      ],
+      [
+       "s:Licuadora Xpert 10 velocidades"
+      ],
+      [
+       "s:Arrocera 10 tazas"
+      ],
+      [
+       "s:Freidora de aire 4 L"
+      ],
+      [
+       "s:Cafetera 12 tazas"
+      ],
+      [
+       "s:Plancha a vapor"
+      ],
+      [
+       "s:Extractor de jugos"
+      ],
+      [
+       "s:Batidora de mano"
+      ],
+      [
+       "s:Sanduchera"
+      ]
+     ]
+    }
+   ]
+  },
+  "e019": {
+   "sql_sha256": "761dcb44eaf4f9ee10006567839544992b4d9112bb0442a69c1501df7a5c1046",
+   "results": [
+    {
+     "columns": [
+      "iva"
+     ],
+     "rows": [
+      [
+       "n:1559030.55"
+      ]
+     ]
+    }
+   ]
+  },
+  "e020": {
+   "sql_sha256": "cfc7f44bb59fe72ed868623d4341f794934777ea67a56cc8ad3cd74caf885316",
+   "results": [
+    {
+     "columns": [
+      "sucursales"
+     ],
+     "rows": [
+      [
+       "n:4.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e021": {
+   "sql_sha256": "9b0116e44e8d46aa08df8811b5933a9847e63ef33e54117b9cd095029b12f02a",
+   "results": [
+    {
+     "columns": [
+      "fecha_apertura"
+     ],
+     "rows": [
+      [
+       "d:2025-07-01"
+      ]
+     ]
+    }
+   ]
+  },
+  "e022": {
+   "sql_sha256": "380e94fbcb52fa25c1c0f9070725fcc28ba3d139a13f16efe9807d03427cedf7",
+   "results": [
+    {
+     "columns": [
+      "empleados"
+     ],
+     "rows": [
+      [
+       "n:27.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e023": {
+   "sql_sha256": "670f719322cd7af80d06fbe4d8b5ca75ed85b238e652cdd110b80f99fde030f1",
+   "results": [
+    {
+     "columns": [
+      "precio_lista"
+     ],
+     "rows": [
+      [
+       "n:992.99"
+      ]
+     ]
+    }
+   ]
+  },
+  "e024": {
+   "sql_sha256": "6b7f500a4027992210921883ace47fde6164c6459bfdd484566b6fecdf080b6b",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "precio_lista"
+     ],
+     "rows": [
+      [
+       "s:Cuaderno universitario 100 hojas Norma",
+       "n:2.09"
+      ],
+      [
+       "s:Cuaderno universitario 100 hojas Estilo",
+       "n:2.09"
+      ],
+      [
+       "s:Cuaderno universitario 100 hojas Scribe",
+       "n:1.99"
+      ],
+      [
+       "s:Cuaderno pequeño 60 hojas Norma",
+       "n:1.29"
+      ],
+      [
+       "s:Cuaderno pequeño 60 hojas Estilo",
+       "n:1.29"
+      ],
+      [
+       "s:Lápices HB caja 12",
+       "n:3.59"
+      ],
+      [
+       "s:Lápices HB caja 12",
+       "n:3.39"
+      ],
+      [
+       "s:Esferos caja 10",
+       "n:4.09"
+      ],
+      [
+       "s:Pinturas 12 colores",
+       "n:3.99"
+      ],
+      [
+       "s:Pinturas 24 colores",
+       "n:7.09"
+      ],
+      [
+       "s:Marcadores 12 unidades",
+       "n:4.49"
+      ],
+      [
+       "s:Borrador",
+       "n:0.39"
+      ],
+      [
+       "s:Sacapuntas",
+       "n:0.79"
+      ],
+      [
+       "s:Regla 30 cm",
+       "n:0.89"
+      ],
+      [
+       "s:Tijeras escolares",
+       "n:1.99"
+      ],
+      [
+       "s:Goma en barra",
+       "n:0.99"
+      ],
+      [
+       "s:Mochila escolar",
+       "n:39.99"
+      ],
+      [
+       "s:Mochila escolar",
+       "n:48.99"
+      ],
+      [
+       "s:Mochila escolar",
+       "n:25.99"
+      ],
+      [
+       "s:Lonchera térmica",
+       "n:12.99"
+      ],
+      [
+       "s:Calculadora científica fx-82",
+       "n:20.99"
+      ],
+      [
+       "s:Resma papel bond A4",
+       "n:4.89"
+      ],
+      [
+       "s:Carpeta archivadora",
+       "n:2.59"
+      ],
+      [
+       "s:Cartulina pliego",
+       "n:0.49"
+      ],
+      [
+       "s:Diccionario escolar",
+       "n:15.99"
+      ],
+      [
+       "s:Juego geométrico",
+       "n:2.59"
+      ],
+      [
+       "s:Plastilina 12 barras",
+       "n:1.49"
+      ],
+      [
+       "s:Cinta adhesiva",
+       "n:0.99"
+      ],
+      [
+       "s:Corrector líquido",
+       "n:1.19"
+      ]
+     ]
+    }
+   ]
+  },
+  "e025": {
+   "sql_sha256": "4fb7d8871b6ded0ccb0e0297e747170151cf5ab4096f7fb48256447a44cc6a58",
+   "results": [
+    {
+     "columns": [
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:8770.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e026": {
+   "sql_sha256": "83202f6318e189ab3817255168f2c6485337d446dfc02dec8698415597f3762d",
+   "results": [
+    {
+     "columns": [
+      "descuento"
+     ],
+     "rows": [
+      [
+       "n:10720.89"
+      ]
+     ]
+    }
+   ]
+  },
+  "e027": {
+   "sql_sha256": "1bcf2bb3f956fc921e72914a5926eb075d363a1d000d76f715038d8759ebd874",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:227.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e028": {
+   "sql_sha256": "d067816c6a27727adb0c394e9932660ed6328534845ee2eb7a51133b537062a2",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "productos"
+     ],
+     "rows": [
+      [
+       "s:Ferretería",
+       "n:30.00"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:46.00"
+      ],
+      [
+       "s:Deportes",
+       "n:25.00"
+      ],
+      [
+       "s:Alimentos y Bebidas",
+       "n:88.00"
+      ],
+      [
+       "s:Hogar",
+       "n:37.00"
+      ],
+      [
+       "s:Juguetes",
+       "n:22.00"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:29.00"
+      ],
+      [
+       "s:Electrónica",
+       "n:54.00"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:32.00"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:41.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e029": {
+   "sql_sha256": "bf12ca8fea91c0eb9dc35b2b721de00df64acf9d82b2cea7b1e48e24aeb9e152",
+   "results": [
+    {
+     "columns": [
+      "costo_promedio"
+     ],
+     "rows": [
+      [
+       "n:292.98"
+      ]
+     ]
+    }
+   ]
+  },
+  "e030": {
+   "sql_sha256": "1ed97150335a36b1f4343c3bb6f676bfcc3a54e5a779bc469a4d55f2655a8c4d",
+   "results": [
+    {
+     "columns": [
+      "supervisores"
+     ],
+     "rows": [
+      [
+       "n:41.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e031": {
+   "sql_sha256": "b68965eaeb8be4ddfde9ee41eb6257e7d82daf59fa986b12942887c75256418c",
+   "results": [
+    {
+     "columns": [
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:26228.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e032": {
+   "sql_sha256": "0ddc18959cd598d124c6176e99c83394a75c02a1c022be76cbbfb96b8cf8f182",
+   "results": [
+    {
+     "columns": [
+      "devoluciones"
+     ],
+     "rows": [
+      [
+       "n:1019.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e033": {
+   "sql_sha256": "f6c47c7c264ee92a3a0b628f6d4b4c5bbe56072c829cdb0cb9451f4333531fec",
+   "results": [
+    {
+     "columns": [
+      "salario_maximo"
+     ],
+     "rows": [
+      [
+       "n:5640.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e034": {
+   "sql_sha256": "ff523c70ff4a76cca29cad19f38f4c2016d501cabf50e4054f3fd44e4944af91",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Puyo"
+      ],
+      [
+       "s:Nueva Loja"
+      ]
+     ]
+    }
+   ]
+  },
+  "e035": {
+   "sql_sha256": "5d7ee3442e09fb8f584ba8c48e5da984f830c3956eac1d5ae22af0d910093d3d",
+   "results": [
+    {
+     "columns": [
+      "total_facturado"
+     ],
+     "rows": [
+      [
+       "n:12354075.77"
+      ]
+     ]
+    }
+   ]
+  },
+  "e036": {
+   "sql_sha256": "149d4c6898fde1e933bacc2f2ba076e5405c338972246c643a86fdfcbf28ccce",
+   "results": [
+    {
+     "columns": [
+      "productos"
+     ],
+     "rows": [
+      [
+       "n:2.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e037": {
+   "sql_sha256": "5bbdd3bb1b45ed9b9b06b6af164d0752425ab094448b5eceb5560897cd97fb39",
+   "results": [
+    {
+     "columns": [
+      "marcas"
+     ],
+     "rows": [
+      [
+       "n:208.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e038": {
+   "sql_sha256": "50fca3a7bbc97b76803fb6e1c581317cbb5097645bbb8b7454ad59799478002d",
+   "results": [
+    {
+     "columns": [
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:74.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "e039": {
+   "sql_sha256": "87b8c2ae2105e6044a35f6e3992a34d028a283c5099e6920e4a20cd46dc3b9ba",
+   "results": [
+    {
+     "columns": [
+      "venta_id",
+      "total"
+     ],
+     "rows": [
+      [
+       "n:19434.00",
+       "n:14965.49"
+      ]
+     ]
+    }
+   ]
+  },
+  "e040": {
+   "sql_sha256": "4afb64d46099da3cc4e26c1cc08c04994f854e3602e260c3c25c404e7021b284",
+   "results": [
+    {
+     "columns": [
+      "empleados"
+     ],
+     "rows": [
+      [
+       "n:38.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h001": {
+   "sql_sha256": "1beba842c40574153e25e84a320066820bd5ed7e27c20c037437cdedf9262d31",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Agua mineral 1.5 L",
+       "n:4768.00"
+      ],
+      [
+       "s:Pollo entero por kg Mr. Pollo",
+       "n:2707.00"
+      ],
+      [
+       "s:Leche entera 1 L Toni",
+       "n:2555.00"
+      ],
+      [
+       "s:Leche entera 1 L Parmalat",
+       "n:2098.00"
+      ],
+      [
+       "s:Aceite vegetal 1 L La Favorita",
+       "n:1834.00"
+      ]
+     ]
+    },
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Samborondón",
+       "n:299672.19"
+      ]
+     ]
+    }
+   ]
+  },
+  "h002": {
+   "sql_sha256": "46930d2310886d453bc0b59f49d90cacd878b7bde1b03df03402d52d415fe11c",
+   "results": [
+    {
+     "columns": [
+      "region",
+      "crecimiento_pct"
+     ],
+     "rows": [
+      [
+       "s:Amazonía",
+       "n:27.28"
+      ],
+      [
+       "s:Costa",
+       "n:29.46"
+      ],
+      [
+       "s:Insular",
+       "n:5.09"
+      ],
+      [
+       "s:Sierra",
+       "n:17.25"
+      ]
+     ]
+    }
+   ]
+  },
+  "h003": {
+   "sql_sha256": "244a0ba8f184f64827380fd56400485a213323f6ff4023b78fd5293e02ca7352",
+   "results": [
+    {
+     "columns": [
+      "categoria",
+      "producto",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Electrónica",
+       "s:Teclado K120",
+       "n:1608.00"
+      ],
+      [
+       "s:Electrodomésticos",
+       "s:Freidora de aire 4 L",
+       "n:1019.00"
+      ],
+      [
+       "s:Hogar",
+       "s:Papel higiénico 12 rollos",
+       "n:3988.00"
+      ],
+      [
+       "s:Alimentos y Bebidas",
+       "s:Agua mineral 1.5 L",
+       "n:17702.00"
+      ],
+      [
+       "s:Cuidado Personal",
+       "s:Jabón de tocador pack 3 Protex",
+       "n:3765.00"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "s:Ropa interior hombre pack 3",
+       "n:2115.00"
+      ],
+      [
+       "s:Útiles Escolares",
+       "s:Goma en barra",
+       "n:1764.00"
+      ],
+      [
+       "s:Juguetes",
+       "s:Juego de cartas UNO",
+       "n:1231.00"
+      ],
+      [
+       "s:Deportes",
+       "s:Banda elástica de resistencia",
+       "n:1589.00"
+      ],
+      [
+       "s:Ferretería",
+       "s:Cinta aislante",
+       "n:3380.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h004": {
+   "sql_sha256": "e6ead7ad4f198e18783680e931a447e09162cf649dd51250f97c2701096178fe",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Cuenca Centro"
+      ],
+      [
+       "s:Cumbayá"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada"
+      ],
+      [
+       "s:Machala"
+      ],
+      [
+       "s:Portoviejo"
+      ],
+      [
+       "s:Quito Iñaquito"
+      ],
+      [
+       "s:Quito Norte - Carcelén"
+      ],
+      [
+       "s:Quito Sur - Quitumbe"
+      ],
+      [
+       "s:Samborondón"
+      ],
+      [
+       "s:Santo Domingo"
+      ]
+     ]
+    }
+   ]
+  },
+  "h005": {
+   "sql_sha256": "2e9960bcd5f4e8bc5895f8d5b9bd02e9d1c8875b749b6223ac60935953e71e2c",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "d:2025-12-01",
+       "n:1479030.28"
+      ]
+     ]
+    }
+   ]
+  },
+  "h006": {
+   "sql_sha256": "9470b03049dc580476c9bb207c54bfbfe28eee19fa8493e07979c44ce6da3579",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "participacion_pct"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:4.88"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:4.69"
+      ],
+      [
+       "s:Deportes",
+       "n:5.01"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:27.25"
+      ],
+      [
+       "s:Electrónica",
+       "n:41.60"
+      ],
+      [
+       "s:Ferretería",
+       "n:1.35"
+      ],
+      [
+       "s:Hogar",
+       "n:4.91"
+      ],
+      [
+       "s:Juguetes",
+       "n:2.87"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:6.63"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:0.81"
+      ]
+     ]
+    }
+   ]
+  },
+  "h007": {
+   "sql_sha256": "b32d60a87db6d1ecc6d67524eb135e7df63c55c3ca5add004f1a41060a8bc773",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:13107.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h008": {
+   "sql_sha256": "89aeb2ef268081f6f468324419cddccabcd50ff211a45cfb5fb4eaaeee6cc195",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:5859.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h009": {
+   "sql_sha256": "a653fd827e4ab3e10c0000cb17c342e1b0771b18927eb2323ad1cfe61bc9884e",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Carretilla"
+      ],
+      [
+       "s:Bicicleta urbana"
+      ],
+      [
+       "s:Aire acondicionado split 12000 BTU"
+      ],
+      [
+       "s:Refrigeradora 11 pies"
+      ],
+      [
+       "s:Pintura látex galón blanco"
+      ],
+      [
+       "s:Smart TV LED 55\" LG"
+      ]
+     ]
+    }
+   ]
+  },
+  "h010": {
+   "sql_sha256": "c138dc6becdf8f8387e0668925795cd910dec769a009da19ab60df367342ac0f",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "acumulado"
+     ],
+     "rows": [
+      [
+       "d:2025-01-01",
+       "n:679012.84"
+      ],
+      [
+       "d:2025-02-01",
+       "n:1365917.38"
+      ],
+      [
+       "d:2025-03-01",
+       "n:2160171.79"
+      ],
+      [
+       "d:2025-04-01",
+       "n:2898448.86"
+      ],
+      [
+       "d:2025-05-01",
+       "n:3745243.65"
+      ],
+      [
+       "d:2025-06-01",
+       "n:4554082.93"
+      ],
+      [
+       "d:2025-07-01",
+       "n:5378213.66"
+      ],
+      [
+       "d:2025-08-01",
+       "n:6253279.41"
+      ],
+      [
+       "d:2025-09-01",
+       "n:7058042.94"
+      ],
+      [
+       "d:2025-10-01",
+       "n:7962245.66"
+      ],
+      [
+       "d:2025-11-01",
+       "n:8953578.05"
+      ],
+      [
+       "d:2025-12-01",
+       "n:10432608.33"
+      ]
+     ]
+    }
+   ]
+  },
+  "h011": {
+   "sql_sha256": "ae3a61dff65334f900824128dc43aba5e0789ea96d4fd6254f44ff7d7e370edf",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "margen_pct"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:19.52"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:32.56"
+      ],
+      [
+       "s:Deportes",
+       "n:35.12"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:21.70"
+      ],
+      [
+       "s:Electrónica",
+       "n:17.23"
+      ],
+      [
+       "s:Ferretería",
+       "n:30.36"
+      ],
+      [
+       "s:Hogar",
+       "n:36.83"
+      ],
+      [
+       "s:Juguetes",
+       "n:40.40"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:43.44"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:39.11"
+      ]
+     ]
+    }
+   ]
+  },
+  "h012": {
+   "sql_sha256": "f07cb86eea42b339caac79570258d0b131da590716af046079f878c7bab3c4fc",
+   "results": [
+    {
+     "columns": [
+      "unidades"
+     ],
+     "rows": [
+      [
+       "n:4796.00"
+      ]
+     ]
+    },
+    {
+     "columns": [
+      "unidades"
+     ],
+     "rows": [
+      [
+       "n:4491.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h013": {
+   "sql_sha256": "ac24aba894a3e31afa3bd71ece7a0005bcccae9536d1cba60de306ac0a617fd7",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "crecimiento_pct"
+     ],
+     "rows": [
+      [
+       "s:Esmeraldas",
+       "n:47.24"
+      ]
+     ]
+    }
+   ]
+  },
+  "h014": {
+   "sql_sha256": "d5968e09229c830c5def512c0999c93a85ef43f57ee2798e80de0549648a8456",
+   "results": [
+    {
+     "columns": [
+      "region",
+      "producto",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Sierra",
+       "s:Refrigeradora 17 pies",
+       "n:56822.07"
+      ],
+      [
+       "s:Sierra",
+       "s:Smart TV LED 65\" Samsung",
+       "n:52885.72"
+      ],
+      [
+       "s:Sierra",
+       "s:Laptop Pavilion 15 Core i7",
+       "n:41828.52"
+      ],
+      [
+       "s:Costa",
+       "s:Smart TV LED 65\" Samsung",
+       "n:43638.59"
+      ],
+      [
+       "s:Costa",
+       "s:Refrigeradora 17 pies",
+       "n:38505.31"
+      ],
+      [
+       "s:Costa",
+       "s:Aire acondicionado split 12000 BTU",
+       "n:32298.09"
+      ],
+      [
+       "s:Amazonía",
+       "s:Laptop ThinkPad E14 Core i5",
+       "n:4854.95"
+      ],
+      [
+       "s:Amazonía",
+       "s:Consola PlayStation 5 Slim",
+       "n:4293.87"
+      ],
+      [
+       "s:Amazonía",
+       "s:Cocina de inducción 4 zonas",
+       "n:3587.79"
+      ],
+      [
+       "s:Insular",
+       "s:Smart TV LED 65\" Samsung",
+       "n:5800.13"
+      ],
+      [
+       "s:Insular",
+       "s:Refrigeradora Inverter 14 pies",
+       "n:3102.30"
+      ],
+      [
+       "s:Insular",
+       "s:Refrigeradora 17 pies",
+       "n:2941.38"
+      ]
+     ]
+    }
+   ]
+  },
+  "h015": {
+   "sql_sha256": "6a6b16acd14730d472011609b19f92509dcc0da8f5395647c643ed8312ad4288",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Quito Iñaquito"
+      ],
+      [
+       "s:Guayaquil Centro"
+      ]
+     ]
+    }
+   ]
+  },
+  "h016": {
+   "sql_sha256": "d78fe41482b1a91cac048501965c9e52f2e8311f92166dac931d515f06641705",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Licuadora Xpert 10 velocidades"
+      ]
+     ]
+    }
+   ]
+  },
+  "h017": {
+   "sql_sha256": "2b899ddb68f1102782874d921b6623bf10b455fcf3408f1bdd4a51ca1f978836",
+   "results": [
+    {
+     "columns": [
+      "dia"
+     ],
+     "rows": [
+      [
+       "d:2025-02-10"
+      ],
+      [
+       "d:2025-02-11"
+      ],
+      [
+       "d:2025-02-12"
+      ],
+      [
+       "d:2025-02-13"
+      ],
+      [
+       "d:2025-02-14"
+      ],
+      [
+       "d:2025-02-15"
+      ],
+      [
+       "d:2025-02-16"
+      ],
+      [
+       "d:2025-02-17"
+      ],
+      [
+       "d:2025-02-18"
+      ],
+      [
+       "d:2025-02-19"
+      ],
+      [
+       "d:2025-02-20"
+      ],
+      [
+       "d:2025-02-21"
+      ],
+      [
+       "d:2025-02-22"
+      ],
+      [
+       "d:2025-02-23"
+      ]
+     ]
+    }
+   ]
+  },
+  "h018": {
+   "sql_sha256": "53a4e1626bdb8e4adbf7f4ab54628cbe8e45747f3c3ac27400b98c5c9ba1d346",
+   "results": [
+    {
+     "columns": [
+      "venta_id",
+      "cliente_id",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "n:130509.00",
+       "n:17.00",
+       "n:120.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h019": {
+   "sql_sha256": "9140f4ab3f9c84055739ab3587b88ad0235454c8c6a463870d955d1ba26402ab",
+   "results": [
+    {
+     "columns": [
+      "anio",
+      "porcentaje_online"
+     ],
+     "rows": [
+      [
+       "d:2024-01-01",
+       "n:5.31"
+      ],
+      [
+       "d:2025-01-01",
+       "n:7.50"
+      ],
+      [
+       "d:2026-01-01",
+       "n:10.56"
+      ]
+     ]
+    }
+   ]
+  },
+  "h020": {
+   "sql_sha256": "860fa9d7c62376e065414db826b5f7a464e917d901f5159998088d26fe9edc5a",
+   "results": [
+    {
+     "columns": [
+      "segmento",
+      "ticket_promedio"
+     ],
+     "rows": [
+      [
+       "s:corporativo",
+       "n:251.28"
+      ],
+      [
+       "s:frecuente",
+       "n:107.79"
+      ],
+      [
+       "s:ocasional",
+       "n:106.37"
+      ]
+     ]
+    }
+   ]
+  },
+  "h021": {
+   "sql_sha256": "31705883beae7e68c44736fb3643271a0fb9ecbb97d1282fbdc2c81e09b55e2b",
+   "results": [
+    {
+     "columns": [
+      "empleado_id",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "n:101.00",
+       "n:72902.24"
+      ]
+     ]
+    }
+   ]
+  },
+  "h022": {
+   "sql_sha256": "43ce28379a05b32e7b5d239f86b160af6a92fff2ee92cd6c369f0a61ec79972a",
+   "results": [
+    {
+     "columns": [
+      "diferencia"
+     ],
+     "rows": [
+      [
+       "n:562153.14"
+      ]
+     ]
+    }
+   ]
+  },
+  "h023": {
+   "sql_sha256": "d4883a1a68facdd9ec011c2a9d46775c993b06d5072c67c9699d6d52b388e915",
+   "results": [
+    {
+     "columns": [
+      "porcentaje_iva"
+     ],
+     "rows": [
+      [
+       "n:12.62"
+      ]
+     ]
+    }
+   ]
+  },
+  "h024": {
+   "sql_sha256": "3144fe90f7a5b2ceaf5ccc8aa9ef1db318ee567d012b3df4ad7b7f48c2bff550",
+   "results": [
+    {
+     "columns": [
+      "formato",
+      "ingresos_por_m2"
+     ],
+     "rows": [
+      [
+       "s:express",
+       "n:146.53"
+      ],
+      [
+       "s:hipermercado",
+       "n:143.79"
+      ],
+      [
+       "s:supermercado",
+       "n:129.09"
+      ]
+     ]
+    }
+   ]
+  },
+  "h025": {
+   "sql_sha256": "5fae4cdf14dbdf6817702f07275775ba056a90e623f31167103c67b186a854d6",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:19.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h026": {
+   "sql_sha256": "114b785b9809185c7a5587081d263e3ccf851daeee57c30e7a201559966b650c",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Esmeraldas"
+      ],
+      [
+       "s:Puyo"
+      ],
+      [
+       "s:Santo Domingo"
+      ],
+      [
+       "s:Riobamba"
+      ],
+      [
+       "s:Puerto Ayora"
+      ],
+      [
+       "s:Quevedo"
+      ],
+      [
+       "s:Nueva Loja"
+      ],
+      [
+       "s:Latacunga"
+      ]
+     ]
+    }
+   ]
+  },
+  "h027": {
+   "sql_sha256": "0e1dff7b8785901d23f56a68dddc840e933f62e8284bba321c621783c953b58e",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "crecimiento_pct"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:9.14"
+      ]
+     ]
+    }
+   ]
+  },
+  "h028": {
+   "sql_sha256": "d23cfb23ec7c7bd09252fc32b8989e80f779bd70075e795f2b92e3e4e4a249bd",
+   "results": [
+    {
+     "columns": [
+      "region",
+      "crecimiento_pct"
+     ],
+     "rows": [
+      [
+       "s:Amazonía",
+       "n:-10.32"
+      ],
+      [
+       "s:Costa",
+       "n:29.77"
+      ],
+      [
+       "s:Insular",
+       "n:-32.64"
+      ],
+      [
+       "s:Sierra",
+       "n:6.02"
+      ]
+     ]
+    }
+   ]
+  },
+  "h029": {
+   "sql_sha256": "30466a18d70a636b1eea9c66e627dbce43e011484a9cc89699f29549150d6843",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "tasa_devolucion_pct"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:0.22"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:0.42"
+      ],
+      [
+       "s:Deportes",
+       "n:1.83"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:3.40"
+      ],
+      [
+       "s:Electrónica",
+       "n:3.89"
+      ],
+      [
+       "s:Ferretería",
+       "n:1.16"
+      ],
+      [
+       "s:Hogar",
+       "n:2.00"
+      ],
+      [
+       "s:Juguetes",
+       "n:2.48"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:5.28"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:0.95"
+      ]
+     ]
+    }
+   ]
+  },
+  "h030": {
+   "sql_sha256": "638bd0a54d87259564dc7ee12c78da0252186aab423ece313b996c61af3f55e9",
+   "results": [
+    {
+     "columns": [
+      "empleado_id",
+      "empleados",
+      "salario_promedio"
+     ],
+     "rows": [
+      [
+       "n:2.00",
+       "n:11.00",
+       "n:2349.09"
+      ],
+      [
+       "n:3.00",
+       "n:10.00",
+       "n:2175.50"
+      ],
+      [
+       "n:4.00",
+       "n:2.00",
+       "n:2307.50"
+      ],
+      [
+       "n:5.00",
+       "n:1.00",
+       "n:2000.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "h031": {
+   "sql_sha256": "b025d7dc8d4d7e3a7d5d61de30224de6d219f36f74732e7d524a46cb9c01df06",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Agua mineral 1.5 L",
+       "n:4557.00"
+      ],
+      [
+       "s:Pollo entero por kg Mr. Pollo",
+       "n:2608.00"
+      ],
+      [
+       "s:Leche entera 1 L Toni",
+       "n:2295.00"
+      ],
+      [
+       "s:Leche entera 1 L Parmalat",
+       "n:1799.00"
+      ],
+      [
+       "s:Arroz 5 kg Gustadina",
+       "n:1599.00"
+      ]
+     ]
+    },
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:291168.77"
+      ]
+     ]
+    }
+   ]
+  },
+  "m001": {
+   "sql_sha256": "948bfe3b6aa6ec20815b9c64308fdeda6cf161771339f535adb8255380d1728f",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Agua mineral 1.5 L",
+       "n:4768.00"
+      ],
+      [
+       "s:Pollo entero por kg Mr. Pollo",
+       "n:2707.00"
+      ],
+      [
+       "s:Leche entera 1 L Toni",
+       "n:2555.00"
+      ],
+      [
+       "s:Leche entera 1 L Parmalat",
+       "n:2098.00"
+      ],
+      [
+       "s:Aceite vegetal 1 L La Favorita",
+       "n:1834.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m002": {
+   "sql_sha256": "5582ca3b6208911c8560b4703717fd9c3910f20ce613a8aa89def56aa70fcb53",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Samborondón",
+       "n:299672.19"
+      ]
+     ]
+    }
+   ]
+  },
+  "m003": {
+   "sql_sha256": "30f8718e41938d1557cc254f9baef52e7d516d4620ee4f938040cebd93708f9a",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Amazonía",
+       "n:351332.66"
+      ],
+      [
+       "s:Costa",
+       "n:4811311.87"
+      ],
+      [
+       "s:Insular",
+       "n:195184.57"
+      ],
+      [
+       "s:Sierra",
+       "n:5074779.23"
+      ]
+     ]
+    }
+   ]
+  },
+  "m004": {
+   "sql_sha256": "e25d27bdeda33ad62ed57c00085e39e06c6397a27dd28afe4797ac28d3904c7a",
+   "results": [
+    {
+     "columns": [
+      "metodo_pago",
+      "ticket_promedio"
+     ],
+     "rows": [
+      [
+       "s:billetera_movil",
+       "n:120.07"
+      ],
+      [
+       "s:efectivo",
+       "n:114.81"
+      ],
+      [
+       "s:tarjeta_credito",
+       "n:120.68"
+      ],
+      [
+       "s:tarjeta_debito",
+       "n:116.06"
+      ],
+      [
+       "s:transferencia",
+       "n:137.72"
+      ]
+     ]
+    }
+   ]
+  },
+  "m005": {
+   "sql_sha256": "40b3bcda09970e7b70e1245cdbadcf38fe40af282799edee11780e4560a30d06",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "devoluciones"
+     ],
+     "rows": [
+      [
+       "s:Ropa y Calzado",
+       "n:1105.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m006": {
+   "sql_sha256": "3573738352f34f91b6411c36ef9159aadc4d690e812775a9e028f78a97973bdc",
+   "results": [
+    {
+     "columns": [
+      "motivo",
+      "devoluciones"
+     ],
+     "rows": [
+      [
+       "s:no cumple expectativas",
+       "n:1044.00"
+      ],
+      [
+       "s:defecto de fábrica",
+       "n:824.00"
+      ],
+      [
+       "s:talla o modelo incorrecto",
+       "n:644.00"
+      ],
+      [
+       "s:producto dañado",
+       "n:503.00"
+      ],
+      [
+       "s:error en el pedido",
+       "n:296.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m007": {
+   "sql_sha256": "00068ace6e3a97d034836c5031f5983fd8ff1f77f7098dbf98d7160f8db0c6ab",
+   "results": [
+    {
+     "columns": [
+      "nombre"
+     ],
+     "rows": [
+      [
+       "s:Smart TV LED 32\" Samsung"
+      ],
+      [
+       "s:Smart TV LED 43\" Samsung"
+      ],
+      [
+       "s:Smart TV LED 32\" TCL"
+      ],
+      [
+       "s:Smart TV LED 43\" TCL"
+      ],
+      [
+       "s:Smart TV LED 50\" TCL"
+      ],
+      [
+       "s:Smart TV LED 65\" Hisense"
+      ],
+      [
+       "s:Celular Moto G85 256 GB"
+      ],
+      [
+       "s:Celular iPhone 16 128 GB"
+      ],
+      [
+       "s:Audífonos Tune 520BT"
+      ],
+      [
+       "s:Audífonos Galaxy Buds FE"
+      ],
+      [
+       "s:Smartwatch Galaxy Watch FE"
+      ],
+      [
+       "s:Mouse inalámbrico M170"
+      ],
+      [
+       "s:Refrigeradora 12 pies"
+      ],
+      [
+       "s:Cocina 6 quemadores"
+      ],
+      [
+       "s:Cocina 30\""
+      ],
+      [
+       "s:Microondas 1.1 pies"
+      ],
+      [
+       "s:Licuadora Xpert 10 velocidades"
+      ],
+      [
+       "s:Licuadora 10 velocidades"
+      ],
+      [
+       "s:Cafetera Essenza Mini"
+      ],
+      [
+       "s:Aspiradora 1600 W"
+      ],
+      [
+       "s:Ventilador de mesa 16\""
+      ],
+      [
+       "s:Aire acondicionado split 12000 BTU"
+      ],
+      [
+       "s:Extractor de jugos"
+      ],
+      [
+       "s:Batidora de mano"
+      ],
+      [
+       "s:Batidora de pedestal Artisan"
+      ],
+      [
+       "s:Juego de sábanas 1.5 plazas Casa Bella"
+      ],
+      [
+       "s:Juego de sábanas 2 plazas Casa Bella"
+      ],
+      [
+       "s:Edredón 2 plazas Casa Bella"
+      ],
+      [
+       "s:Almohada viscoelástica"
+      ],
+      [
+       "s:Juego de ollas 7 piezas"
+      ],
+      [
+       "s:Caja organizadora 60 L"
+      ],
+      [
+       "s:Cortina blackout"
+      ],
+      [
+       "s:Suavizante 1 L"
+      ],
+      [
+       "s:Insecticida en aerosol"
+      ],
+      [
+       "s:Aceite vegetal 2 L Alesol"
+      ],
+      [
+       "s:Azúcar blanca 2 kg San Carlos"
+      ],
+      [
+       "s:Leche entera 1 L Toni"
+      ],
+      [
+       "s:Leche entera 1 L Parmalat"
+      ],
+      [
+       "s:Pan de molde Supan"
+      ],
+      [
+       "s:Atún en aceite 180 g Real"
+      ],
+      [
+       "s:Atún en aceite 180 g Van Camp's"
+      ],
+      [
+       "s:Avena 400 g"
+      ],
+      [
+       "s:Café soluble 170 g"
+      ],
+      [
+       "s:Snack familiar Doritos"
+      ],
+      [
+       "s:Gaseosa 500 ml"
+      ],
+      [
+       "s:Agua sin gas 1 L"
+      ],
+      [
+       "s:Cerveza Pilsener 6 pack"
+      ],
+      [
+       "s:Carne molida de res 1 kg"
+      ],
+      [
+       "s:Tomate riñón por kg"
+      ],
+      [
+       "s:Aguacate unidad"
+      ],
+      [
+       "s:Mermelada de frutilla 300 g"
+      ],
+      [
+       "s:Harina de trigo 1 kg"
+      ],
+      [
+       "s:Fréjol rojo 500 g"
+      ],
+      [
+       "s:Mantequilla 250 g"
+      ],
+      [
+       "s:Hamburguesas 4 unidades"
+      ],
+      [
+       "s:Acondicionador 400 ml Sedal"
+      ],
+      [
+       "s:Jabón de tocador pack 3 Palmolive"
+      ],
+      [
+       "s:Pasta dental 100 ml Sensodyne"
+      ],
+      [
+       "s:Pasta dental 100 ml Oral-B"
+      ],
+      [
+       "s:Cepillo dental Oral-B"
+      ],
+      [
+       "s:Crema corporal 400 ml Johnson's"
+      ],
+      [
+       "s:Perfume 212 VIP 80 ml"
+      ],
+      [
+       "s:Perfume Boss Bottled 100 ml"
+      ],
+      [
+       "s:Perfume Ccori 50 ml"
+      ],
+      [
+       "s:Toallas sanitarias x10 Nosotras"
+      ],
+      [
+       "s:Jean 501 hombre"
+      ],
+      [
+       "s:Camisa formal hombre"
+      ],
+      [
+       "s:Zapatos deportivos Runfalcon"
+      ],
+      [
+       "s:Zapatos deportivos Smash"
+      ],
+      [
+       "s:Gorra"
+      ],
+      [
+       "s:Tijeras escolares"
+      ],
+      [
+       "s:Mochila escolar"
+      ],
+      [
+       "s:Mochila escolar"
+      ],
+      [
+       "s:Calculadora científica fx-82"
+      ],
+      [
+       "s:Carpeta archivadora"
+      ],
+      [
+       "s:LEGO Classic caja mediana"
+      ],
+      [
+       "s:LEGO City estación de policía"
+      ],
+      [
+       "s:Muñeca Fashionista"
+      ],
+      [
+       "s:Lanzador Nerf Elite"
+      ],
+      [
+       "s:Scooter infantil"
+      ],
+      [
+       "s:Dron infantil"
+      ],
+      [
+       "s:Pistola de agua"
+      ],
+      [
+       "s:Globos de agua x100"
+      ],
+      [
+       "s:Balón de fútbol Tiro League"
+      ],
+      [
+       "s:Balón de fútbol Strike"
+      ],
+      [
+       "s:Balón de vóley"
+      ],
+      [
+       "s:Camiseta Emelec"
+      ],
+      [
+       "s:Caminadora eléctrica"
+      ],
+      [
+       "s:Patines en línea"
+      ],
+      [
+       "s:Flexómetro 5 m"
+      ],
+      [
+       "s:Caja de herramientas"
+      ],
+      [
+       "s:Pintura látex galón blanco"
+      ],
+      [
+       "s:Pintura látex galón blanco"
+      ],
+      [
+       "s:Pintura esmalte galón"
+      ],
+      [
+       "s:Foco LED 9 W"
+      ],
+      [
+       "s:Manguera 15 m"
+      ],
+      [
+       "s:Pala cuadrada"
+      ],
+      [
+       "s:Silicona transparente"
+      ],
+      [
+       "s:Clavos 2\" 1 lb"
+      ],
+      [
+       "s:Cemento 50 kg"
+      ]
+     ]
+    }
+   ]
+  },
+  "m008": {
+   "sql_sha256": "f0f39e4f5a51407e7b4733c75fe3afd719d44bce5248f2b690bb912afa771b2c",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "productos_sin_stock"
+     ],
+     "rows": [
+      [
+       "s:Esmeraldas",
+       "n:73.00"
+      ],
+      [
+       "s:Guayaquil Sur - Guasmo",
+       "n:36.00"
+      ],
+      [
+       "s:Quito Sur - Quitumbe",
+       "n:29.00"
+      ],
+      [
+       "s:Puyo",
+       "n:56.00"
+      ],
+      [
+       "s:Cumbayá",
+       "n:26.00"
+      ],
+      [
+       "s:Cuenca Centro",
+       "n:26.00"
+      ],
+      [
+       "s:Ibarra",
+       "n:27.00"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:18.00"
+      ],
+      [
+       "s:Santo Domingo",
+       "n:40.00"
+      ],
+      [
+       "s:Riobamba",
+       "n:58.00"
+      ],
+      [
+       "s:Machala",
+       "n:28.00"
+      ],
+      [
+       "s:Guayaquil Centro",
+       "n:26.00"
+      ],
+      [
+       "s:Puerto Ayora",
+       "n:53.00"
+      ],
+      [
+       "s:Quito Norte - Carcelén",
+       "n:16.00"
+      ],
+      [
+       "s:Quevedo",
+       "n:74.00"
+      ],
+      [
+       "s:Portoviejo",
+       "n:30.00"
+      ],
+      [
+       "s:Nueva Loja",
+       "n:59.00"
+      ],
+      [
+       "s:Loja",
+       "n:52.00"
+      ],
+      [
+       "s:Latacunga",
+       "n:51.00"
+      ],
+      [
+       "s:Manta",
+       "n:22.00"
+      ],
+      [
+       "s:Quito Iñaquito",
+       "n:17.00"
+      ],
+      [
+       "s:Ambato",
+       "n:38.00"
+      ],
+      [
+       "s:Samborondón",
+       "n:24.00"
+      ],
+      [
+       "s:Cuenca El Ejido",
+       "n:28.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m009": {
+   "sql_sha256": "1b131172c05849f87260539f4930fbaa4367230bc286bf1c072fd2ff335f62d9",
+   "results": [
+    {
+     "columns": [
+      "empleado_id",
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:42.00",
+       "n:438.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m010": {
+   "sql_sha256": "1b4805d9dd29d883f5ea48e2fc9250f21c9166f43fdea429c7544c75fde34e7b",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "canal",
+      "ventas"
+     ],
+     "rows": [
+      [
+       "d:2026-09-01",
+       "s:tienda",
+       "n:7444.00"
+      ],
+      [
+       "d:2026-07-01",
+       "s:online",
+       "n:914.00"
+      ],
+      [
+       "d:2026-01-01",
+       "s:tienda",
+       "n:6438.00"
+      ],
+      [
+       "d:2026-05-01",
+       "s:online",
+       "n:870.00"
+      ],
+      [
+       "d:2026-08-01",
+       "s:tienda",
+       "n:8066.00"
+      ],
+      [
+       "d:2026-04-01",
+       "s:tienda",
+       "n:7051.00"
+      ],
+      [
+       "d:2026-10-01",
+       "s:online",
+       "n:1064.00"
+      ],
+      [
+       "d:2026-06-01",
+       "s:online",
+       "n:878.00"
+      ],
+      [
+       "d:2026-01-01",
+       "s:online",
+       "n:648.00"
+      ],
+      [
+       "d:2026-03-01",
+       "s:tienda",
+       "n:7746.00"
+      ],
+      [
+       "d:2026-02-01",
+       "s:tienda",
+       "n:6771.00"
+      ],
+      [
+       "d:2026-07-01",
+       "s:tienda",
+       "n:7450.00"
+      ],
+      [
+       "d:2026-08-01",
+       "s:online",
+       "n:1000.00"
+      ],
+      [
+       "d:2026-02-01",
+       "s:online",
+       "n:755.00"
+      ],
+      [
+       "d:2026-03-01",
+       "s:online",
+       "n:825.00"
+      ],
+      [
+       "d:2026-05-01",
+       "s:tienda",
+       "n:7721.00"
+      ],
+      [
+       "d:2026-10-01",
+       "s:tienda",
+       "n:7706.00"
+      ],
+      [
+       "d:2026-06-01",
+       "s:tienda",
+       "n:7336.00"
+      ],
+      [
+       "d:2026-04-01",
+       "s:online",
+       "n:818.00"
+      ],
+      [
+       "d:2026-09-01",
+       "s:online",
+       "n:934.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m011": {
+   "sql_sha256": "c4d9a6bcc32466bef545468250b3ca65a08bb84904b8e17000826cd0988b3b95",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "margen_bruto"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:99321.39"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:159308.41"
+      ],
+      [
+       "s:Deportes",
+       "n:183419.91"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:617002.35"
+      ],
+      [
+       "s:Electrónica",
+       "n:747482.11"
+      ],
+      [
+       "s:Ferretería",
+       "n:42843.08"
+      ],
+      [
+       "s:Hogar",
+       "n:188753.40"
+      ],
+      [
+       "s:Juguetes",
+       "n:120885.61"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:300535.84"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:33142.30"
+      ]
+     ]
+    }
+   ]
+  },
+  "m012": {
+   "sql_sha256": "5f2ea6528054782df5d7b719bb6fe173e858317d6d61389a9fea2063848bc2e3",
+   "results": [
+    {
+     "columns": [
+      "cliente_id",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "n:17.00",
+       "n:107197.30"
+      ],
+      [
+       "n:7488.00",
+       "n:7063.08"
+      ],
+      [
+       "n:13029.00",
+       "n:6806.31"
+      ],
+      [
+       "n:13160.00",
+       "n:6797.16"
+      ],
+      [
+       "n:16751.00",
+       "n:6332.96"
+      ],
+      [
+       "n:6875.00",
+       "n:6124.41"
+      ],
+      [
+       "n:5225.00",
+       "n:6048.16"
+      ],
+      [
+       "n:5121.00",
+       "n:5992.75"
+      ],
+      [
+       "n:6498.00",
+       "n:5733.63"
+      ],
+      [
+       "n:2386.00",
+       "n:5648.50"
+      ]
+     ]
+    }
+   ]
+  },
+  "m013": {
+   "sql_sha256": "6f06b318f39ac9c63f9912c4a2e785449cc339741d8a7c1d7f548c2eb6ee045a",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Amazonía",
+       "n:72.00"
+      ],
+      [
+       "s:Costa",
+       "n:3695.00"
+      ],
+      [
+       "s:Insular",
+       "n:96.00"
+      ],
+      [
+       "s:Sierra",
+       "n:497.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m014": {
+   "sql_sha256": "77db0cf62ed568d2d30bb2503f88d63e88bdabe542854e35a96ff8adc2623cf6",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "d:2026-01-01",
+       "n:41464.00"
+      ],
+      [
+       "d:2026-02-01",
+       "n:42928.69"
+      ],
+      [
+       "d:2026-03-01",
+       "n:40991.68"
+      ],
+      [
+       "d:2026-04-01",
+       "n:43731.49"
+      ],
+      [
+       "d:2026-05-01",
+       "n:51033.12"
+      ],
+      [
+       "d:2026-06-01",
+       "n:57747.48"
+      ],
+      [
+       "d:2026-07-01",
+       "n:38877.93"
+      ],
+      [
+       "d:2026-08-01",
+       "n:43482.89"
+      ],
+      [
+       "d:2026-09-01",
+       "n:46846.31"
+      ],
+      [
+       "d:2026-10-01",
+       "n:44757.14"
+      ]
+     ]
+    }
+   ]
+  },
+  "m015": {
+   "sql_sha256": "4d95107d86638817397f77d88895f82f53f3a9f4a55a082ff1a81e5350434dc9",
+   "results": [
+    {
+     "columns": [
+      "marca",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Samsung",
+       "n:1386.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m016": {
+   "sql_sha256": "32c180f0e362ad318ced7ec5e2a82eefbd303f1cdc67a91820ab070602e792d1",
+   "results": [
+    {
+     "columns": [
+      "porcentaje"
+     ],
+     "rows": [
+      [
+       "n:7.15"
+      ]
+     ]
+    }
+   ]
+  },
+  "m017": {
+   "sql_sha256": "74cb5f02904ff655218e909b2ac59156ddcb3e6e66fe37463baa071d17d93f25",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "monto_reembolsado"
+     ],
+     "rows": [
+      [
+       "s:Ambato",
+       "n:14362.66"
+      ],
+      [
+       "s:Cuenca Centro",
+       "n:16465.37"
+      ],
+      [
+       "s:Cuenca El Ejido",
+       "n:14228.86"
+      ],
+      [
+       "s:Cumbayá",
+       "n:14910.14"
+      ],
+      [
+       "s:Esmeraldas",
+       "n:4892.88"
+      ],
+      [
+       "s:Guayaquil Centro",
+       "n:11975.99"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:37674.49"
+      ],
+      [
+       "s:Guayaquil Sur - Guasmo",
+       "n:10584.53"
+      ],
+      [
+       "s:Ibarra",
+       "n:11821.30"
+      ],
+      [
+       "s:Latacunga",
+       "n:4759.02"
+      ],
+      [
+       "s:Loja",
+       "n:12947.93"
+      ],
+      [
+       "s:Machala",
+       "n:17987.50"
+      ],
+      [
+       "s:Manta",
+       "n:7897.84"
+      ],
+      [
+       "s:Nueva Loja",
+       "n:6678.42"
+      ],
+      [
+       "s:Portoviejo",
+       "n:14160.91"
+      ],
+      [
+       "s:Puerto Ayora",
+       "n:8640.27"
+      ],
+      [
+       "s:Puyo",
+       "n:6937.21"
+      ],
+      [
+       "s:Quevedo",
+       "n:3892.35"
+      ],
+      [
+       "s:Quito Iñaquito",
+       "n:26664.92"
+      ],
+      [
+       "s:Quito Norte - Carcelén",
+       "n:38587.79"
+      ],
+      [
+       "s:Quito Sur - Quitumbe",
+       "n:14898.34"
+      ],
+      [
+       "s:Riobamba",
+       "n:7223.72"
+      ],
+      [
+       "s:Samborondón",
+       "n:35931.51"
+      ],
+      [
+       "s:Santo Domingo",
+       "n:10800.13"
+      ]
+     ]
+    }
+   ]
+  },
+  "m018": {
+   "sql_sha256": "14c1d2e3e7b06d4f1619c0d441966d14a9bf3a6baebe165b35b704eeb7a1f011",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:27212.00"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:7193.00"
+      ],
+      [
+       "s:Deportes",
+       "n:1447.00"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:1641.00"
+      ],
+      [
+       "s:Electrónica",
+       "n:2813.00"
+      ],
+      [
+       "s:Ferretería",
+       "n:1626.00"
+      ],
+      [
+       "s:Hogar",
+       "n:4652.00"
+      ],
+      [
+       "s:Juguetes",
+       "n:3528.00"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:4313.00"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:1590.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m019": {
+   "sql_sha256": "2dd16e73f66598b2217d0a3c05163bbe76d1ad65f84270f729c7be6f871816d1",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "clientes"
+     ],
+     "rows": [
+      [
+       "d:2025-07-01",
+       "n:401.00"
+      ],
+      [
+       "d:2025-10-01",
+       "n:471.00"
+      ],
+      [
+       "d:2025-03-01",
+       "n:203.00"
+      ],
+      [
+       "d:2025-04-01",
+       "n:204.00"
+      ],
+      [
+       "d:2025-09-01",
+       "n:446.00"
+      ],
+      [
+       "d:2025-12-01",
+       "n:607.00"
+      ],
+      [
+       "d:2025-08-01",
+       "n:418.00"
+      ],
+      [
+       "d:2025-02-01",
+       "n:122.00"
+      ],
+      [
+       "d:2025-01-01",
+       "n:86.00"
+      ],
+      [
+       "d:2025-11-01",
+       "n:531.00"
+      ],
+      [
+       "d:2025-05-01",
+       "n:235.00"
+      ],
+      [
+       "d:2025-06-01",
+       "n:327.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m020": {
+   "sql_sha256": "72f12752bd085371ff5f6f7a8104d9d72fbc3ae904f3afe5bdd072f438151498",
+   "results": [
+    {
+     "columns": [
+      "hora",
+      "ventas"
+     ],
+     "rows": [
+      [
+       "n:23.00",
+       "n:175.00"
+      ],
+      [
+       "n:18.00",
+       "n:9936.00"
+      ],
+      [
+       "n:19.00",
+       "n:8985.00"
+      ],
+      [
+       "n:8.00",
+       "n:2148.00"
+      ],
+      [
+       "n:17.00",
+       "n:8926.00"
+      ],
+      [
+       "n:6.00",
+       "n:116.00"
+      ],
+      [
+       "n:13.00",
+       "n:6892.00"
+      ],
+      [
+       "n:5.00",
+       "n:63.00"
+      ],
+      [
+       "n:12.00",
+       "n:8903.00"
+      ],
+      [
+       "n:11.00",
+       "n:7988.00"
+      ],
+      [
+       "n:7.00",
+       "n:200.00"
+      ],
+      [
+       "n:0.00",
+       "n:51.00"
+      ],
+      [
+       "n:15.00",
+       "n:6095.00"
+      ],
+      [
+       "n:9.00",
+       "n:4213.00"
+      ],
+      [
+       "n:21.00",
+       "n:3377.00"
+      ],
+      [
+       "n:20.00",
+       "n:6373.00"
+      ],
+      [
+       "n:1.00",
+       "n:69.00"
+      ],
+      [
+       "n:2.00",
+       "n:68.00"
+      ],
+      [
+       "n:3.00",
+       "n:63.00"
+      ],
+      [
+       "n:10.00",
+       "n:5968.00"
+      ],
+      [
+       "n:16.00",
+       "n:7040.00"
+      ],
+      [
+       "n:22.00",
+       "n:340.00"
+      ],
+      [
+       "n:4.00",
+       "n:53.00"
+      ],
+      [
+       "n:14.00",
+       "n:6091.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m021": {
+   "sql_sha256": "40003129366281e16656d99642c89a562279dee83d7014419a936429694dd416",
+   "results": [
+    {
+     "columns": [
+      "canal",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:online",
+       "n:460419.54"
+      ],
+      [
+       "s:tienda",
+       "n:2536424.30"
+      ]
+     ]
+    }
+   ]
+  },
+  "m022": {
+   "sql_sha256": "d91a9cdb6920406bb86a91e1d3be103cb8b1378cb90d4504eafc1bf2d8d79a90",
+   "results": [
+    {
+     "columns": [
+      "formato",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:express",
+       "n:1216227.60"
+      ],
+      [
+       "s:hipermercado",
+       "n:3781635.42"
+      ],
+      [
+       "s:supermercado",
+       "n:5434745.31"
+      ]
+     ]
+    }
+   ]
+  },
+  "m023": {
+   "sql_sha256": "8aea34d71981cf3532a9b370390a1a2afefc47e9a4491e4468e8afb277ac01ad",
+   "results": [
+    {
+     "columns": [
+      "unidades_devueltas"
+     ],
+     "rows": [
+      [
+       "n:32.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m024": {
+   "sql_sha256": "cb10c32b946c4c22e0f94862032b721258d2518b87057eb2f227ddbfb7a35864",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ventas_brutas"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:145364.76"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:133682.30"
+      ],
+      [
+       "s:Deportes",
+       "n:185846.27"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:878367.53"
+      ],
+      [
+       "s:Electrónica",
+       "n:1288936.66"
+      ],
+      [
+       "s:Ferretería",
+       "n:40571.34"
+      ],
+      [
+       "s:Hogar",
+       "n:147196.97"
+      ],
+      [
+       "s:Juguetes",
+       "n:72718.06"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:201771.57"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:33035.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m025": {
+   "sql_sha256": "34c24cabb7bc00d307d4eda30ce5bfa96f653e6bc31160b0bfb30d363c449d58",
+   "results": [
+    {
+     "columns": [
+      "metodo_pago",
+      "ventas"
+     ],
+     "rows": [
+      [
+       "s:billetera_movil",
+       "n:6734.00"
+      ],
+      [
+       "s:tarjeta_credito",
+       "n:22162.00"
+      ],
+      [
+       "s:efectivo",
+       "n:33511.00"
+      ],
+      [
+       "s:tarjeta_debito",
+       "n:24031.00"
+      ],
+      [
+       "s:transferencia",
+       "n:7695.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m026": {
+   "sql_sha256": "d5a1aab4fc1cf7d983e435b3d183bb59cba547d4cd619f47eabdf26b4852ac18",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "anuladas"
+     ],
+     "rows": [
+      [
+       "s:Samborondón",
+       "n:75.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m027": {
+   "sql_sha256": "51ac5e342f1a216a4121b2d2b00afd1ff49142044ec4464fac0f9b98f51dfd15",
+   "results": [
+    {
+     "columns": [
+      "provincia",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Azuay",
+       "n:853406.65"
+      ],
+      [
+       "s:Chimborazo",
+       "n:179249.50"
+      ],
+      [
+       "s:Cotopaxi",
+       "n:173317.01"
+      ],
+      [
+       "s:El Oro",
+       "n:556775.16"
+      ],
+      [
+       "s:Esmeraldas",
+       "n:132440.57"
+      ],
+      [
+       "s:Galápagos",
+       "n:195184.57"
+      ],
+      [
+       "s:Guayas",
+       "n:2752401.22"
+      ],
+      [
+       "s:Imbabura",
+       "n:390742.42"
+      ],
+      [
+       "s:Loja",
+       "n:359287.29"
+      ],
+      [
+       "s:Los Ríos",
+       "n:184703.29"
+      ],
+      [
+       "s:Manabí",
+       "n:740195.69"
+      ],
+      [
+       "s:Pastaza",
+       "n:184744.28"
+      ],
+      [
+       "s:Pichincha",
+       "n:2710134.69"
+      ],
+      [
+       "s:Santo Domingo de los Tsáchilas",
+       "n:444795.94"
+      ],
+      [
+       "s:Sucumbíos",
+       "n:166588.38"
+      ],
+      [
+       "s:Tungurahua",
+       "n:408641.67"
+      ]
+     ]
+    }
+   ]
+  },
+  "m028": {
+   "sql_sha256": "2894f3f71e0f201dd250baa4e49a8adb2da69048ba265557d0665736c0c3fc11",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "total_facturado"
+     ],
+     "rows": [
+      [
+       "s:Sierra",
+       "n:5439935.67"
+      ],
+      [
+       "s:Costa",
+       "n:5526852.68"
+      ],
+      [
+       "s:Amazonía",
+       "n:408655.58"
+      ],
+      [
+       "s:Insular",
+       "n:190753.41"
+      ]
+     ]
+    }
+   ]
+  },
+  "m029": {
+   "sql_sha256": "fba6d2120346d632c4ca8267816f689ae759bb566bd83db14377e0dda55c4687",
+   "results": [
+    {
+     "columns": [
+      "clientes"
+     ],
+     "rows": [
+      [
+       "n:2036.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m030": {
+   "sql_sha256": "642a53266674bd94d537f436b536ce37c33f1a5dd1459c4552c89927ffbaed7f",
+   "results": [
+    {
+     "columns": [
+      "mes",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "d:2025-01-01",
+       "n:16570.10"
+      ],
+      [
+       "d:2025-02-01",
+       "n:20166.44"
+      ],
+      [
+       "d:2025-03-01",
+       "n:13901.25"
+      ],
+      [
+       "d:2025-04-01",
+       "n:17925.18"
+      ],
+      [
+       "d:2025-05-01",
+       "n:25375.90"
+      ],
+      [
+       "d:2025-06-01",
+       "n:17672.79"
+      ],
+      [
+       "d:2025-07-01",
+       "n:20452.39"
+      ],
+      [
+       "d:2025-08-01",
+       "n:17360.65"
+      ],
+      [
+       "d:2025-09-01",
+       "n:19297.69"
+      ],
+      [
+       "d:2025-10-01",
+       "n:19146.93"
+      ],
+      [
+       "d:2025-11-01",
+       "n:25616.82"
+      ],
+      [
+       "d:2025-12-01",
+       "n:85748.57"
+      ]
+     ]
+    }
+   ]
+  },
+  "m031": {
+   "sql_sha256": "3b41809df13b00eb2a877e298bf9e958d7831b62e32852a5d18faea6821625db",
+   "results": [
+    {
+     "columns": [
+      "empleados"
+     ],
+     "rows": [
+      [
+       "n:2.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m032": {
+   "sql_sha256": "fdc0ddb493afca0bd88841f7d60bba1c4acfdd8260f3f2e9cd85ad6fb5989314",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "nomina"
+     ],
+     "rows": [
+      [
+       "s:Esmeraldas",
+       "n:6085.00"
+      ],
+      [
+       "s:Guayaquil Sur - Guasmo",
+       "n:11095.00"
+      ],
+      [
+       "s:Quito Sur - Quitumbe",
+       "n:11160.00"
+      ],
+      [
+       "s:Puyo",
+       "n:9410.00"
+      ],
+      [
+       "s:Cumbayá",
+       "n:11265.00"
+      ],
+      [
+       "s:Cuenca Centro",
+       "n:10890.00"
+      ],
+      [
+       "s:Ibarra",
+       "n:11565.00"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:19640.00"
+      ],
+      [
+       "s:Santo Domingo",
+       "n:10945.00"
+      ],
+      [
+       "s:Riobamba",
+       "n:6155.00"
+      ],
+      [
+       "s:Machala",
+       "n:11215.00"
+      ],
+      [
+       "s:Guayaquil Centro",
+       "n:10745.00"
+      ],
+      [
+       "s:Quito Norte - Carcelén",
+       "n:17130.00"
+      ],
+      [
+       "s:Puerto Ayora",
+       "n:8900.00"
+      ],
+      [
+       "s:Quevedo",
+       "n:5840.00"
+      ],
+      [
+       "s:Portoviejo",
+       "n:11205.00"
+      ],
+      [
+       "s:Nueva Loja",
+       "n:6080.00"
+      ],
+      [
+       "s:Loja",
+       "n:10750.00"
+      ],
+      [
+       "s:Latacunga",
+       "n:6330.00"
+      ],
+      [
+       "s:Manta",
+       "n:10555.00"
+      ],
+      [
+       "s:Quito Iñaquito",
+       "n:25545.00"
+      ],
+      [
+       "s:Ambato",
+       "n:10935.00"
+      ],
+      [
+       "s:Samborondón",
+       "n:15790.00"
+      ],
+      [
+       "s:Cuenca El Ejido",
+       "n:10915.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m033": {
+   "sql_sha256": "30d3d928ed99f71bff57bac49407b9401279deb779d31924bdaa37a8930585a2",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "unidades"
+     ],
+     "rows": [
+      [
+       "s:Ambato",
+       "n:1.00"
+      ],
+      [
+       "s:Cuenca Centro",
+       "n:2.00"
+      ],
+      [
+       "s:Esmeraldas",
+       "n:3.00"
+      ],
+      [
+       "s:Guayaquil Centro",
+       "n:4.00"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:3.00"
+      ],
+      [
+       "s:Guayaquil Sur - Guasmo",
+       "n:5.00"
+      ],
+      [
+       "s:Loja",
+       "n:2.00"
+      ],
+      [
+       "s:Machala",
+       "n:2.00"
+      ],
+      [
+       "s:Manta",
+       "n:4.00"
+      ],
+      [
+       "s:Nueva Loja",
+       "n:1.00"
+      ],
+      [
+       "s:Portoviejo",
+       "n:1.00"
+      ],
+      [
+       "s:Puyo",
+       "n:1.00"
+      ],
+      [
+       "s:Quevedo",
+       "n:3.00"
+      ],
+      [
+       "s:Quito Iñaquito",
+       "n:2.00"
+      ],
+      [
+       "s:Quito Norte - Carcelén",
+       "n:5.00"
+      ],
+      [
+       "s:Quito Sur - Quitumbe",
+       "n:1.00"
+      ],
+      [
+       "s:Riobamba",
+       "n:1.00"
+      ],
+      [
+       "s:Santo Domingo",
+       "n:2.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m034": {
+   "sql_sha256": "1b1e03c4f5cdcb4d08ee1fcf4718f40e0518c03e74493386657dbd4395c932d8",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ventas_online"
+     ],
+     "rows": [
+      [
+       "s:Samborondón",
+       "n:605.00"
+      ],
+      [
+       "s:Guayaquil Norte - Alborada",
+       "n:589.00"
+      ],
+      [
+       "s:Quito Iñaquito",
+       "n:503.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m035": {
+   "sql_sha256": "c9104fa7061613d7881ce54f2e14873742591a4cb3c5b139726e3d43866ba7c9",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Alimentos y Bebidas",
+       "n:49402.18"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:48117.85"
+      ],
+      [
+       "s:Deportes",
+       "n:51196.16"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:269476.24"
+      ],
+      [
+       "s:Electrónica",
+       "n:395045.21"
+      ],
+      [
+       "s:Ferretería",
+       "n:13398.00"
+      ],
+      [
+       "s:Hogar",
+       "n:49420.45"
+      ],
+      [
+       "s:Juguetes",
+       "n:24088.12"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:67048.27"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:6079.98"
+      ]
+     ]
+    }
+   ]
+  },
+  "m036": {
+   "sql_sha256": "a1d90cffba93071f212386ad6fa2eb27adc0f637858141866ab106c9288dc66f",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "s:Bicicleta estática",
+       "n:73101.88"
+      ]
+     ]
+    }
+   ]
+  },
+  "m037": {
+   "sql_sha256": "b0f878fdf0025cbe87e966b39f453d31640928fe0e9315cd9e9a157539febe86",
+   "results": [
+    {
+     "columns": [
+      "segmento",
+      "clientes"
+     ],
+     "rows": [
+      [
+       "s:corporativo",
+       "n:682.00"
+      ],
+      [
+       "s:frecuente",
+       "n:4948.00"
+      ],
+      [
+       "s:ocasional",
+       "n:5864.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m038": {
+   "sql_sha256": "084a68d7acefa4fed4319193d4e5c099c7c29eb3e5fd2637725c6b36e61b9974",
+   "results": [
+    {
+     "columns": [
+      "nombre",
+      "stock"
+     ],
+     "rows": [
+      [
+       "s:Ferretería",
+       "n:2878.00"
+      ],
+      [
+       "s:Cuidado Personal",
+       "n:7989.00"
+      ],
+      [
+       "s:Deportes",
+       "n:2297.00"
+      ],
+      [
+       "s:Alimentos y Bebidas",
+       "n:28684.00"
+      ],
+      [
+       "s:Hogar",
+       "n:5259.00"
+      ],
+      [
+       "s:Juguetes",
+       "n:1889.00"
+      ],
+      [
+       "s:Útiles Escolares",
+       "n:2737.00"
+      ],
+      [
+       "s:Electrónica",
+       "n:3933.00"
+      ],
+      [
+       "s:Ropa y Calzado",
+       "n:4296.00"
+      ],
+      [
+       "s:Electrodomésticos",
+       "n:3085.00"
+      ]
+     ]
+    }
+   ]
+  },
+  "m039": {
+   "sql_sha256": "04770ae6e4f8a687148025e21776c57068b95eb17939b5c756a0fa559eaaf59c",
+   "results": [
+    {
+     "columns": [
+      "anio",
+      "ingresos"
+     ],
+     "rows": [
+      [
+       "d:2024-01-01",
+       "n:2143876.10"
+      ],
+      [
+       "d:2025-01-01",
+       "n:10432608.33"
+      ],
+      [
+       "d:2026-01-01",
+       "n:9785920.81"
+      ]
+     ]
+    }
+   ]
+  },
+  "m040": {
+   "sql_sha256": "111781cc4f9fd4499ed9a1be618388cd46357360a361fc564a00a8825da51b8f",
+   "results": [
+    {
+     "columns": [
+      "canal",
+      "descuento_promedio"
+     ],
+     "rows": [
+      [
+       "s:online",
+       "n:3.74"
+      ],
+      [
+       "s:tienda",
+       "n:1.99"
+      ]
+     ]
+    }
+   ]
+  }
+ }
+}

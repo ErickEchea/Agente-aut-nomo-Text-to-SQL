@@ -50,6 +50,7 @@ nexus-migrate = "nexus.db.migrate:main"
 nexus-admin = "nexus.admin_cli:main"
 nexus-eval-retrieval = "nexus.rag.evaluate:main"
 nexus-export-sqlite = "nexus.demo.sqlite_export:main"
+nexus-bench = "nexus.bench.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.13.9,<0.14"]
@@ -89,6 +90,9 @@ max-returns = 8
 "tests/e2e/**" = ["T201"]
 # Developer CLI tables: the report rows and progress prints are the product.
 "src/nexus/rag/evaluate.py" = ["T201", "E501", "ASYNC240"]
+# Benchmark CLI progress lines are its output; the Markdown report uses en dashes for empty cells.
+"src/nexus/bench/cli.py" = ["T201"]
+"src/nexus/bench/report.py" = ["RUF001", "E501"]
 # Alembic revision files are generated.
 "src/nexus/db/migrations/versions/**" = ["UP007", "E501"]
 # numpy RNG is deliberate: deterministic synthetic data, not security.

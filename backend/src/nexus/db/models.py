@@ -312,3 +312,48 @@ class DataConnection(TimestampMixin, Base):
     index_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
     index_error: Mapped[str | None] = mapped_column(Text)
     indexed_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BenchmarkRun(Base):
+    """One golden-set run of one model configuration (ADR-0015). ``summary`` holds the metrics."""
+
+    __tablename__ = "benchmark_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    config_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    config: Mapped[dict[str, Any]] = mapped_column(nullable=False)
+    subset: Mapped[str] = mapped_column(String(20), nullable=False)  # full | ci | custom
+    status: Mapped[str] = mapped_column(String(20), nullable=False)  # running | completed | failed
+    items: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    correct: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    summary: Mapped[dict[str, Any]] = mapped_column(nullable=False, default=dict)
+    dataset_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    git_sha: Mapped[str | None] = mapped_column(String(40))
+    started_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_benchmark_runs_config_started", "config_name", "started_at"),)
+
+
+class BenchmarkResult(Base):
+    """Outcome of one golden question in a run; ``detail`` keeps SQL, nodes and tokens."""
+
+    __tablename__ = "benchmark_results"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("benchmark_runs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    item_id: Mapped[str] = mapped_column(String(10), nullable=False)
+    difficulty: Mapped[str] = mapped_column(String(20), nullable=False)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    reason: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    latency_ms: Mapped[float] = mapped_column(nullable=False)
+    tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    detail: Mapped[dict[str, Any]] = mapped_column(nullable=False, default=dict)
+
+    __table_args__ = (UniqueConstraint("run_id", "item_id", name="uq_benchmark_result_item"),)

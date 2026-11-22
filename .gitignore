@@ -28,7 +28,8 @@ blob-report/
 
 # Generated data / artifacts
 data/generated/
-bench/results/
+# Benchmark run records are evidence for docs/benchmark.md and ADR-0022; ad-hoc subsets are not.
+bench/results/*-custom-*.json
 *.log
 
 # OS / editors

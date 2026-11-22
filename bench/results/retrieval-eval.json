@@ -1,0 +1,100 @@
+[
+  {
+    "name": "qwen3-embedding:0.6b",
+    "strategy": "hybrid",
+    "recall_at_5": 0.968,
+    "complete_rate": 1.0,
+    "tables_per_question": 4.47,
+    "latency_ms": 46.6,
+    "misses": []
+  },
+  {
+    "name": "qwen3-embedding:0.6b",
+    "strategy": "dense",
+    "recall_at_5": 0.965,
+    "complete_rate": 0.938,
+    "tables_per_question": 4.47,
+    "latency_ms": 33.0,
+    "misses": [
+      "¿Cuántas unidades de útiles escolares se vendieron en la Costa en abril? → falta ['devoluciones']",
+      "¿Qué marca de televisores vende más? → falta ['devoluciones']"
+    ]
+  },
+  {
+    "name": "— (sin embeddings)",
+    "strategy": "lexical+fuzzy",
+    "recall_at_5": 0.957,
+    "complete_rate": 0.969,
+    "tables_per_question": 4.22,
+    "latency_ms": 12.5,
+    "misses": [
+      "Rotación de inventario de la licuadora Oster Xpert → falta ['productos']"
+    ]
+  },
+  {
+    "name": "qwen3-embedding:0.6b (raw)",
+    "strategy": "hybrid",
+    "recall_at_5": 0.968,
+    "complete_rate": 1.0,
+    "tables_per_question": 4.38,
+    "latency_ms": 42.0,
+    "misses": []
+  },
+  {
+    "name": "qwen3-embedding:0.6b (raw)",
+    "strategy": "dense",
+    "recall_at_5": 0.95,
+    "complete_rate": 0.969,
+    "tables_per_question": 4.53,
+    "latency_ms": 28.8,
+    "misses": [
+      "¿Cuántas unidades de útiles escolares se vendieron en la Costa en abril? → falta ['devoluciones']"
+    ]
+  },
+  {
+    "name": "embeddinggemma-2:latest",
+    "strategy": "hybrid",
+    "recall_at_5": 0.965,
+    "complete_rate": 0.969,
+    "tables_per_question": 4.38,
+    "latency_ms": 42.1,
+    "misses": [
+      "Rotación de inventario de la licuadora Oster Xpert → falta ['productos']"
+    ]
+  },
+  {
+    "name": "embeddinggemma-2:latest",
+    "strategy": "dense",
+    "recall_at_5": 0.925,
+    "complete_rate": 0.906,
+    "tables_per_question": 4.38,
+    "latency_ms": 35.8,
+    "misses": [
+      "¿Cuántas unidades de útiles escolares se vendieron en la Costa en abril? → falta ['devoluciones']",
+      "¿Qué marca de televisores vende más? → falta ['devoluciones']",
+      "Rotación de inventario de la licuadora Oster Xpert → falta ['productos']"
+    ]
+  },
+  {
+    "name": "embeddinggemma-2:latest (raw)",
+    "strategy": "hybrid",
+    "recall_at_5": 0.981,
+    "complete_rate": 1.0,
+    "tables_per_question": 4.34,
+    "latency_ms": 44.3,
+    "misses": []
+  },
+  {
+    "name": "embeddinggemma-2:latest (raw)",
+    "strategy": "dense",
+    "recall_at_5": 0.953,
+    "complete_rate": 0.906,
+    "tables_per_question": 4.59,
+    "latency_ms": 31.0,
+    "misses": [
+      "Top 10 clientes por monto comprado este año → falta ['devoluciones']",
+      "¿Cuántas unidades de útiles escolares se vendieron en la Costa en abril? → falta ['devoluciones']",
+      "¿Qué marca de televisores vende más? → falta ['devoluciones']"
+    ]
+  }
+]
