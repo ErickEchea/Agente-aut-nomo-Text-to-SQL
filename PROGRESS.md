@@ -15,6 +15,53 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | 6 — Benchmark + default model | ✅ Done (2026-11-22) |
 | 7 — Hardening + docs | ✅ Done (2026-11-22) |
 
+## After Phase 7 — 2026-11-23 (found by using the app)
+
+### Reported
+«¿Cuántos clientes nuevos se registraron por región este año?» failed after four attempts with the
+same SQL.
+- `retail.clientes` has no `region_id`: a customer's region is the region of their province, reached
+  through `sucursales`.
+- The model invented `clientes.region_id`. Every repair returned that same query until the budget ran
+  out.
+
+### Fixed
+- **Catalog hints in repairs** (`nexus.sql.columns`, ADR-0018 §4). The failed SQL is resolved against
+  the catalog and the query's own CTEs and subqueries. The repair prompt is told:
+  - for an unknown column, which source lacks it, what that source really returns, whether a CTE
+    hides a real table of the same name, and which tables do have it;
+  - for a comparison of incompatible types (`text = integer`), both columns, their types and their
+    origin.
+
+  Only columns and types named in the engine's message are reported.
+- **No fixed point in the repair loop** (ADR-0018 §5).
+  - Cause: with greedy decoding, the per-attempt seed changed nothing.
+  - Fix: a repair that returns the SQL it was asked to fix, or one this step already tried, is asked
+    again once, saying so, at temperature 0.7 with a fixed seed. The 7B model was seen alternating
+    A → B → A.
+  - The repeat is never executed.
+- **nginx kept a stale backend address.** Recreating only the backend container (new IP) left the web
+  answering 502 until nginx restarted. nginx now resolves `backend` per request through Docker's DNS.
+  Verified: 200 right after a backend-only recreate.
+- **Glossary: «clientes nuevos»** = customers by `fecha_registro` in the period. The 3B model had used
+  `fecha_nacimiento` for it.
+  - "se registraron" is deliberately not a synonym: returns and sales "se registran" too.
+
+### Verified with the default model (qwen2.5-coder:7b, started with `make up`)
+- `make e2e-agent` passes: API 2 passed + 1 xfailed, browser 6 passed.
+- The golden questions about regions and registrations score as in the Phase 6 benchmark: e002, e034,
+  m003, e015, m019 and e032 are correct, and m013 still fails.
+- `make check` is clean.
+
+### Known limitation
+The region question above still fails with the 7B model. It is an `xfail` end-to-end test.
+- The hints are accurate and the model reacts to them, but it does not compose
+  customer → province → branch → region.
+- Spelling the path out in the «región» glossary entry was tried and reverted: the model then joined
+  by province without `DISTINCT` and returned inflated counts.
+
+Asked **by province** («…por provincia este año»), the question is answered correctly.
+
 ## Phase 7 — 2026-11-22
 
 ### Exit criteria
