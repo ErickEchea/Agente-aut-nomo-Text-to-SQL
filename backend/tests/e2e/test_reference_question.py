@@ -40,6 +40,8 @@ EXPECTED_TOP5_Q2 = [
     "Arroz 5 kg Gustadina",
 ]
 EXPECTED_BRANCH_Q2 = ("Guayaquil Norte - Alborada", 291168.77)
+# Customers registered 1 Jan to 31 Oct 2026, by the region of their province (read-only role).
+EXPECTED_NEW_CUSTOMERS_BY_REGION = {"Sierra": 3624, "Costa": 3519, "Amazonía": 252, "Insular": 115}
 
 
 def _env_value(key: str) -> str:
@@ -151,6 +153,26 @@ def _check_phase3_outputs(result: dict[str, object]) -> None:
     assert isinstance(retrieval, dict)
     assert {"detalle_ventas", "ventas", "devoluciones"} <= set(retrieval["tables"])
     assert len(retrieval["tables"]) < 10  # a sub-schema, not the whole database
+
+
+@pytest.mark.xfail(
+    reason="known limit of the 7B default model (ADR-0018): it does not compose the "
+    "customer → province → branch → region path, even with catalog hints",
+    strict=False,
+)
+def test_customers_by_region_go_through_their_province(client: httpx.Client) -> None:
+    """Customers have no region_id: their region is their province's (via sucursales). The 7B
+    model invented clientes.region_id and repeated that SQL until the repair budget ran out. The
+    repair prompt now says which source lacks the column and which tables have it, and a repeated
+    repair is retried, but the model still does not find the province join."""
+    _, detail = ask(client, "¿Cuántos clientes nuevos se registraron por región este año?")
+    assert detail["status"] == "answered", detail["answer"]
+    rows = detail["result"]["results"][-1]["rows"]
+    by_region = {
+        next(v for v in row if isinstance(v, str)): next(v for v in row if isinstance(v, int))
+        for row in rows
+    }
+    assert by_region == EXPECTED_NEW_CUSTOMERS_BY_REGION
 
 
 def test_destructive_request_is_refused_end_to_end(client: httpx.Client) -> None:

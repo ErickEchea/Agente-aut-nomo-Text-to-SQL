@@ -36,8 +36,9 @@ from nexus.agent.state import (
     Understanding,
 )
 from nexus.agent.temporal import resolve
-from nexus.llm import GenerationOptions, StructuredOutputError
+from nexus.llm import Completion, GenerationOptions, StructuredOutputError
 from nexus.security.guard import check_question
+from nexus.sql.columns import catalog_hint
 from nexus.sql.executor import QueryExecutionError
 from nexus.sql.validator import SQLValidationError, validate_sql
 
@@ -49,6 +50,8 @@ _SQL_STEP = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 PREVIEW_ROWS = 5
+# Sampling for the one retry when a repair returned the very SQL it was asked to fix.
+REPEAT_TEMPERATURE = 0.7
 TIMEOUT_SQLSTATES = {"57014", "55P03", "MY3024", "MY1969", "SQLITE_INTERRUPT"}
 
 
@@ -254,31 +257,82 @@ async def generate_sql(state: AgentState, ctx: AgentContext) -> NodeResult:
     return _candidate_result(state, completion.parsed, 1, completion.usage, None)
 
 
+def _same_sql(a: str, b: str) -> bool:
+    """Equal up to whitespace, letter case and a trailing semicolon."""
+
+    def canonical(sql: str) -> str:
+        return " ".join(sql.strip().rstrip(";").split()).lower()
+
+    return canonical(a) == canonical(b)
+
+
+def _already_tried(state: AgentState, ctx: AgentContext, sql: str, previous: str) -> bool:
+    """Is ``sql`` the SQL being repaired, or one this step already tried? Attempts store the
+    validator's rendering (or the raw SQL when it was rejected), so both forms are compared. The
+    7B model was seen alternating between two failing queries, not only repeating the last one."""
+    if previous and _same_sql(sql, previous):
+        return True
+    try:
+        rendered = validate_sql(sql, ctx.policy).sql
+    except SQLValidationError:
+        rendered = sql
+    step = state["current_step"]
+    return any(
+        a.step == step and (_same_sql(a.sql, rendered) or _same_sql(a.sql, sql))
+        for a in state.get("attempts", [])
+    )
+
+
 async def repair(state: AgentState, ctx: AgentContext) -> NodeResult:
     error = _require(state.get("last_error"), "last_error")
     previous = state["candidate"].sql if state.get("candidate") else ""  # type: ignore[union-attr]
     attempt = state.get("attempt", 1) + 1
-    try:
-        completion = await ctx.llm.complete(
+
+    async def ask(repeated: bool) -> Completion[SqlCandidate]:
+        # Greedy decoding is deterministic: once a repair returns the SQL it was given, the same
+        # prompt would return it again. The retry says so and samples (seeded: still reproducible).
+        return await ctx.llm.complete(
             prompts.repair_messages(
                 _sql_context(state, ctx),
                 _step_question(state),
                 previous,
                 error,
                 prompts.sql_rules(ctx.dialect, ctx.catalog.schema),
+                repeated=repeated,
             ),
             SqlCandidate,
-            GenerationOptions(model=ctx.models.repair, max_tokens=900, seed=7 + attempt),
+            GenerationOptions(
+                model=ctx.models.repair,
+                max_tokens=900,
+                seed=7 + attempt,
+                temperature=REPEAT_TEMPERATURE if repeated else 0.0,
+            ),
         )
+
+    try:
+        completion = await ask(repeated=False)
     except StructuredOutputError as exc:
         new_error = ErrorInfo("generation", "invalid_output", str(exc))
         result = _candidate_result(state, None, attempt, exc.usage, new_error)
         # Keep the last good candidate's SQL in state for the next repair prompt.
         result.update["candidate"] = state.get("candidate")
         return result
-    result = _candidate_result(state, completion.parsed, attempt, completion.usage, None)
+    usage = [completion.usage]
+    repeated = _already_tried(state, ctx, completion.parsed.sql, previous)
+    if repeated:
+        try:
+            retry = await ask(repeated=True)
+        except StructuredOutputError as exc:
+            usage.append(exc.usage)  # keep the first answer: it is at least valid output
+        else:
+            usage.append(retry.usage)
+            completion = retry
+    result = _candidate_result(state, completion.parsed, attempt, usage[0], None)
+    result.update["usage"] = usage
     result.summary["previous_sql"] = previous
     result.summary["fixing"] = {"kind": error.kind, "code": error.code}
+    if repeated:
+        result.summary["retried_repeat"] = True
     return result
 
 
@@ -328,7 +382,10 @@ async def execute(state: AgentState, ctx: AgentContext) -> NodeResult:
         result = await ctx.executor.execute(validated)
     except QueryExecutionError as exc:
         code = exc.sqlstate or "unknown"
-        error = ErrorInfo("execution", code, exc.message, retryable=exc.repairable)
+        # The engine names the column it rejected but not where it looked: the catalog says both.
+        hint = catalog_hint(validated.sql, ctx.dialect.sqlglot, ctx.catalog, exc.message)
+        message = f"{exc.message}\n{hint}" if hint else exc.message
+        error = ErrorInfo("execution", code, message, retryable=exc.repairable)
         await ctx.audit.record(
             question=_step_question(state),
             sql=validated.sql,
@@ -349,7 +406,8 @@ async def execute(state: AgentState, ctx: AgentContext) -> NodeResult:
                 "sqlstate": code,
                 "message": exc.message,
                 "duration_ms": round(exc.duration_ms, 1),
-            },
+            }
+            | ({"hint": hint} if hint else {}),
         )
 
     rows, masked = ctx.masker.mask(validated.sql, result.columns, result.rows)

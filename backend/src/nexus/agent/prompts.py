@@ -231,15 +231,21 @@ def repair_messages(
     previous_sql: str,
     error: ErrorInfo,
     rules: str = SQL_RULES,
+    *,
+    repeated: bool = False,
 ) -> list[Message]:
-    user = "\n\n".join(
-        [
-            context,
-            data_block("pregunta", step_question, 1500),
-            data_block("sql_anterior", previous_sql, 6000),
-            data_block("error", f"[{error.kind} · {error.code}] {error.message}", 1500),
-            "La consulta anterior falló o devolvió un resultado sospechoso. Corrígela para que cumpla las "
-            "reglas y responda la pregunta. Explica en rationale qué cambiaste.",
-        ]
-    )
+    parts = [
+        context,
+        data_block("pregunta", step_question, 1500),
+        data_block("sql_anterior", previous_sql, 6000),
+        data_block("error", f"[{error.kind} · {error.code}] {error.message}", 1500),
+        "La consulta anterior falló o devolvió un resultado sospechoso. Corrígela para que cumpla las "
+        "reglas y responda la pregunta. Explica en rationale qué cambiaste.",
+    ]
+    if repeated:
+        parts.append(
+            "Tu corrección anterior devolvió una consulta que ya se probó y falló. No la repitas: "
+            "cambia la parte que provoca el error."
+        )
+    user = "\n\n".join(parts)
     return [Message("system", rules), Message("user", user)]

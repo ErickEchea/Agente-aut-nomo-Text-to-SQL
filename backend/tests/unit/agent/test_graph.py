@@ -29,6 +29,7 @@ from nexus.agent.state import (
     Understanding,
 )
 from nexus.agent.temporal import resolve
+from nexus.llm import StructuredOutputError, TokenUsage
 from nexus.rag.retriever import RetrievedExample, SchemaContext
 from nexus.security.pii import PiiMasker
 from tests.unit.agent.fakes import (
@@ -242,9 +243,104 @@ async def test_database_error_is_repaired_with_sqlstate() -> None:
             ("ingresos", BRANCH),
         ]
     )
-    final, _, _ = await run(llm, executor, question=q)
+    final, sink, _ = await run(llm, executor, question=q)
     assert final["status"] is RunStatus.ANSWERED
     assert final["attempts"][0].error.code == "42703"  # type: ignore[union-attr]
+    # The repair prompt says where the column was looked up and that no table has it; only the
+    # column the engine named is reported (the fake catalog lacks most of BRANCH_SQL's columns).
+    _, messages = [c for c in llm.calls if c[0] == "SqlCandidate"][-1]
+    repair_prompt = messages[1].content
+    assert "«nombre_sucursal» no existe en retail.sucursales" in repair_prompt
+    assert "(sus columnas son: sucursales_id, nombre)" in repair_prompt
+    assert "«nombre_sucursal» no existe en ninguna tabla" in repair_prompt
+    assert "cantidad" not in repair_prompt.split("<error>")[1]
+    execute_event = next(
+        d for e, d in sink.events if e == "node.completed" and d["node"] == "execute"
+    )
+    assert execute_event["output"]["message"] == "column s.nombre_sucursal does not exist"  # type: ignore[index]
+    assert "retail.sucursales" in execute_event["output"]["hint"]  # type: ignore[index]
+
+
+async def test_a_repair_that_repeats_the_failed_sql_is_retried_at_once() -> None:
+    """Greedy decoding returned the same failing SQL on every repair (seen with the 7B model): the
+    repeat is caught before executing it again, and asked once more saying so."""
+    q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
+    bad = BRANCH_SQL.replace("s.nombre", "s.nombre_sucursal")
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood(q)],
+            Plan: [Plan(steps=[q])],
+            SqlCandidate: [candidate(bad), candidate(bad + " ;"), candidate(BRANCH_SQL)],
+        }
+    )
+    executor = FakeExecutor(
+        [
+            ("nombre_sucursal", db_error("42703", "column s.nombre_sucursal does not exist")),
+            ("ingresos", BRANCH),
+        ]
+    )
+    final, sink, _ = await run(llm, executor, question=q)
+    assert final["status"] is RunStatus.ANSWERED
+    assert len(executor.executed) == 2  # the repeat itself never ran
+    sql_calls = [messages for name, messages in llm.calls if name == "SqlCandidate"]
+    assert "una consulta que ya se probó" not in sql_calls[1][1].content
+    assert "una consulta que ya se probó" in sql_calls[2][1].content
+    repair_event = next(
+        d for e, d in sink.events if e == "node.completed" and d["node"] == "repair"
+    )
+    assert repair_event["output"]["retried_repeat"] is True  # type: ignore[index]
+    assert len([u for u in final["usage"] if u is not None]) >= 5  # both repair calls counted
+
+
+async def test_a_repair_that_returns_an_older_failed_sql_is_retried_too() -> None:
+    """The 7B model alternated A → B → A between two failing queries."""
+    q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
+    a = BRANCH_SQL.replace("s.nombre", "s.nombre_sucursal")
+    b = BRANCH_SQL.replace("s.nombre", "s.nombre_local")
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood(q)],
+            Plan: [Plan(steps=[q])],
+            SqlCandidate: [candidate(a), candidate(b), candidate(a), candidate(BRANCH_SQL)],
+        }
+    )
+    executor = FakeExecutor(
+        [
+            ("nombre_sucursal", db_error("42703", "column s.nombre_sucursal does not exist")),
+            ("nombre_local", db_error("42703", "column s.nombre_local does not exist")),
+            ("ingresos", BRANCH),
+        ]
+    )
+    final, _, _ = await run(llm, executor, question=q)
+    assert final["status"] is RunStatus.ANSWERED
+    assert len(executor.executed) == 3  # A, B and the good one: A never ran twice
+    assert [a.outcome for a in final["attempts"]] == ["failed", "failed", "ok"]
+
+
+async def test_a_repeat_whose_retry_is_invalid_keeps_the_first_answer() -> None:
+    q = "¿Cuál es la sucursal con más ingresos el último trimestre?"
+    bad = BRANCH_SQL.replace("s.nombre", "s.nombre_sucursal")
+    llm = ScriptedLLM(
+        {
+            Understanding: [understood(q)],
+            Plan: [Plan(steps=[q])],
+            SqlCandidate: [
+                candidate(bad),
+                candidate(bad),
+                StructuredOutputError("not json", "{", TokenUsage("fake", 10, 0, 1.0)),
+                candidate(BRANCH_SQL),
+            ],
+        }
+    )
+    executor = FakeExecutor(
+        [
+            ("nombre_sucursal", db_error("42703", "column s.nombre_sucursal does not exist")),
+            ("ingresos", BRANCH),
+        ]
+    )
+    final, _, _ = await run(llm, executor, question=q)
+    assert final["status"] is RunStatus.ANSWERED
+    assert [a.outcome for a in final["attempts"]] == ["failed", "failed", "ok"]
 
 
 async def test_timeout_is_not_repaired() -> None:
@@ -275,7 +371,7 @@ async def test_repair_budget_is_bounded() -> None:
         {
             Understanding: [understood(q)],
             Plan: [Plan(steps=[q])],
-            SqlCandidate: [bad, bad, bad, bad],
+            SqlCandidate: [bad] * 7,  # each repeated repair is retried once
         }
     )
     final, _, _ = await run(llm, FakeExecutor([]), question=q)
@@ -323,7 +419,7 @@ async def test_persistent_empty_result_is_accepted_with_warning() -> None:
         {
             Understanding: [understood(q)],
             Plan: [Plan(steps=[q])],
-            SqlCandidate: [candidate(BRANCH_SQL)] * 4,
+            SqlCandidate: [candidate(BRANCH_SQL)] * 7,  # 1 + 3 repairs, each retried once
         }
     )
     final, _, _ = await run(
