@@ -12,8 +12,139 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 | 3 — RAG + memory | ✅ Done (2026-11-20) |
 | 4 — Frontend + design system | ✅ Done (2026-11-21) |
 | 5 — Explainability, optimization, multi-DB | ✅ Done (2026-11-21) |
-| 6 — Benchmark + default model | ✅ Done (2026-11-22) — awaiting go-ahead for Phase 7 |
-| 7 — Hardening + docs | ⏳ |
+| 6 — Benchmark + default model | ✅ Done (2026-11-22) |
+| 7 — Hardening + docs | ✅ Done (2026-11-22) |
+
+## Phase 7 — 2026-11-22
+
+### Exit criteria
+- ✅ **Security review pass**: [docs/security-review.md](docs/security-review.md).
+  - It covers the threat model, the controls checked, 7 findings fixed (F1–F7) and the accepted residual
+    risks (R1–R9).
+  - Decisions: [ADR-0023](docs/adr/0023-hardening-and-supply-chain.md).
+- ✅ **Dependency audit**: `make audit`, also run in CI:
+  - pip-audit 2.10.1 found no known vulnerabilities;
+  - `npm audit` found 0;
+  - gitleaks found no leaks in the full history;
+  - Trivy found 0 fixable HIGH/CRITICAL vulnerabilities in the backend, frontend and demo-db images.
+
+  Dependabot proposes weekly updates with a 7-day cooldown.
+- ✅ **Load sanity check**: [docs/load-test.md](docs/load-test.md).
+  - Browsing at 20 requests/s for 4 minutes: p95 8 ms, 0 errors.
+  - At the same time, 4 users asked 2 questions each: 8/8 answered, p50 22 s, p95 29 s.
+- ✅ **Quickstart in ≤ 10 minutes**, measured on a fresh clone in an isolated compose project:
+  - building the images without cache: 53 s;
+  - `make up` to all healthy, demo data seeded: 61 s.
+
+  The first download dominates:
+  - ≈9.2 GB with a GPU: the Ollama image is 3.4 GB compressed, the 7b model 4.7 GB and embeddings 0.6 GB;
+  - ≈6.5 GB on CPU.
+
+  That is about 10 minutes in total at 150 Mbps. The README says so.
+- ✅ **Demo GIF**: [docs/assets/demo.gif](docs/assets/demo.gif). It shows the reference question and its
+  follow-up.
+  - `make demo-gif` records it from a real run with the local model; only the two waits for the model
+    are sped up.
+  - The GIF lasts 31 s and weighs 7.2 MB.
+- ✅ **Architecture diagram**. The container diagram in ARCHITECTURE.md and the README's diagram now show
+  nginx as the single ingress.
+- ✅ **Benchmark results**: [docs/benchmark.md](docs/benchmark.md), linked from both READMEs.
+- ✅ **CI green end to end**:
+  - `ci.yml` includes the new `audit` job and Trivy in `images`;
+  - `stack.yml` runs `make up` on a clean CPU stack, Playwright on every screen and then the benchmark
+    subset.
+- ✅ **Tests**:
+  - backend: 648 non-LLM tests, 95 % coverage on the gated packages;
+  - frontend: 110 Vitest tests and 26 Playwright tests (25 passed, 1 skipped on purpose), plus the
+    `@demo` recording;
+  - `make e2e-agent` passes with the default model (API 2/2, browser 6/6);
+  - ruff, mypy `--strict`, ESLint and `tsc` are clean, and `make up` is healthy.
+
+### Done
+- **One way in.** The backend no longer publishes port 8000, and nginx is the only ingress.
+  - This closes the Phase 2 limitation about `--forwarded-allow-ips *`.
+  - The Vite dev server proxies to `:8080`.
+  - `NEXUS_API_PORT` is removed.
+- **Least-privilege containers.**
+  - Every service runs with `cap_drop: ALL` and `no-new-privileges`. PostgreSQL keeps five capabilities
+    for its entrypoint.
+  - Stateless services have a read-only root filesystem with a `/tmp` tmpfs.
+  - nginx runs as uid 101 on the official image.
+
+  Verified: `CapEff 0` and `NoNewPrivs 1` in every container, a fresh PostgreSQL init works, and Ollama
+  still runs 100 % on the GPU.
+- **Patched images.**
+  - OS security updates are applied at build time (`zlib` CVE-2026-85091, `libxml2` CVE-2026-86144).
+  - The backend runtime no longer has `pip`, whose vendored `urllib3`, `msgpack` and `setuptools` carried
+    HIGH CVEs.
+  - The demo DB holds its PostgreSQL packages, so the server stays 18.7.
+- **Data-source target policy** (`nexus.datasources.targets`). Hosts are refused before any driver connects
+  when they are:
+  - link-local (cloud metadata), multicast, unspecified or reserved;
+  - the app DB's or Ollama's address and port.
+
+  Tested by 14 unit tests and an integration test that tries to register the real app DB.
+- **Supply chain.**
+  - Every GitHub Action is pinned by commit SHA (GHSA-69fq-xp46-6x23).
+  - Trivy runs from its image pinned by digest, not through its action.
+  - Dependabot covers uv, npm, actions, Dockerfiles and compose.
+    - Runtime and toolchain jumps are ignored (ADR-0002).
+    - Ollama only gets patch releases.
+- **CI end to end.** `stack.yml` (replacing `bench.yml`) runs Playwright on a fresh CPU stack before the
+  benchmark subset. Playwright reports through the `github` reporter in CI, so failures show as
+  annotations.
+- **Tooling.**
+  - `make load`: k6 in the compose network, `tools` profile, new `NEXUS_LOAD_PASSWORD`.
+  - `make demo-gif`: a Playwright `@demo` spec plus `scripts/demo-gif.mjs` with ffmpeg.
+- **Docs.**
+  - New: SECURITY.md, the security review, ADR-0023 and a note in ADR-0014.
+  - Updated: ARCHITECTURE (single ingress, least privilege, Phase 7 status), CLAUDE.md (commands, ports)
+    and both READMEs (demo GIF, measured quickstart, hardening, quality numbers).
+
+### Bugs found and fixed this phase
+- **Mixed number formats in answers** (found while recording the demo).
+  - The model wrote `$291,168.77` and `4,557` in Spanish answers, next to a KPI card showing
+    `$291.168,77`.
+  - Grounded quantities are now re-rendered in the UI's locale format (`grounding.localize_numbers`).
+  - A first version skipped plain 4-digit integers between 1900 and 2100 as "years". That left
+    `2098 unidades` unformatted, so the rule became provenance-based: only quantity cells change, never
+    year columns or dates.
+- **Audit table not reachable by keyboard at 375 px on a fresh database.** Found by `stack.yml` on its first
+  run.
+  - With few rows and no links, the horizontal scroll region was not focusable (axe
+    `scrollable-region-focusable`).
+  - Local runs passed only because older data put links inside.
+  - Reproduced on a fresh clone. The audit table, the timeline result preview and the empty Benchmark
+    command are now focusable regions.
+- **`::1` counted as "reserved".** Python's `ipaddress` reports `::1` as reserved because it lies inside
+  `::/8`, so the target policy would have refused `localhost`. Caught by its unit test; loopback is
+  explicitly allowed.
+- **`apt-mark hold` failed in the demo-db build** on packages that are known to dpkg but not installed;
+  only installed packages are held now.
+
+### Known issues / limitations
+- **Residual risks** are listed in the security review:
+  - single replica;
+  - DNS rebinding against the target policy;
+  - plain HTTP on loopback (TLS belongs to a terminator in front of nginx);
+  - per-email login throttling;
+  - trusted admins;
+  - prompt injection within read-only bounds;
+  - 71 % accuracy.
+- **Images not built here** are scanned but not gated:
+  - `pgvector/pgvector` has the `zlib` CVE until upstream rebuilds;
+  - `ollama/ollama` has an `apt` CVE and `golang.org/x/net` CVE-2026-78661, still v0.61.0 on Ollama's
+    `main`.
+
+  Both are reachable only inside the compose network or on loopback.
+- **Dependabot PRs #1–#4** were opened before the ignore rules existed. They propose Python 3.15, Node 26,
+  nginx 1.31 (mainline) and `@types/node` 26, which contradict ADR-0002 and should be closed. The
+  updated configuration does not propose them again.
+- **Cold start.** Right after `make up` the models are not loaded yet: the first 4 concurrent questions took
+  ~115 s, against 15–29 s warm.
+- **The load check is a sanity check, not a capacity figure**: one replica, one GPU,
+  `OLLAMA_NUM_PARALLEL=1`.
+- **The first install downloads ≈9 GB.** The "≤ 10 minutes" assumes ~150 Mbps.
 
 ## Phase 6 — 2026-11-22
 

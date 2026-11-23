@@ -50,6 +50,13 @@ CLAUDE.md, ARCHITECTURE.md (Mermaid), 16 ADRs, roadmap, PROGRESS.md, repo hygien
 ## Phase 6 — Benchmark and default model ✅
 - ≥ 120 golden questions; runner; report; Benchmark page; CI subset; superseding ADR with the chosen default.
 
-## Phase 7 — Hardening and documentation
+## Phase 7 — Hardening and documentation ✅
 - Security review pass, dependency audit, load sanity check, README (≤ 10 min quickstart), demo GIF, architecture
   diagram, benchmark results; CI green end-to-end.
+- Delivered:
+  - the [security review](security-review.md) and [ADR-0023](adr/0023-hardening-and-supply-chain.md);
+  - `make audit` in CI;
+  - `stack.yml`, which runs Playwright and the benchmark subset on a fresh CPU stack;
+  - the [load test](load-test.md);
+  - `make demo-gif`;
+  - a fresh-clone quickstart: ~2 min of build and start-up, plus the first download.

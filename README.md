@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/estado-fase%206%20de%207-3fd0c9" alt="Estado: fase 6 de 7">
+  <img src="https://img.shields.io/badge/estado-7%20de%207%20fases-3fd0c9" alt="Estado: 7 de 7 fases completas">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -26,13 +26,19 @@ la tabla, un gráfico y un resumen ejecutivo cuyas cifras se comprueban contra l
 Todo corre **en tu máquina**: los modelos de lenguaje se sirven con [Ollama](https://ollama.com), sin APIs de
 pago y sin que tus datos salgan de tu red.
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Demostración: la pregunta de referencia y su seguimiento respondidos con el modelo local, con el razonamiento del agente en vivo" width="100%">
+  <br><sub>Una ejecución real con el modelo local (<code>make demo-gif</code>): la pregunta de referencia y el seguimiento «¿Y en el trimestre anterior?». Solo se aceleran las esperas del modelo.</sub>
+</p>
+
 > [!NOTE]
-> **Estado del proyecto.** Se construye por fases ([hoja de ruta](#-hoja-de-ruta)). Las **fases 1 a 6 están
-> completas**: la aplicación web ya permite preguntar a PostgreSQL, MySQL o SQLite, ver el razonamiento del
+> **Estado del proyecto.** Las **siete fases están completas** ([hoja de ruta](#-hoja-de-ruta)): la
+> aplicación web permite preguntar a PostgreSQL, MySQL o SQLite, ver el razonamiento del
 > agente en vivo, explorar el resultado en tabla, gráfico y SQL anotado cláusula por cláusula, analizar el plan
 > de ejecución con índices sugeridos, fijarlo en dashboards y revisar historial, conexiones y auditoría. Un
-> benchmark de 126 preguntas mide la exactitud del agente y eligió el modelo por defecto con datos. Esta página distingue siempre lo que **ya funciona** ✅ de lo que **está
-> planificado** 🗓️.
+> benchmark de 126 preguntas mide la exactitud del agente y eligió el modelo por defecto con datos, y una
+> revisión de seguridad final endureció contenedores, dependencias y CI
+> ([revisión](docs/security-review.md)).
 
 ## Contenido
 
@@ -149,6 +155,18 @@ de peticiones, log de auditoría de cada consulta y enmascaramiento de datos per
 teléfono) incluso a través de alias y CTEs. El endpoint de salud **se pone en rojo** si el backend se configura
 con un rol que puede escribir.
 
+**Infraestructura endurecida ✅**:
+- **Un solo punto de entrada.** nginx es la única entrada; la API no publica puerto.
+- **Contenedores.** Corren sin capacidades de Linux y sin escalada de privilegios; los que no guardan
+  estado tienen el sistema de archivos de solo lectura.
+- **Conexiones.** Una fuente de datos registrada no puede apuntar a la base interna de NEXUS, a Ollama
+  ni a direcciones de metadatos de la nube.
+- **CI.** pip-audit, npm audit, gitleaks y Trivy auditan dependencias, historial de git e imágenes con
+  versiones fijadas, y las GitHub Actions van fijadas por SHA.
+
+Detalle, hallazgos y riesgos aceptados en la [revisión de seguridad](docs/security-review.md) y en
+[`SECURITY.md`](SECURITY.md).
+
 ## 🇪🇨 Datos de demostración: un retail ecuatoriano
 
 Para que las preguntas tengan respuestas interesantes, el proyecto incluye una cadena de retail ficticia con
@@ -178,8 +196,8 @@ Diseño completo en [ADR-0017](docs/adr/0017-retail-demo-dataset.md).
 
 ## 🚀 Inicio rápido
 
-**Requisitos:** Docker Desktop (o Docker Engine + Compose v2), `make`, `openssl` y ~12 GB libres para imágenes y
-modelos. Con GPU NVIDIA se usa automáticamente; sin GPU funciona en modo CPU con un modelo más pequeño.
+**Requisitos:** Docker Desktop (o Docker Engine + Compose v2), `make`, `openssl` y ~16 GB libres para imágenes y
+modelos (~13 GB en modo CPU). Con GPU NVIDIA se usa automáticamente; sin GPU funciona en modo CPU con un modelo más pequeño.
 
 ```bash
 git clone https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL.git
@@ -188,13 +206,17 @@ make up
 ```
 
 `make up` crea `.env` con contraseñas aleatorias, detecta si hay GPU, construye las imágenes, carga los datos de
-demostración, descarga los modelos (≈5 GB la primera vez) y **espera a que todos los servicios estén sanos**.
-En la máquina de referencia tarda menos de 4 minutos.
+demostración, descarga los modelos y **espera a que todos los servicios estén sanos**.
+
+**Tiempos medidos en un clon nuevo:**
+- **Compilar y arrancar:** unos 2 minutos en la máquina de referencia.
+- **Descarga de la primera vez:** ≈9 GB con GPU o ≈6,5 GB en CPU (la imagen de Ollama y los modelos).
+- **Total:** con una conexión de 150 Mbps, **unos 10 minutos**.
 
 | Qué | Dónde |
 |---|---|
 | Aplicación web | http://localhost:8080 |
-| API (documentación interactiva en modo desarrollo) | http://localhost:8000/api/docs |
+| Documentación interactiva de la API (con `NEXUS_ENV=development` en `.env`) | http://localhost:8080/api/docs |
 | Estado de dependencias | http://localhost:8080/api/health/ready |
 | PostgreSQL de la app / de demostración | `localhost:55432` / `localhost:55433` |
 
@@ -278,6 +300,9 @@ make reseed            # regenera los datos de demostración
 make check             # lint + tipos + tests unitarios
 make test-integration  # tests contra PostgreSQL real (Testcontainers)
 make e2e               # tests end-to-end con Playwright (stack levantado)
+make audit             # dependencias, secretos e imágenes (pip-audit, npm audit, gitleaks, Trivy)
+make load              # prueba de carga con k6 -> docs/load-test.md
+make demo-gif          # graba la demo con el modelo real -> docs/assets/demo.gif
 make down              # detiene el stack (conserva los datos)
 make clean             # detiene y BORRA volúmenes y modelos
 ```
@@ -288,7 +313,7 @@ make clean             # detiene y BORRA volúmenes y modelos
 ```mermaid
 flowchart TB
     user([Usuario]) --> web[Frontend<br/>React + nginx]
-    web -->|REST + SSE| api[Backend<br/>FastAPI + LangGraph]
+    web -->|"REST + SSE (única entrada)"| api[Backend<br/>FastAPI + LangGraph]
     api --> ollama[(Ollama<br/>LLM + embeddings)]
     api --> appdb[(App DB<br/>PostgreSQL + pgvector)]
     api -->|rol de solo lectura| demo[(Retail DB<br/>PostgreSQL)]
@@ -305,7 +330,7 @@ exactamente igual que consultaría una base externa tuya, sin ningún camino hac
 | Agente | LangGraph, SQLGlot, interfaz `LLMProvider` intercambiable |
 | Modelos | Ollama — por defecto `qwen2.5-coder:7b`, elegido por el benchmark entre `qwen3:8b`, `gemma4:e4b-it-qat` y una configuración por nodo ([ADR-0022](docs/adr/0022-default-model-from-benchmark.md)); embeddings `qwen3-embedding:0.6b` |
 | Datos | PostgreSQL 18 (pgvector, HypoPG), MySQL 8, SQLite |
-| Infraestructura | Docker Compose, Makefile, GitHub Actions |
+| Infraestructura | Docker Compose (contenedores sin privilegios), Makefile, GitHub Actions, Dependabot |
 | Calidad | pytest, Testcontainers, Hypothesis, Vitest, Playwright, ruff, mypy estricto, ESLint |
 
 Cada decisión importante está documentada como un ADR, con su contexto, las alternativas y las consecuencias.
@@ -321,7 +346,7 @@ Cada decisión importante está documentada como un ADR, con su contexto, las al
 | 4 | Interfaz completa: sistema de diseño, timeline del agente en vivo, dashboards, paleta de comandos | ✅ |
 | 5 | Explicación cláusula por cláusula, optimización con `EXPLAIN`, multi-base de datos | ✅ |
 | 6 | Benchmark de 126 preguntas y selección del modelo por defecto | ✅ |
-| 7 | Endurecimiento, documentación final y demo animada | 🔜 siguiente |
+| 7 | Revisión de seguridad, endurecimiento, auditoría de dependencias, prueba de carga, documentación final y demo animada | ✅ |
 
 Criterios de cierre de cada fase en [`docs/ROADMAP.md`](docs/ROADMAP.md) y bitácora en [`PROGRESS.md`](PROGRESS.md).
 
@@ -331,11 +356,13 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 
 | Área | Estado actual |
 |---|---|
-| Backend | 619 tests (unitarios, seguridad e integración con PostgreSQL, MySQL y SQLite reales) · cobertura 95 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
+| Backend | 648 tests (unitarios, seguridad e integración con PostgreSQL, MySQL y SQLite reales) · cobertura 95 % en `agent/`, `security/` y `sql/` (umbral 85 % en CI) · ruff + mypy `--strict` limpios |
 | Agente | Exactitud de ejecución 71,4 % en 126 preguntas (fáciles 95 %, medias 65 %, difíciles 39 %, ambiguas 93 %) · [benchmark](docs/benchmark.md) · pregunta de referencia **y** su seguimiento correctos con el modelo real (`make e2e-agent`) |
 | Recuperación | Todas las tablas necesarias en 32/32 preguntas, ~4,5 de 10 tablas por pregunta ([reporte](docs/retrieval-eval.md)) |
 | Frontend | 110 tests de Vitest (contraste AA de los tokens, parser SSE, timeline, gráficos, CSV, i18n, escalas del benchmark) · 26 tests de Playwright: cada pantalla en oscuro/claro × escritorio/375 px con axe (WCAG 2.2 AA), alta y baja de una fuente SQLite, página Benchmark con datos reales · la pregunta de referencia en el navegador con el modelo real · ESLint estricto · `tsc` estricto |
-| CI | GitHub Actions: lint, tipos, tests unitarios e integración, build de imágenes Docker · subconjunto del benchmark con el modelo de CPU y umbral calibrado |
+| CI | GitHub Actions: lint, tipos, tests unitarios e integración, auditoría (pip-audit, npm audit, gitleaks, Trivy) y build de imágenes · en cada cambio de código, la pila completa en CPU con Playwright y el subconjunto del benchmark con umbral calibrado |
+| Seguridad | 0 vulnerabilidades conocidas en dependencias · 0 secretos en el historial · 0 CVE HIGH/CRITICAL corregibles en las imágenes propias · [revisión de seguridad](docs/security-review.md) |
+| Carga | 20 peticiones/s de navegación mientras 4 usuarios preguntan a la vez: p95 de 8 ms, 0 errores y las 8 preguntas respondidas ([prueba de carga](docs/load-test.md)) |
 | Datos | Checksum determinista verificado en Windows y Linux · tests de estacionalidad, integridad referencial y anomalías |
 
 ## 📁 Estructura del repositorio
@@ -344,10 +371,10 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 ├── backend/     API FastAPI + agente (paquete `nexus`), tests, Dockerfile
 ├── frontend/    Aplicación React, tests unitarios y end-to-end, nginx
 ├── data/        Esquema retail (DDL comentado) y glosario de negocio
-├── infra/       Scripts de inicialización de PostgreSQL (roles y permisos)
-├── bench/       Benchmark de precisión (Fase 6)
+├── infra/       Inicialización de PostgreSQL (roles y permisos) y prueba de carga (k6)
+├── bench/       Benchmark de precisión: preguntas doradas, configuraciones y resultados
 ├── docs/        Arquitectura, ADRs, hoja de ruta, capturas
-├── scripts/     Generación de secretos y detección de GPU
+├── scripts/     Generación de secretos, detección de GPU y el GIF de la demo
 ├── docker-compose.yml · docker-compose.gpu.yml · Makefile
 ```
 
@@ -355,7 +382,9 @@ Una fase solo se cierra si **todo** está en verde: tests, lint, tipos y `docker
 
 - [Arquitectura](docs/ARCHITECTURE.md): diagramas de contexto, contenedores, grafo del agente, seguridad, RAG y modelo de datos.
 - [Sistema de diseño](docs/DESIGN.md): tokens, tipografía, color de datos validado, movimiento y componentes.
-- [Decisiones de arquitectura (ADRs)](docs/adr/README.md): 20 decisiones con alternativas y consecuencias.
+- [Decisiones de arquitectura (ADRs)](docs/adr/README.md): 23 decisiones con alternativas y consecuencias.
+- [Benchmark](docs/benchmark.md): exactitud de cada modelo local en 126 preguntas y la regla que eligió el modelo por defecto.
+- [Revisión de seguridad](docs/security-review.md), [política de seguridad](SECURITY.md) y [prueba de carga](docs/load-test.md).
 - [Evaluación de la recuperación](docs/retrieval-eval.md): modelos de embeddings y estrategias comparados con datos.
 - [Hoja de ruta](docs/ROADMAP.md) y [bitácora de progreso](PROGRESS.md).
 - [Guía para contribuir con agentes de IA](CLAUDE.md): convenciones, comandos y reglas del proyecto.

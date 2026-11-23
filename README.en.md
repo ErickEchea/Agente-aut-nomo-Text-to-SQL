@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml"><img src="https://github.com/ErickEchea/Agente-aut-nomo-Text-to-SQL/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/status-phase%206%20of%207-3fd0c9" alt="Status: phase 6 of 7">
+  <img src="https://img.shields.io/badge/status-7%20of%207%20phases-3fd0c9" alt="Status: all 7 phases complete">
   <img src="https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13">
   <img src="https://img.shields.io/badge/react-19-149ECA?logo=react&logoColor=white" alt="React 19">
   <img src="https://img.shields.io/badge/postgresql-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 18">
@@ -29,13 +29,17 @@
 Everything runs **on your machine**. Models are served by [Ollama](https://ollama.com): no paid APIs, and your
 data never leaves your network.
 
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Demo: the reference question and its follow-up answered by the local model, with the agent's reasoning streamed live" width="100%">
+  <br><sub>A real run with the local model (<code>make demo-gif</code>): the reference question, then the follow-up "¿Y en el trimestre anterior?" (and the previous quarter?). Only the waits for the model are sped up.</sub>
+</p>
+
 > [!NOTE]
-> **Project status.** NEXUS AI is built in phases ([roadmap](#-roadmap)). **Phases 1–6 are complete**: the
-> web app lets you ask PostgreSQL, MySQL or SQLite, watch the agent reason live, explore the result as a table,
+> **Project status.** **All seven phases are complete** ([roadmap](#-roadmap)): the web app lets you ask PostgreSQL, MySQL or SQLite, watch the agent reason live, explore the result as a table,
 > chart and clause-by-clause annotated SQL, analyze the query plan with suggested indexes, pin it to dashboards,
 > and review history, connections and the audit log. A 126-question benchmark measures the agent and chose
-> the default model from data. This page
-> always separates what **works today** ✅ from what is **planned** 🗓️.
+> the default model from data, and a final security review hardened the containers, dependencies and CI
+> ([review](docs/security-review.md)).
 
 ## ✨ What it does
 
@@ -118,6 +122,18 @@ Integration tests against a real PostgreSQL also prove that the agent role (`nex
 
 The readiness endpoint also turns red if the API is ever configured with a role that can write.
 
+**Hardened infrastructure ✅**
+- **One way in.** nginx is the only ingress; the API publishes no port.
+- **Containers.** They run with no Linux capabilities and cannot gain privileges; stateless ones also
+  have a read-only root filesystem.
+- **Connections.** A registered data source cannot point at NEXUS's own database, at Ollama, or at cloud
+  metadata addresses.
+- **CI.** pip-audit, npm audit, gitleaks and Trivy audit the dependencies, the git history and the
+  images with pinned versions, and the GitHub Actions are pinned by commit SHA.
+
+Findings and accepted risks are in the [security review](docs/security-review.md); the reporting
+policy is in [`SECURITY.md`](SECURITY.md).
+
 ## 🇪🇨 Demo data: an Ecuadorian retail chain
 
 The demo database covers **two years of a fictional retail chain**, in USD, from Nov 2024 to Oct 2026. Its main
@@ -145,7 +161,7 @@ column carries a Spanish `COMMENT ON`, which feeds the schema RAG. Full design:
 
 ## 🚀 Quick start
 
-**Requirements:** Docker (Compose v2), `make`, `openssl` and ~12 GB of free disk. NVIDIA GPUs are detected
+**Requirements:** Docker (Compose v2), `make`, `openssl` and ~16 GB of free disk (~13 GB on CPU). NVIDIA GPUs are detected
 automatically; without one, a smaller model runs on the CPU.
 
 ```bash
@@ -157,13 +173,19 @@ make up
 `make up` does everything in one step:
 1. generates `.env` with random secrets;
 2. detects the GPU and builds the images;
-3. loads the demo data and pulls the models (≈5 GB the first time);
+3. loads the demo data and pulls the models;
 4. waits until every service is healthy.
 
-It takes under 4 minutes on the reference machine. Once it finishes:
+**Measured on a fresh clone:**
+- **Build and start:** about 2 minutes on the reference machine.
+- **First-time download:** ≈9 GB with a GPU or ≈6.5 GB on CPU (the Ollama image and the models).
+- **Total:** **about 10 minutes** on a 150 Mbps connection.
+
+Once it finishes:
 
 - Web app: http://localhost:8080 (sign in with `NEXUS_ADMIN_EMAIL` / `NEXUS_ADMIN_PASSWORD` from `.env`)
 - Readiness check: http://localhost:8080/api/health/ready
+- Interactive API docs (with `NEXUS_ENV=development` in `.env`): http://localhost:8080/api/docs
 
 <p align="center">
   <img src="docs/screenshots/phase6/workspace-answer-desktop-dark.png" alt="NEXUS AI answer: verified summary, date assumptions and the agent's step-by-step reasoning" width="100%">
@@ -219,7 +241,8 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 | Agent | LangGraph, SQLGlot, swappable `LLMProvider` |
 | Models | Ollama. Default `qwen2.5-coder:7b`, chosen by the benchmark over `qwen3:8b`, `gemma4:e4b-it-qat` and a per-node routing ([ADR-0022](docs/adr/0022-default-model-from-benchmark.md)). Embeddings: `qwen3-embedding:0.6b` |
 | Data | PostgreSQL 18 (pgvector, HypoPG), MySQL 8, SQLite |
-| Quality | pytest, Testcontainers, Hypothesis, Vitest, Playwright, ruff, mypy `--strict`, ESLint, GitHub Actions |
+| Infrastructure | Docker Compose (unprivileged containers), Makefile, GitHub Actions, Dependabot |
+| Quality | pytest, Testcontainers, Hypothesis, Vitest, Playwright, k6, ruff, mypy `--strict`, ESLint |
 
 ## 🗺️ Roadmap
 
@@ -232,11 +255,11 @@ On Windows, run the commands from Git Bash after `winget install ezwinports.make
 | 4 | Full UI: design system, live agent timeline, dashboards, command palette | ✅ |
 | 5 | Clause-level explainability, `EXPLAIN`-based optimization, multi-database support | ✅ |
 | 6 | Benchmark of 126 questions; default model selection | ✅ |
-| 7 | Hardening, final docs, demo GIF | 🔜 next |
+| 7 | Security review, hardening, dependency audit, load check, final docs, demo GIF | ✅ |
 
 ## 🧪 Quality
 
-**Backend.** 619 tests (unit, security and integration against real PostgreSQL, MySQL and SQLite). Coverage is 95 % on
+**Backend.** 648 tests (unit, security and integration against real PostgreSQL, MySQL and SQLite). Coverage is 95 % on
 `agent/`, `security/` and `sql/`, gated at 85 % in CI. ruff and `mypy --strict` are clean.
 
 **Agent.** 71.4 % execution accuracy on 126 golden questions (easy 95 %, medium 65 %, hard 39 %, ambiguous
@@ -249,12 +272,25 @@ against the real model (`make e2e-agent`). [Retrieval evaluation](docs/retrieval
 SQLite source, check the Benchmark page with real results, and the reference question
 also runs in the browser against the real model. Strict ESLint and `tsc`.
 
-**CI.** Every push runs the above in GitHub Actions and builds the Docker images. A separate workflow runs
-the benchmark's CI subset on the CPU model against a calibrated accuracy gate.
+**CI.** Every push runs the above in GitHub Actions, audits the dependencies, the git history and the images
+(pip-audit, npm audit, gitleaks, Trivy) and builds the Docker images. Every code change also brings up the
+full stack on CPU to run Playwright and the benchmark's CI subset against a calibrated accuracy gate.
+
+**Security and load.**
+- **Audit results.** No known vulnerabilities in the dependencies, no secrets in the git history, and
+  no fixable HIGH/CRITICAL CVEs in the images this repository builds
+  ([security review](docs/security-review.md)).
+- **Load.** Browsing at 20 requests/s while 4 users ask at once stays at 8 ms p95 with no errors, and
+  all 8 questions are answered ([load test](docs/load-test.md)).
+
+Useful targets: `make audit` (the security audit), `make load` (the load check) and `make demo-gif`
+(re-records the demo with the real model).
 
 ## 📚 Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN.md) · [ADRs](docs/adr/README.md) · [Roadmap](docs/ROADMAP.md) ·
-[Progress log](PROGRESS.md) · [Contributor conventions](CLAUDE.md)
+[Architecture](docs/ARCHITECTURE.md) · [Design system](docs/DESIGN.md) · [ADRs](docs/adr/README.md) (23) ·
+[Benchmark](docs/benchmark.md) · [Security review](docs/security-review.md) · [Security policy](SECURITY.md) ·
+[Load test](docs/load-test.md) · [Roadmap](docs/ROADMAP.md) · [Progress log](PROGRESS.md) ·
+[Contributor conventions](CLAUDE.md)
 
 <p align="center"><sub><a href="LICENSE">MIT</a> licensed · Made in Ecuador 🇪🇨 · Demo data is synthetic; any resemblance to real people is coincidental.</sub></p>

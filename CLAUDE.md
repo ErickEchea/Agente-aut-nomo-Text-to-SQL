@@ -62,6 +62,9 @@ infra/     DB init scripts (roles), nginx                 docs/      architectur
 | `make bench` (`CONFIGS="…"`, `MODELS="…"`, `SUBSET=…`) | Golden-set benchmark through the real agent → `bench/results/`, app DB, `docs/benchmark.md` | 6 |
 | `make bench-freeze` | Re-run the gold SQL and freeze `bench/golden/expected.json` (needed after editing a gold query) | 6 |
 | `make bench-ci` / `make bench-report` | CI subset on the CPU model + accuracy gate / re-render the report | 6 |
+| `make audit` (`audit-deps`, `audit-secrets`, `audit-images`) | pip-audit + npm audit, gitleaks over history, Trivy on the built images (pinned; CI runs the same) | 7 |
+| `make load` (`LOAD_USERS=4`) | k6 through nginx while N users ask at once → `docs/load-test.md` (stack up) | 7 |
+| `make demo-gif` | Record the reference question + follow-up with the real model → `docs/assets/demo.gif` (needs ffmpeg) | 7 |
 
 Backend directly: `cd backend && uv run pytest`, `uv run ruff check`, `uv run mypy src`.
 Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typecheck`, `npx playwright test`.
@@ -69,7 +72,8 @@ Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typec
 ## Environment notes (dev machine)
 - Windows 11, Git Bash; `core.autocrlf=true` → `.gitattributes` forces LF. Keep it that way.
 - Host ports 5432 and 11434 are taken by a local Postgres and the host Ollama app; the stack uses
-  55432 (app-db), 55433 (demo-db), 8000 (API), 8080 (web) and does not publish Ollama.
+  55432 (app-db), 55433 (demo-db), 8080 (web, the only ingress: the API is not published) and 11435 (Ollama).
+  Reach the API at `http://localhost:8080/api`.
 - GPU: RTX 5060 Laptop, 8 GB VRAM → models ≤ ~8B at Q4 (ADR-0003).
 - Python in containers is 3.13; TypeScript pinned to 6.0.x until typescript-eslint supports 7 (ADR-0002).
 - GNU make lives in `%LOCALAPPDATA%\Microsoft\WinGet\Packages\ezwinports.make_*\bin` (on PATH in new terminals).
@@ -80,6 +84,8 @@ Frontend directly: `cd frontend && npm run test`, `npm run lint`, `npm run typec
   with `make e2e-agent` and the benchmark.
 - The demo DB image is built locally (`infra/postgres/demo-image`, PostgreSQL 18 + HypoPG); integration
   tests build the same Dockerfile as `nexus-demo-db:test`.
+- Containers are hardened (ADR-0023): no capabilities, `no-new-privileges`, read-only root filesystems
+  for stateless services. A tool that must write inside a container needs a mount or `/tmp`.
 - Playwright signs in as `NEXUS_E2E_EMAIL` (generated into `.env`, created by `make e2e-user`); logins are rate
   limited (5/min), so specs share one signed-in page per project. Git Bash rewrites `/paths` in arguments:
   prefix with `MSYS_NO_PATHCONV=1` when passing routes.

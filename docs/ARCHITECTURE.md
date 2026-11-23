@@ -1,6 +1,7 @@
 # NEXUS AI — Architecture
 
-> Status: Phase 0 (design). Every decision referenced here has an ADR in [`docs/adr/`](adr/).
+> Status: all phases complete (Phase 7: hardening, see [security review](security-review.md)). Every
+> decision referenced here has an ADR in [`docs/adr/`](adr/).
 > Diagrams are Mermaid; GitHub renders them natively.
 
 ## 1. Goals and non-goals
@@ -46,8 +47,8 @@ flowchart LR
 flowchart TB
     subgraph host[Developer machine / server]
         subgraph net[compose network: nexus]
-            frontend[frontend<br/>nginx serving Vite build<br/>:8080]
-            backend[backend<br/>uvicorn FastAPI<br/>:8000]
+            frontend[frontend<br/>nginx serving Vite build<br/>:8080 · the only ingress]
+            backend[backend<br/>uvicorn FastAPI<br/>:8000 · not published]
             appdb[(app-db<br/>pgvector/pgvector:pg18<br/>nexus_app)]
             demodb[(demo-db<br/>postgres:18 + HypoPG<br/>retail)]
             ext[demo-extensions<br/>one-shot: HypoPG in schema hypopg]
@@ -68,8 +69,17 @@ flowchart TB
     backend -.->|registered sources| extdb[(Your PostgreSQL / MySQL)]
 ```
 
-- Host ports avoid the defaults already in use on the dev machine (5432, 11434): app-db `55432`,
-  demo-db `55433`, API `8000`, web `8080`. Ollama is **not** published to the host by default.
+- **Ingress.** nginx (`8080`) is the only ingress. The API port is not published, so the
+  `X-Forwarded-For` uvicorn trusts is always the one nginx wrote (ADR-0023).
+- **Published ports.** Bound to `127.0.0.1` only, and they avoid the defaults already in use on the dev
+  machine (5432, 11434): app-db `55432`, demo-db `55433`, web `8080`, and Ollama `11435`. The
+  database and Ollama ports serve host-side developer tools such as `make eval-retrieval`.
+- **Least privilege (ADR-0023).**
+  - Every container drops all Linux capabilities and runs with `no-new-privileges`.
+  - PostgreSQL keeps the five capabilities its entrypoint needs.
+  - The backend, migration and seed jobs and nginx run as non-root users on read-only root
+    filesystems, with a `/tmp` tmpfs.
+  - Images apply OS security updates at build time.
 - Healthchecks: `pg_isready` for both databases, `/api/health/ready` for the backend (checks DBs + Ollama + models
   present), HTTP 200 for the frontend. `depends_on: condition: service_healthy|service_completed_successfully`.
 - GPU is an override file (`docker-compose.gpu.yml`) selected by `make up` when `nvidia-smi` is available.
@@ -90,7 +100,8 @@ backend/src/nexus/
 ├── bench/          golden set, execution-accuracy comparison, runner, metrics, report (nexus-bench)
 ├── security/       JWT, password hashing, RBAC, rate limiting, credential encryption, PII masking, audit
 ├── memory/         short-term (conversation) and long-term (preferences, verified examples, corrections)
-├── datasources/    dialect profiles, credential cipher, introspection, connection registry + probe
+├── datasources/    dialect profiles, credential cipher, introspection, connection registry + probe,
+│                   target policy (no internal services or link-local hosts)
 ├── observability/  structlog config, request_id middleware, per-node trace spans
 ├── db/             SQLAlchemy models for the app DB + Alembic migrations
 └── config.py       pydantic-settings, single source of configuration
@@ -176,6 +187,21 @@ event: run.completed  data: {"run_id":"…","status":"answered|clarification|ref
 
 The frontend consumes the stream with `fetch` + `ReadableStream` (not `EventSource`, which cannot send the
 `Authorization` header), so auth stays header-based.
+
+### Implementation status (Phase 7)
+- **Hardening and supply chain** ([ADR-0023](adr/0023-hardening-and-supply-chain.md),
+  [security review](security-review.md)):
+  - single ingress, least-privilege containers, patched images;
+  - the data-source target policy;
+  - `make audit`: pip-audit, npm audit, gitleaks and Trivy, pinned and run by CI;
+  - SHA-pinned GitHub Actions and Dependabot with a cooldown.
+- **One number format** ([ADR-0014](adr/0014-grounded-explanations.md)). Grounded explanations re-render
+  every cited quantity in the UI's locale format (`grounding.localize_numbers`).
+- **Verification beyond unit tests:**
+  - `stack.yml` runs Playwright and the benchmark subset on a fresh CPU stack in CI;
+  - `make load` (k6) checks that browsing stays fast while several users ask at once
+    ([load test](load-test.md));
+  - `make demo-gif` records the README demo from a real run.
 
 ### Implementation status (Phase 6)
 - `nexus.bench` measures the agent end to end on the golden set (ADR-0015, ADR-0022).
@@ -295,6 +321,9 @@ flowchart LR
 - Layers 2 and 3 are each tested to stand alone: the attack suite runs once **with validation disabled
   against the read-only role** and once **with validation enabled against a privileged role**; both must block
   every destructive case (ADR-0005).
+- Data-source targets (ADR-0023): before any driver connects, a registered host is resolved and refused when
+  it is link-local (cloud metadata), multicast, unspecified or reserved, or when its address and port are the
+  app database's or Ollama's (`nexus.datasources.targets`).
 - Prompt-injection posture: user questions and database values are placed in clearly delimited data blocks,
   never concatenated into instructions; sample values are truncated and control characters stripped; the LLM has
   no tools — its only power is to propose SQL, which then goes through layers 2–5.
