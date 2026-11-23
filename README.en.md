@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="NEXUS AI — ask in Spanish, get verified SQL, data, charts and a clear answer" width="100%">
+  <img src="docs/assets/banner.svg" alt="NEXUS AI — get verified SQL, data, charts and a clear answer" width="100%">
 </p>
 
 <p align="center">

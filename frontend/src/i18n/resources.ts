@@ -66,7 +66,7 @@ const es = {
     invalid: "Correo o contraseña incorrectos.",
     rateLimited: "Demasiados intentos. Espera {{seconds}} s e inténtalo de nuevo.",
     sessionExpired: "Tu sesión expiró. Vuelve a iniciar sesión.",
-    heroTitle: "Pregunta en español. Obtén SQL verificado, datos y una respuesta clara.",
+    heroTitle: "Obtén SQL verificado, datos, gráficos y una respuesta clara.",
     heroPoints: {
       safe: "Cada consulta se valida y se ejecuta en modo solo lectura.",
       visible: "Ves cada paso del razonamiento del agente, en vivo.",
@@ -571,7 +571,7 @@ const en: Shape<typeof es> = {
     invalid: "Wrong email or password.",
     rateLimited: "Too many attempts. Wait {{seconds}} s and try again.",
     sessionExpired: "Your session expired. Please sign in again.",
-    heroTitle: "Ask in Spanish. Get verified SQL, data and a clear answer.",
+    heroTitle: "Get verified SQL, data, charts and a clear answer.",
     heroPoints: {
       safe: "Every query is validated and runs read-only.",
       visible: "Watch every step of the agent's reasoning, live.",

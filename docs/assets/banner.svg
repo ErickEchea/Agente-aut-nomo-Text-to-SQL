@@ -24,8 +24,8 @@
   <g font-family="'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif">
     <text x="72" y="92" fill="#8b9bb0" font-size="15" letter-spacing="3">AUTONOMOUS BUSINESS INTELLIGENCE</text>
     <text x="68" y="172" fill="#e6edf5" font-size="84" font-weight="700" letter-spacing="6">NEXUS<tspan fill="#3fd0c9"> AI</tspan></text>
-    <text x="72" y="222" fill="#c5d0dc" font-size="24">Pregunta en español. Obtén SQL verificado,</text>
-    <text x="72" y="254" fill="#c5d0dc" font-size="24">datos, gráficos y una respuesta clara.</text>
+    <text x="72" y="222" fill="#c5d0dc" font-size="24">Obtén SQL verificado, datos, gráficos</text>
+    <text x="72" y="254" fill="#c5d0dc" font-size="24">y una respuesta clara.</text>
   </g>
 
   <!-- Question chip -->
