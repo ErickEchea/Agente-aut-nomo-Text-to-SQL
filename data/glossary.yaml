@@ -68,6 +68,16 @@ metrics:
       Unidades devueltas divididas para unidades vendidas (ventas completadas) en el mismo periodo de venta.
     requires:
       tables: [devoluciones, detalle_ventas, ventas]
+  - term: clientes nuevos
+    # Not "se registraron": devoluciones and ventas "se registran" too.
+    synonyms: [cliente nuevo, nuevos clientes, clientes registrados, altas de clientes]
+    definition: >-
+      Clientes cuya clientes.fecha_registro cae en el periodo pedido (no la fecha de nacimiento). Se
+      cuentan en retail.clientes sin pasar por ventas: un cliente nuevo puede no haber comprado aún.
+    sql: COUNT(*) FROM retail.clientes c WHERE c.fecha_registro dentro del rango de fechas resuelto
+    requires:
+      tables: [clientes]
+      message: «clientes nuevos» se cuenta en retail.clientes por fecha_registro.
   - term: quiebre de stock
     synonyms: [sin stock, agotado, stockout]
     definition: Fila de inventario con stock = 0 en la fecha de corte.
