@@ -137,9 +137,9 @@ Phase plan and exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
     `main`.
 
   Both are reachable only inside the compose network or on loopback.
-- **Dependabot PRs #1–#4** were opened before the ignore rules existed. They propose Python 3.15, Node 26,
-  nginx 1.31 (mainline) and `@types/node` 26, which contradict ADR-0002 and should be closed. The
-  updated configuration does not propose them again.
+- **Dependabot PRs #1–#4** were opened before the ignore rules existed. They proposed Python 3.15, Node 26,
+  nginx 1.31 (mainline) and `@types/node` 26, which contradict ADR-0002. Dependabot closed them itself
+  (unmerged) once the rules landed.
 - **Cold start.** Right after `make up` the models are not loaded yet: the first 4 concurrent questions took
   ~115 s, against 15–29 s warm.
 - **The load check is a sanity check, not a capacity figure**: one replica, one GPU,
