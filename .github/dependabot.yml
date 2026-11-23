@@ -1,6 +1,9 @@
 # Weekly version updates (security updates are not delayed). A 7-day cooldown keeps a freshly published
 # release (the window in which compromised releases are usually caught) out of the proposals.
-# Model weights are not dependencies here: the default model is a benchmark decision (ADR-0022).
+# Runtime and toolchain jumps are deliberate decisions (ADR-0002), so they are ignored here:
+# Python stays on 3.13, Node on 24, PostgreSQL on 18, TypeScript on 6.0 (typescript-eslint), and nginx on
+# its stable branch. Ollama only gets patch releases: the benchmark measured that version (ADR-0022).
+# Model weights are not dependencies here: the default model is a benchmark decision.
 version: 2
 updates:
   - package-ecosystem: uv
@@ -12,6 +15,7 @@ updates:
     groups:
       python:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -22,6 +26,12 @@ updates:
     groups:
       javascript:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -36,11 +46,24 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "nginx"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
-  # Ollama is pinned to the version the benchmark measured; review its updates with `make bench`.
   - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "ollama/ollama"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "pgvector/pgvector"
+        update-types: ["version-update:semver-major"]
